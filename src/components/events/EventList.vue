@@ -5,6 +5,7 @@
         v-for="event in events"
         :key="event.id"
         :event="event"
+        :readonly="readonly"
         @edit="$emit('edit', event)"
         @delete="$emit('delete', event)"
         @toggle="(payload) => $emit('toggle', payload)"
@@ -28,7 +29,8 @@ import type { CashFlowEvent } from '@/types/event';
 import EventCard from './EventCard.vue';
 import AppIcon from '@/components/common/AppIcon.vue';
 
-defineProps<{ events: CashFlowEvent[] }>();
+const props = defineProps<{ events: CashFlowEvent[]; readonly?: boolean }>();
+const readonly = props.readonly ?? false;
 defineEmits<{
   (e: 'edit', event: CashFlowEvent): void;
   (e: 'delete', event: CashFlowEvent): void;

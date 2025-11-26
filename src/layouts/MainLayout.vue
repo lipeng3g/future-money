@@ -1,7 +1,13 @@
 <template>
   <section class="main-layout">
-    <!-- 右下角快速添加按钮 -->
-    <button class="floating-add-button" @click="modalOpen = true" title="快速添加现金流事件">
+    <!-- 右下角快速添加按钮（仅在可编辑单账户视图下显示） -->
+    <button
+      v-if="!store.isReadOnly"
+      id="floating-add-button"
+      class="floating-add-button"
+      @click="modalOpen = true"
+      title="快速添加现金流事件"
+    >
       <span class="add-icon">
         <AppIcon name="plus" :size="28" :stroke-width="1.8" />
       </span>
@@ -48,6 +54,7 @@ const drawerVisible = ref(false);
 const modalOpen = ref(false);
 
 const mapValuesToPayload = (values: EventFormValues): NewCashFlowEvent => ({
+  accountId: store.account.id,
   name: values.name.trim(),
   amount: Number(values.amount) || 0,
   category: values.category,
@@ -77,8 +84,8 @@ const handleSubmit = (values: EventFormValues) => {
 <style scoped>
 .main-layout {
   flex: 1;
-  padding: 32px;
-  background-color: #f5f7fb;
+  padding: 32px 48px;
+  background-color: var(--fm-bg-app);
   min-height: 0;
   position: relative;
 }
@@ -89,17 +96,17 @@ const handleSubmit = (values: EventFormValues) => {
 
 .floating-add-button {
   position: fixed;
-  right: 32px;
-  bottom: 32px;
+  right: 48px;
+  bottom: 48px;
   width: 64px;
   height: 64px;
-  background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
   color: white;
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.5);
-  transition: all 0.3s ease;
+  box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 999;
   display: flex;
   align-items: center;
@@ -112,7 +119,7 @@ const handleSubmit = (values: EventFormValues) => {
   position: absolute;
   inset: -4px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
   opacity: 0;
   animation: pulse 2s ease-in-out infinite;
   z-index: -1;
@@ -131,7 +138,7 @@ const handleSubmit = (values: EventFormValues) => {
 
 .floating-add-button:hover {
   transform: translateY(-4px) scale(1.05);
-  box-shadow: 0 12px 32px rgba(236, 72, 153, 0.6);
+  box-shadow: 0 15px 35px rgba(79, 70, 229, 0.5);
 }
 
 .floating-add-button:active {

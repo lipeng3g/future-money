@@ -42,12 +42,12 @@ const chartOption = computed(() => {
               <span style="display:inline-block;width:6px;height:6px;border-radius:999px;background:#10b981;margin-right:4px;"></span>
               收入: ¥${income.toLocaleString()}
             </div>
-            <div style="color:#ef4444;margin-top:2px">
-              <span style="display:inline-block;width:6px;height:6px;border-radius:999px;background:#ef4444;margin-right:4px;"></span>
+            <div style="color:#f43f5e;margin-top:2px">
+              <span style="display:inline-block;width:6px;height:6px;border-radius:999px;background:#f43f5e;margin-right:4px;"></span>
               支出: ¥${expense.toLocaleString()}
             </div>
-            <div style="margin-top:6px;padding-top:6px;border-top:1px solid #e5e7eb;font-weight:600;color:${net >= 0 ? '#10b981' : '#ef4444'}">
-              结余: <span style="color:${net >= 0 ? '#10b981' : '#ef4444'}">¥${net.toLocaleString()}</span>
+            <div style="margin-top:6px;padding-top:6px;border-top:1px solid #e5e7eb;font-weight:600;color:${net >= 0 ? '#10b981' : '#f43f5e'}">
+              结余: <span style="color:${net >= 0 ? '#10b981' : '#f43f5e'}">¥${net.toLocaleString()}</span>
             </div>
           </div>
         `;
@@ -83,7 +83,7 @@ const chartOption = computed(() => {
         color: '#6b7280',
       },
       splitLine: {
-        lineStyle: { color: '#f3f4f6' },
+        lineStyle: { color: '#f1f5f9', type: 'dashed' },
       },
     },
     series: [
@@ -101,7 +101,7 @@ const chartOption = computed(() => {
         type: 'bar',
         stack: 'total',
         itemStyle: {
-          color: '#ef4444',
+          color: '#f43f5e',
         },
         data: expenseData.map(v => -v), // 负值显示在下方
       },
@@ -110,11 +110,13 @@ const chartOption = computed(() => {
         type: 'line',
         symbolSize: 8,
         itemStyle: {
-          color: '#3b82f6',
+          color: '#2563eb',
           borderWidth: 2,
+          borderColor: '#ffffff',
         },
         lineStyle: {
-          width: 3,
+          width: 2,
+          color: '#2563eb',
         },
         data: netData,
         z: 10, // 确保线在柱子上方
@@ -126,18 +128,18 @@ const chartOption = computed(() => {
 
 <style scoped>
 .chart-card {
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--fm-border-subtle);
   border-radius: 12px;
   padding: 20px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: var(--fm-surface);
+  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05);
 }
 
 .chart-card h3 {
   margin: 0 0 16px;
   font-size: 1rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--fm-text-primary);
 }
 
 .chart {

@@ -1,27 +1,32 @@
 <template>
   <article class="event-card" :class="event.category">
-    <div class="corner-mark" :class="event.category"></div>
+    <div class="card-indicator" :class="event.category"></div>
     <div class="event-content">
-      <div class="event-info">
-        <h3>
-          {{ event.name }}
-          <span v-if="!event.enabled" class="badge">已暂停</span>
-        </h3>
-        <p class="meta">{{ recurrenceLabel }}</p>
-        <div class="amount" :class="event.category">{{ amountLabel }}</div>
+      <div class="event-main">
+        <div class="event-header">
+          <h3>{{ event.name }}</h3>
+          <span v-if="!event.enabled" class="status-badge paused">已暂停</span>
+        </div>
+        <div class="event-meta">
+          <span v-if="accountLabel" class="account-tag">
+            <span class="account-dot" :style="{ background: accountColor }" />
+            {{ accountLabel }}
+          </span>
+          <span class="recurrence">{{ recurrenceLabel }}</span>
+        </div>
       </div>
-      <div class="event-actions">
-        <a-switch :checked="event.enabled" size="small" @change="handleToggle" />
-        <a-button type="text" size="small" @click="$emit('edit', event)">
-          <template #icon>
-            <AppIcon name="edit" :size="16" />
-          </template>
-        </a-button>
-        <a-button type="text" size="small" danger @click="$emit('delete', event)">
-          <template #icon>
-            <AppIcon name="delete" :size="16" />
-          </template>
-        </a-button>
+      
+      <div class="event-right">
+        <div class="amount" :class="event.category">{{ amountLabel }}</div>
+        <div class="event-actions">
+          <a-switch :checked="event.enabled" size="small" :disabled="isReadOnly" @change="handleToggle" />
+          <a-button v-if="!isReadOnly" type="text" size="small" class="action-btn" @click="$emit('edit', event)">
+            <template #icon><AppIcon name="edit" :size="16" /></template>
+          </a-button>
+          <a-button v-if="!isReadOnly" type="text" size="small" danger class="action-btn" @click="$emit('delete', event)">
+            <template #icon><AppIcon name="delete" :size="16" /></template>
+          </a-button>
+        </div>
       </div>
     </div>
   </article>
@@ -31,13 +36,22 @@
 import { computed } from 'vue';
 import type { CashFlowEvent } from '@/types/event';
 import AppIcon from '@/components/common/AppIcon.vue';
+import { useFinanceStore } from '@/stores/finance';
 
-const props = defineProps<{ event: CashFlowEvent }>();
+const props = defineProps<{ event: CashFlowEvent; readonly?: boolean }>();
 const emit = defineEmits<{
   (e: 'toggle', payload: { id: string; enabled: boolean }): void;
   (e: 'edit', event: CashFlowEvent): void;
   (e: 'delete', event: CashFlowEvent): void;
 }>();
+
+const store = useFinanceStore();
+
+const isReadOnly = computed(() => props.readonly ?? store.isReadOnly);
+
+const accountInfo = computed(() => store.accounts.find((a) => a.id === props.event.accountId));
+const accountLabel = computed(() => accountInfo.value?.name ?? '');
+const accountColor = computed(() => accountInfo.value?.color ?? '#6b7280');
 
 const amountLabel = computed(() => {
   const prefix = props.event.category === 'income' ? '+' : '-';
@@ -65,99 +79,136 @@ const handleToggle = (checked: boolean) => {
 <style scoped>
 .event-card {
   position: relative;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 8px;
-  padding: 12px 16px;
-  background: white;
-  transition: all 0.2s ease;
+  background: var(--fm-surface);
+  border: 1px solid var(--fm-border-subtle);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  display: flex;
+  align-items: stretch;
 }
 
 .event-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border-color: rgba(15, 23, 42, 0.12);
+  transform: translateY(-2px);
+  box-shadow: var(--fm-shadow-md);
+  border-color: var(--fm-primary-light);
 }
 
-/* 右上角三角形标记 */
-.corner-mark {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 0 32px 32px 0;
+.card-indicator {
+  width: 4px;
+  background: var(--fm-border-subtle);
+  border-radius: 4px;
+  margin-right: 16px;
 }
 
-.corner-mark.income {
-  border-color: transparent #10b981 transparent transparent;
-  opacity: 0.85;
+.card-indicator.income {
+  background: var(--fm-income);
 }
 
-.corner-mark.expense {
-  border-color: transparent #ef4444 transparent transparent;
-  opacity: 0.85;
+.card-indicator.expense {
+  background: var(--fm-expense);
 }
 
 .event-content {
+  flex: 1;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
-.event-info {
-  flex: 1;
-  min-width: 0;
+.event-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.event-info h3 {
-  margin: 0 0 4px;
-  font-size: 0.95rem;
+.event-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.event-header h3 {
+  margin: 0;
+  font-size: 1rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--fm-text-primary);
 }
 
-.meta {
-  margin: 0 0 6px;
-  font-size: 0.8rem;
-  color: #9ca3af;
+.status-badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--fm-surface-muted);
+  color: var(--fm-text-muted);
+  font-weight: 500;
+}
+
+.event-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--fm-text-secondary);
+}
+
+.account-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: var(--fm-surface-muted);
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.account-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.event-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
 }
 
 .amount {
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   font-weight: 700;
-  margin-top: 2px;
+  font-family: 'Monaco', 'Menlo', monospace; /* Number optimized font */
 }
 
 .amount.income {
-  color: #10b981;
+  color: var(--fm-income);
 }
 
 .amount.expense {
-  color: #ef4444;
+  color: var(--fm-expense);
 }
 
 .event-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
+  gap: 8px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
 }
 
-.event-actions :deep(.ant-btn) {
-  min-width: 28px;
-  height: 28px;
-  padding: 0 4px;
+.event-card:hover .event-actions {
+  opacity: 1;
 }
 
-.badge {
-  margin-left: 6px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  background: rgba(156, 163, 175, 0.15);
-  padding: 2px 6px;
-  border-radius: 8px;
-  color: #6b7280;
+.action-btn {
+  color: var(--fm-text-muted);
+}
+
+.action-btn:hover {
+  color: var(--fm-primary);
+  background: var(--fm-primary-light);
 }
 </style>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TimelineGenerator } from '@/utils/timeline';
 import type { CashFlowEvent } from '@/types/event';
+import type { BalanceSnapshot } from '@/types/account';
 import { AnalyticsEngine } from '@/utils/analytics';
 
 const createEvent = (overrides: Partial<CashFlowEvent> = {}): CashFlowEvent => ({
@@ -31,11 +32,22 @@ describe('TimelineGenerator', () => {
       }),
     ];
 
+    const snapshots: BalanceSnapshot[] = [
+      {
+        id: 'snap-1',
+        date: '2025-01-01',
+        balance: 10000,
+        source: 'initial',
+        createdAt: '2025-01-01T00:00:00Z',
+      },
+    ];
+
     const timeline = generator.generate({
-      initialBalance: 10000,
       events,
-      startDate: '2025-01-01',
+      snapshots,
       months: 2,
+      mode: 'latest',
+      today: '2025-01-01',
     });
 
     const salaryDays = timeline.filter((day) => day.events.some((e) => e.eventId === 'evt-test'));
@@ -50,11 +62,22 @@ describe('TimelineGenerator', () => {
       createEvent({ id: 'evt-31', monthlyDay: 31 }),
     ];
 
+    const snapshots: BalanceSnapshot[] = [
+      {
+        id: 'snap-2',
+        date: '2025-01-01',
+        balance: 0,
+        source: 'initial',
+        createdAt: '2025-01-01T00:00:00Z',
+      },
+    ];
+
     const timeline = generator.generate({
-      initialBalance: 0,
       events,
-      startDate: '2025-01-01',
+      snapshots,
       months: 2,
+      mode: 'latest',
+      today: '2025-01-01',
     });
 
     const jan = timeline.find((day) => day.date === '2025-01-31');
@@ -79,11 +102,22 @@ describe('AnalyticsEngine', () => {
       }),
     ];
 
+    const snapshots: BalanceSnapshot[] = [
+      {
+        id: 'snap-3',
+        date: '2025-01-01',
+        balance: 1000,
+        source: 'initial',
+        createdAt: '2025-01-01T00:00:00Z',
+      },
+    ];
+
     const timeline = generator.generate({
-      initialBalance: 1000,
       events,
-      startDate: '2025-01-01',
+      snapshots,
       months: 2,
+      mode: 'latest',
+      today: '2025-01-01',
     });
 
     const engine = new AnalyticsEngine();

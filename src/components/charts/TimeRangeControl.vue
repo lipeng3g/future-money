@@ -31,6 +31,8 @@ const handleChange = (value: number | string) => {
 }
 
 .range-control label {
-  color: #6b7280;
+  color: var(--fm-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 </style>

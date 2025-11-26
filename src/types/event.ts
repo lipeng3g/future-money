@@ -3,6 +3,8 @@ export type TransactionCategory = 'income' | 'expense';
 
 export interface CashFlowEvent {
   id: string;
+  /** 归属账户 id，用于多账户分类 */
+  accountId: string;
   name: string;
   amount: number;
   category: TransactionCategory;
@@ -20,7 +22,10 @@ export interface CashFlowEvent {
   updatedAt: string;
 }
 
-export type NewCashFlowEvent = Omit<CashFlowEvent, 'id' | 'createdAt' | 'updatedAt'>;
+// accountId 允许省略，由 store 在添加事件时根据当前账户补全
+export type NewCashFlowEvent = Omit<CashFlowEvent, 'id' | 'accountId' | 'createdAt' | 'updatedAt'> & {
+  accountId?: string;
+};
 export type CashFlowEventUpdate = Partial<Omit<CashFlowEvent, 'id' | 'createdAt' | 'updatedAt'>>;
 
 export interface EventFormValues {

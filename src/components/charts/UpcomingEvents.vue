@@ -41,11 +41,25 @@ const items = computed(() => {
 
 <style scoped>
 .chart-card {
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--fm-border-subtle);
   border-radius: 16px;
-  padding: 16px;
-  background: #fff;
+  padding: 20px;
+  background: var(--fm-surface);
   min-height: 200px;
+  box-shadow: var(--fm-shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.chart-card:hover {
+  box-shadow: var(--fm-shadow-md);
+  transform: translateY(-2px);
+}
+
+.chart-card h3 {
+  margin: 0 0 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fm-text-primary);
 }
 
 ul {
@@ -61,17 +75,22 @@ li {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 12px 16px;
   border-radius: 12px;
-  background: #f9fafb;
+  background: var(--fm-surface-muted);
+  transition: background 0.2s;
+}
+
+li:hover {
+  background: #f1f5f9;
 }
 
 li.income span:last-child {
-  color: #059669;
+  color: var(--fm-income);
 }
 
 li.expense span:last-child {
-  color: #dc2626;
+  color: var(--fm-expense);
 }
 
 li div {
@@ -80,11 +99,17 @@ li div {
 }
 
 li span {
-  color: #6b7280;
+  color: var(--fm-text-secondary);
   font-size: 0.85rem;
 }
 
+li span:last-child {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  min-width: 96px;
+  text-align: right;
+}
+
 .empty {
-  color: #6b7280;
+  color: var(--fm-text-secondary);
 }
 </style>

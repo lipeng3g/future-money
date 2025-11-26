@@ -1,7 +1,48 @@
 :root {
-  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #111827;
-  background-color: #f5f7fb;
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  color: var(--fm-text-primary);
+  background-color: var(--fm-bg-app);
+
+  /* --- Future Prime Design Tokens --- */
+
+  /* Palette: Indigo / Slate / Gold */
+  --fm-primary: #4f46e5;       /* Indigo 600 */
+  --fm-primary-hover: #4338ca; /* Indigo 700 */
+  --fm-primary-light: #e0e7ff; /* Indigo 100 */
+  
+  --fm-secondary: #64748b;     /* Slate 500 */
+  
+  --fm-accent: #f59e0b;        /* Amber 500 */
+  --fm-accent-hover: #d97706;  /* Amber 600 */
+
+  /* Backgrounds */
+  --fm-bg-app: #f8fafc;        /* Slate 50 */
+  --fm-surface: #ffffff;       /* White */
+  --fm-surface-muted: #f1f5f9; /* Slate 100 */
+  --fm-surface-glass: rgba(255, 255, 255, 0.8);
+
+  /* Text */
+  --fm-text-primary: #0f172a;   /* Slate 900 */
+  --fm-text-secondary: #64748b; /* Slate 500 */
+  --fm-text-muted: #94a3b8;     /* Slate 400 */
+  --fm-text-inverse: #ffffff;
+
+  /* Borders */
+  --fm-border-subtle: #e2e8f0;  /* Slate 200 */
+  --fm-border-focus: #4f46e5;
+
+  /* Functional */
+  --fm-income: #10b981;  /* Emerald 500 */
+  --fm-expense: #f43f5e; /* Rose 500 */
+  --fm-danger: #ef4444;  /* Red 500 */
+  --fm-warning: #f59e0b; /* Amber 500 */
+
+  /* Shadows */
+  --fm-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --fm-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --fm-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --fm-shadow-premium: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 * {
@@ -17,7 +58,10 @@ html,
 }
 
 body {
-  background-color: #f5f7fb;
+  background-color: var(--fm-bg-app);
+  color: var(--fm-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .app-shell {
@@ -29,4 +73,25 @@ body {
 .app-main {
   flex: 1;
   display: flex;
+}
+
+/* Utility Classes */
+.glass-panel {
+  background: var(--fm-surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.premium-card {
+  background: var(--fm-surface);
+  border: 1px solid var(--fm-border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--fm-shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.premium-card:hover {
+  box-shadow: var(--fm-shadow-md);
+  transform: translateY(-2px);
 }

@@ -106,15 +106,15 @@ const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { m
 }
 
 .stat-card {
-  background: white;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 12px;
+  background: var(--fm-surface);
+  border: 1px solid var(--fm-border-subtle);
+  border-radius: 16px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--fm-shadow-sm);
   position: relative;
   overflow: hidden;
 }
@@ -131,8 +131,8 @@ const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { m
 }
 
 .stat-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
+  box-shadow: var(--fm-shadow-md);
+  transform: translateY(-4px);
 }
 
 .stat-card.clickable {
@@ -144,9 +144,10 @@ const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { m
 }
 
 .stat-card.primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
   color: white;
   border: none;
+  box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
 }
 
 .stat-card.primary::before {
@@ -177,12 +178,12 @@ const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { m
 }
 
 .stat-card.safe {
-  background: #f0fdf4;
-  border-color: #10b981;
+  background: #ffffff;
+  border-color: rgba(34, 197, 94, 0.3);
 }
 
 .stat-card.safe::before {
-  background: #10b981;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
 }
 
 .stat-badge {
@@ -201,13 +202,13 @@ const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { m
 }
 
 .stat-badge.income {
-  background: #d1fae5;
+  background: rgba(16, 185, 129, 0.12);
   color: #059669;
 }
 
 .stat-badge.expense {
-  background: #fee2e2;
-  color: #dc2626;
+  background: rgba(244, 63, 94, 0.12);
+  color: #be123c;
 }
 
 .stat-badge.warning {
@@ -218,8 +219,8 @@ const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { m
 }
 
 .stat-badge.safe {
-  background: #d1fae5;
-  color: #059669;
+  background: rgba(16, 185, 129, 0.08);
+  color: #16a34a;
   font-size: 1rem;
   padding: 4px 12px;
 }
@@ -233,24 +234,24 @@ const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { m
 .stat-label {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--fm-text-secondary);
   order: 2;
 }
 
 .stat-value {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--fm-text-primary);
   line-height: 1.2;
   order: 1;
 }
 
 .stat-value.income {
-  color: #10b981;
+  color: var(--fm-income);
 }
 
 .stat-value.expense {
-  color: #ef4444;
+  color: var(--fm-expense);
 }
 
 .stat-date {
@@ -267,7 +268,7 @@ const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { m
 
 .warning-dates-header {
   font-weight: 600;
-  color: #111827;
+  color: var(--fm-text-primary);
   margin-bottom: 12px;
   padding-bottom: 8px;
   border-bottom: 1px solid #e5e7eb;
@@ -292,7 +293,7 @@ const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { m
 }
 
 .date-text {
-  color: #ef4444;
+  color: var(--fm-expense);
   font-weight: 500;
 }
 

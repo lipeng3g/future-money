@@ -21,12 +21,65 @@ const normalizeYearlyDay = (date: Date, month: number, day: number): { month: nu
 
 export class TimelineGenerator {
   generate(input: TimelineInput): DailySnapshot[] {
-    const { initialBalance, events, months } = input;
-    const timeline: DailySnapshot[] = [];
-    const start = startOfDay(parseISO(input.startDate));
-    const end = startOfDay(addMonths(start, months));
-    const today = startOfDay(new Date());
+    const { events, months, snapshots } = input;
+    const mode = input.mode ?? 'latest';
+    const todayDate = input.today ? startOfDay(parseISO(input.today)) : startOfDay(new Date());
 
+    if (!snapshots || snapshots.length === 0) {
+      return [];
+    }
+
+    const sortedSnapshots = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
+
+    if (mode === 'latest') {
+      const latest = sortedSnapshots[sortedSnapshots.length - 1];
+      return this.generateSegment({
+        startDate: latest.date,
+        initialBalance: latest.balance,
+        snapshotId: latest.id,
+        events,
+        months,
+        today: todayDate,
+      });
+    }
+
+    // segments 模式：为每个快照生成一个片段，保留以备将来回放使用
+    const result: DailySnapshot[] = [];
+    for (let i = 0; i < sortedSnapshots.length; i += 1) {
+      const snap = sortedSnapshots[i];
+      const next = sortedSnapshots[i + 1];
+      const segment = this.generateSegment({
+        startDate: snap.date,
+        initialBalance: snap.balance,
+        snapshotId: snap.id,
+        events,
+        months,
+        today: todayDate,
+        // 如果存在下一条快照，则该片段在下一快照前一天结束
+        endBeforeDate: next ? next.date : undefined,
+      });
+      result.push(...segment);
+    }
+    return result;
+  }
+
+  private generateSegment(params: {
+    startDate: string;
+    initialBalance: number;
+    snapshotId: string;
+    events: CashFlowEvent[];
+    months: number;
+    today: Date;
+    endBeforeDate?: string;
+  }): DailySnapshot[] {
+    const { startDate, initialBalance, snapshotId, events, months, today, endBeforeDate } = params;
+    const start = startOfDay(parseISO(startDate));
+    const maxEnd = startOfDay(addMonths(start, months));
+    const limitEnd = endBeforeDate ? startOfDay(parseISO(endBeforeDate)) : maxEnd;
+    // 片段结束在 limitEnd 和 maxEnd 的较早者（endBeforeDate 不包含当天）
+    const end = isBefore(limitEnd, maxEnd) ? addDays(limitEnd, -1) : maxEnd;
+
+    const timeline: DailySnapshot[] = [];
     let cursor = new Date(start);
     let balance = initialBalance;
 
@@ -35,13 +88,19 @@ export class TimelineGenerator {
       const change = this.calculateDailyChange(dailyEvents);
       balance = Number((balance + change).toFixed(2));
 
+      const dateStr = formatISO(cursor, { representation: 'date' });
+      const isTodayFlag = isSameDay(cursor, today);
+      const isPast = isBefore(cursor, today);
+
       timeline.push({
-        date: formatISO(cursor, { representation: 'date' }),
+        date: dateStr,
         balance,
         change,
         events: dailyEvents,
         isWeekend: isWeekend(cursor),
-        isToday: isSameDay(cursor, today),
+        isToday: isTodayFlag,
+        snapshotId,
+        isPast,
       });
 
       cursor = addDays(cursor, 1);

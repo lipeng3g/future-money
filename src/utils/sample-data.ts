@@ -2,12 +2,13 @@ import { addMonths, formatISO } from 'date-fns';
 import type { CashFlowEvent } from '@/types/event';
 import { createId } from '@/utils/id';
 
-export const generateSampleEvents = (): CashFlowEvent[] => {
+export const generateSampleEvents = (accountId: string): CashFlowEvent[] => {
   const now = new Date();
   const baseDate = formatISO(now, { representation: 'date' });
   return [
     {
       id: createId(),
+      accountId,
       name: '工资到账',
       amount: 20000,
       category: 'income',
@@ -21,6 +22,7 @@ export const generateSampleEvents = (): CashFlowEvent[] => {
     },
     {
       id: createId(),
+      accountId,
       name: '信用卡还款',
       amount: 6000,
       category: 'expense',
@@ -34,6 +36,7 @@ export const generateSampleEvents = (): CashFlowEvent[] => {
     },
     {
       id: createId(),
+      accountId,
       name: '房贷',
       amount: 8000,
       category: 'expense',
@@ -46,6 +49,7 @@ export const generateSampleEvents = (): CashFlowEvent[] => {
     },
     {
       id: createId(),
+      accountId,
       name: '年度奖金',
       amount: 40000,
       category: 'income',
@@ -60,6 +64,7 @@ export const generateSampleEvents = (): CashFlowEvent[] => {
     },
     {
       id: createId(),
+      accountId,
       name: '汽车保险',
       amount: 6000,
       category: 'expense',
@@ -73,6 +78,7 @@ export const generateSampleEvents = (): CashFlowEvent[] => {
     },
     {
       id: createId(),
+      accountId,
       name: '家电升级',
       amount: 12000,
       category: 'expense',

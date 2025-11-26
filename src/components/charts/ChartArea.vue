@@ -9,17 +9,26 @@
     </header>
 
     <!-- 关键指标置顶 -->
-    <StatisticsPanel :analytics="store.analytics" />
+    <div id="stats-panel">
+      <StatisticsPanel :analytics="store.analytics" />
+    </div>
 
     <!-- 余额走势图 + 即将发生 + 事件入口 -->
     <div class="balance-section">
-      <BalanceChart
-        :timeline="store.timeline"
-        :warning-threshold="store.account.warningThreshold"
-        :chart-type="store.preferences.chartType"
-        :show-weekends="store.preferences.showWeekends"
-      />
-      <UpcomingEvents :timeline="store.timeline" />
+      <div id="balance-chart-card" class="balance-card">
+        <BalanceChart
+          :timeline="store.timeline"
+          :warning-threshold="store.warningThreshold"
+          :chart-type="store.preferences.chartType"
+          :show-weekends="store.preferences.showWeekends"
+          :snapshot-date="store.activeSnapshot?.date"
+          :snapshot-balance="store.activeSnapshot?.balance"
+          :is-historical="store.isHistoricalView"
+        />
+      </div>
+      <div class="upcoming-wrapper">
+        <UpcomingEvents :timeline="store.timeline" />
+      </div>
       <button class="events-trigger" @click="$emit('openDrawer')" title="打开现金流事件管理">
         <span class="trigger-icon">
           <AppIcon name="clipboard" :size="24" />
@@ -30,7 +39,9 @@
     </div>
 
     <!-- 月度收支图 -->
-    <CashFlowChart :months="store.analytics.months" />
+    <div id="cashflow-chart-card">
+      <CashFlowChart :months="store.analytics.months" />
+    </div>
   </section>
 </template>
 
@@ -55,13 +66,13 @@ const store = useFinanceStore();
 }
 
 .panel-header {
-  background: #fff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 16px;
-  padding: 20px 24px;
+  background: transparent;
+  border: none;
+  padding: 0 0 8px 0;
   display: flex;
   justify-content: space-between;
   gap: 16px;
+  align-items: flex-end;
 }
 
 .panel-header p {
@@ -69,34 +80,42 @@ const store = useFinanceStore();
   color: #6b7280;
 }
 
+
+
 .balance-section {
   display: grid;
   grid-template-columns: 1fr 320px 72px;
   gap: 20px;
 }
 
+.balance-card,
+.upcoming-wrapper {
+  height: 100%;
+}
+
 .events-trigger {
-  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
-  border: none;
-  border-radius: 16px;
-  padding: 20px 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  color: var(--fm-text-primary);
+  border: 1px solid var(--fm-border-subtle);
+  border-radius: 999px;
+  padding: 20px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 16px;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.35);
-  transition: all 0.2s ease;
+  box-shadow: var(--fm-shadow-md);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: 72px;
   min-height: 320px;
 }
 
 .events-trigger:hover {
-  transform: translateX(-4px);
-  box-shadow: 0 8px 22px rgba(59, 130, 246, 0.45);
-  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-4px);
+  box-shadow: var(--fm-shadow-lg);
+  border-color: var(--fm-primary);
+  background: #fff;
 }
 
 .trigger-icon,
@@ -123,11 +142,12 @@ const store = useFinanceStore();
 }
 
 .event-count-badge {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--fm-primary-light);
   padding: 6px 10px;
   border-radius: 10px;
   font-size: 0.8rem;
   font-weight: 700;
   min-width: 36px;
+  color: var(--fm-primary);
 }
 </style>

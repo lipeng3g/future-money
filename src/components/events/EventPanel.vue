@@ -6,13 +6,14 @@
         <p>维护工资、信用卡、房贷、年终奖等所有固定/一次性收支。</p>
       </div>
       <div class="panel-actions">
-        <a-button @click="loadSamples">载入示例</a-button>
-        <a-button type="primary" @click="openCreator">添加事件</a-button>
+        <a-button :disabled="isReadOnly" @click="loadSamples">载入示例</a-button>
+        <a-button type="primary" :disabled="isReadOnly" @click="openCreator">添加事件</a-button>
       </div>
     </header>
 
     <EventList
       :events="events"
+      :readonly="isReadOnly"
       @edit="openEditor"
       @delete="confirmDelete"
       @toggle="handleToggle"
@@ -38,9 +39,11 @@ import { useFinanceStore } from '@/stores/finance';
 const store = useFinanceStore();
 const modalOpen = ref(false);
 const editingEvent = ref<CashFlowEvent | null>(null);
-const events = computed(() => store.events);
+const events = computed(() => store.visibleEvents);
+const isReadOnly = computed(() => store.isReadOnly);
 
 const mapValuesToPayload = (values: EventFormValues): NewCashFlowEvent => ({
+  accountId: store.account.id,
   name: values.name.trim(),
   amount: Number(values.amount) || 0,
   category: values.category,
@@ -152,25 +155,23 @@ const loadSamples = () => {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  align-items: flex-start;
-}
-
-.panel-header > div:first-child {
-  flex: 1;
-  min-width: 0;
+  align-items: flex-end;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--fm-border-subtle);
 }
 
 .panel-header h2 {
   margin: 0 0 4px;
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--fm-text-primary);
+  letter-spacing: -0.02em;
 }
 
 .panel-header p {
-  margin: 4px 0 0;
-  color: #6b7280;
+  margin: 0;
+  color: var(--fm-text-secondary);
   font-size: 0.875rem;
-  line-height: 1.5;
 }
 
 .panel-actions {
