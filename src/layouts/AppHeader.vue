@@ -3,7 +3,17 @@
     <!-- 左侧：品牌 + 账户/视图状态 -->
     <div class="header-left">
       <div class="title-block">
-        <h1>FutureMoney</h1>
+        <div class="title-row">
+          <h1>FutureMoney</h1>
+          <a
+            class="github-link"
+            href="https://github.com/lipeng3g/FutureMoney"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub
+          </a>
+        </div>
         <p class="subtitle">把所有固定收支放在一条时间线上</p>
       </div>
 
@@ -334,6 +344,12 @@ const savePreferences = (prefs: UserPreferences) => {
   min-width: 0;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .title-block h1 {
   margin: 0 0 2px;
   font-size: 1.5rem;
@@ -343,6 +359,36 @@ const savePreferences = (prefs: UserPreferences) => {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   letter-spacing: -0.03em;
+}
+
+.github-link {
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(15, 23, 42, 0.02);
+  color: #0f172a;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.github-link::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  background: radial-gradient(circle at 30% 30%, #ffffff 0, #0f172a 55%);
+}
+
+.github-link:hover {
+  background: #0f172a;
+  color: #f9fafb;
+  border-color: #0f172a;
 }
 
 .subtitle {
