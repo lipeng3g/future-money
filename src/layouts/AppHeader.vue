@@ -10,8 +10,10 @@
             href="https://github.com/lipeng3g/future-money"
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="在 GitHub 查看 FutureMoney 源码"
           >
-            GitHub
+            <span class="github-icon" />
+            <span class="github-text">GitHub 仓库</span>
           </a>
         </div>
         <p class="subtitle">把所有固定收支放在一条时间线上</p>
@@ -362,33 +364,38 @@ const savePreferences = (prefs: UserPreferences) => {
 }
 
 .github-link {
-  padding: 2px 10px;
+  padding: 3px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(15, 23, 42, 0.02);
-  color: #0f172a;
-  font-size: 0.75rem;
+  border: 1px solid rgba(79, 70, 229, 0.25);
+  background: rgba(79, 70, 229, 0.06);
+  color: #4338ca;
+  font-size: 0.78rem;
   font-weight: 500;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
-.github-link::before {
-  content: '';
+.github-icon {
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.2);
-  background: radial-gradient(circle at 30% 30%, #ffffff 0, #0f172a 55%);
+  border: 1px solid rgba(15, 23, 42, 0.4);
+  background: radial-gradient(circle at 30% 30%, #ffffff 0, #111827 60%);
 }
 
 .github-link:hover {
-  background: #0f172a;
+  background: #4f46e5;
   color: #f9fafb;
-  border-color: #0f172a;
+  border-color: #4f46e5;
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.35);
+}
+
+.github-text {
+  white-space: nowrap;
 }
 
 .subtitle {
