@@ -6,6 +6,10 @@
 
 **[https://future-money.pages.dev](https://future-money.pages.dev)**
 
+## 源码仓库
+
+**[https://github.com/lipeng3g/future-money](https://github.com/lipeng3g/future-money)**
+
 ![FutureMoney 截图](./images/image-1.png)
 
 ## 功能特性

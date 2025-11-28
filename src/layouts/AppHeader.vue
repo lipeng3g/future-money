@@ -7,7 +7,7 @@
           <h1>FutureMoney</h1>
           <a
             class="github-link"
-            href="https://github.com/lipeng3g/FutureMoney"
+            href="https://github.com/lipeng3g/future-money"
             target="_blank"
             rel="noopener noreferrer"
           >
