@@ -19,33 +19,35 @@
       <StatisticsPanel :analytics="store.analytics" />
     </div>
 
-    <!-- 余额走势图 + 即将发生 + 事件入口 -->
-    <div class="balance-section">
-      <div id="balance-chart-card" class="balance-card">
-        <BalanceChart
-          :timeline="store.timeline"
-          :warning-threshold="store.warningThreshold"
-          :chart-type="store.preferences.chartType"
-          :show-weekends="store.preferences.showWeekends"
-          :reconciliation-date="store.latestReconciliation?.date"
-          :reconciliation-balance="store.latestReconciliation?.balance"
-        />
+    <!-- 左右两栏：图表 | 即将发生 + 事件入口 -->
+    <div class="main-grid">
+      <div class="chart-column">
+        <div id="balance-chart-card" class="balance-card">
+          <BalanceChart
+            :timeline="store.timeline"
+            :warning-threshold="store.warningThreshold"
+            :chart-type="store.preferences.chartType"
+            :show-weekends="store.preferences.showWeekends"
+            :reconciliation-date="store.latestReconciliation?.date"
+            :reconciliation-balance="store.latestReconciliation?.balance"
+          />
+        </div>
+        <div id="cashflow-chart-card">
+          <CashFlowChart :months="store.analytics.months" />
+        </div>
       </div>
-      <div class="upcoming-wrapper">
-        <UpcomingEvents :timeline="store.timeline" />
+      <div class="side-column">
+        <button class="events-trigger" @click="$emit('openDrawer')" title="打开现金流事件管理">
+          <span class="trigger-icon">
+            <AppIcon name="clipboard" :size="22" />
+          </span>
+          <span class="trigger-text">现金流事件</span>
+          <span class="event-count-badge">{{ store.events.length }}</span>
+        </button>
+        <div class="upcoming-wrapper">
+          <UpcomingEvents :timeline="store.timeline" />
+        </div>
       </div>
-      <button class="events-trigger" @click="$emit('openDrawer')" title="打开现金流事件管理">
-        <span class="trigger-icon">
-          <AppIcon name="clipboard" :size="24" />
-        </span>
-        <span class="trigger-text">现金流事件</span>
-        <span class="event-count-badge">{{ store.events.length }}</span>
-      </button>
-    </div>
-
-    <!-- 月度收支图 -->
-    <div id="cashflow-chart-card">
-      <CashFlowChart :months="store.analytics.months" />
     </div>
 
     <!-- 对账弹窗 -->
@@ -104,15 +106,32 @@ const handleReconcileDone = () => {
 
 
 
-.balance-section {
+.main-grid {
   display: grid;
-  grid-template-columns: 1fr 320px 72px;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.chart-column {
+  display: flex;
+  flex-direction: column;
   gap: 20px;
 }
 
-.balance-card,
+.side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* 不参与 grid 行高计算，高度由左栏决定 */
+  height: 0;
+  min-height: 100%;
+}
+
 .upcoming-wrapper {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .events-trigger {
@@ -120,17 +139,14 @@ const handleReconcileDone = () => {
   color: var(--fm-text-primary);
   border: 1px solid var(--fm-border-subtle);
   border-radius: 12px;
-  padding: 20px 14px;
+  padding: 16px 20px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
+  gap: 12px;
   cursor: pointer;
   box-shadow: var(--fm-shadow-sm);
   transition: border-color 0.2s, box-shadow 0.2s;
-  width: 72px;
-  min-height: 320px;
+  width: 100%;
 }
 
 .events-trigger:hover {
@@ -147,18 +163,10 @@ const handleReconcileDone = () => {
   text-align: center;
 }
 
-.trigger-icon :deep(.app-icon) {
-  width: 28px;
-  height: 28px;
-}
-
 .trigger-text {
   font-weight: 600;
-  font-size: 0.85rem;
-  line-height: 1.3;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  letter-spacing: 0.08em;
+  font-size: 0.9rem;
+  flex: 1;
 }
 
 .event-count-badge {

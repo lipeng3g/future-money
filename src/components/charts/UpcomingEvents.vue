@@ -84,6 +84,9 @@ interface UpcomingItem {
 
 const items = computed<UpcomingItem[]>(() => {
   const today = store.todayStr;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() + 60);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
   const flattened = props.timeline.flatMap((day) =>
     day.events.map((event) => ({
       id: `${event.id}-${day.date}`,
@@ -98,8 +101,7 @@ const items = computed<UpcomingItem[]>(() => {
     })),
   );
   return flattened
-    .filter((item) => item.date >= today)
-    .slice(0, 6);
+    .filter((item) => item.date >= today && item.date <= cutoffStr);
 });
 
 const overrideLabel = (action: string) => {
@@ -146,14 +148,16 @@ const handleModifySubmit = () => {
   border-radius: 16px;
   padding: 20px;
   background: var(--fm-surface);
-  min-height: 200px;
   box-shadow: var(--fm-shadow-sm);
   transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .chart-card:hover {
   box-shadow: var(--fm-shadow-md);
-  transform: translateY(-2px);
 }
 
 .chart-card h3 {
@@ -170,6 +174,9 @@ ul {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 li {

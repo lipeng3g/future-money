@@ -78,10 +78,10 @@ const currentStepData = computed(() => steps[currentStep.value]);
 const isLastStep = computed(() => currentStep.value >= steps.length - 1);
 const highlightVisible = computed(() => !!highlightRect.value);
 
-const getAbsoluteRect = (element: Element | null): DOMRect | null => {
+// 返回视口相对坐标（因为 overlay 是 position: fixed）
+const getViewportRect = (element: Element | null): DOMRect | null => {
   if (!element) return null;
-  const rect = element.getBoundingClientRect();
-  return new DOMRect(rect.left + window.scrollX, rect.top + window.scrollY, rect.width, rect.height);
+  return element.getBoundingClientRect();
 };
 
 const updateHighlight = async (ensureVisible = false) => {
@@ -107,7 +107,7 @@ const updateHighlight = async (ensureVisible = false) => {
       }
     }
     // 滚动完成后再计算位置（使用 instant 确保同步完成）
-    const rect = getAbsoluteRect(element);
+    const rect = getViewportRect(element);
     highlightRect.value = rect;
   } else {
     highlightRect.value = null;
@@ -182,14 +182,12 @@ const cardStyle = computed(() => {
   const cardHeight = 200; // 预估卡片高度
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const scrollX = window.scrollX;
-  const scrollY = window.scrollY;
 
-  // 计算各种位置方案是否可行
-  const canPlaceRight = rect.right + gutter + cardWidth <= scrollX + viewportWidth - 16;
-  const canPlaceLeft = rect.left - gutter - cardWidth >= scrollX + 16;
-  const canPlaceBottom = rect.bottom + gutter + cardHeight <= scrollY + viewportHeight - 16;
-  const canPlaceTop = rect.top - gutter - cardHeight >= scrollY + 16;
+  // 所有坐标都是视口相对的（overlay 是 position: fixed）
+  const canPlaceRight = rect.right + gutter + cardWidth <= viewportWidth - 16;
+  const canPlaceLeft = rect.left - gutter - cardWidth >= 16;
+  const canPlaceBottom = rect.bottom + gutter + cardHeight <= viewportHeight - 16;
+  const canPlaceTop = rect.top - gutter - cardHeight >= 16;
 
   // 根据首选位置和边界情况确定最终位置
   let placement = step.placement || 'bottom';
@@ -238,13 +236,13 @@ const cardStyle = computed(() => {
       left = rect.left + rect.width / 2 - cardWidth / 2;
   }
 
-  // 最终边界限制
-  const maxLeft = scrollX + viewportWidth - cardWidth - 16;
-  const minLeft = scrollX + 16;
+  // 最终边界限制（视口相对）
+  const maxLeft = viewportWidth - cardWidth - 16;
+  const minLeft = 16;
   left = Math.min(Math.max(left, minLeft), maxLeft);
 
-  const maxTop = scrollY + viewportHeight - cardHeight - 16;
-  const minTop = scrollY + 16;
+  const maxTop = viewportHeight - cardHeight - 16;
+  const minTop = 16;
   top = Math.min(Math.max(top, minTop), maxTop);
 
   return {

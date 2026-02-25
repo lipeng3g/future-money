@@ -49,7 +49,7 @@
     <!-- 右侧：单账户视图的余额 / 阈值 / 操作按钮 -->
     <div v-if="!store.isMultiAccountView" class="header-right">
       <div class="metric-row">
-        <div class="metric-card">
+        <div class="metric-card" @click="handleBalanceTap">
           <div class="metric-label">当前账户余额</div>
           <div class="metric-value" :class="{ 'not-reconciled': !store.latestReconciliation }">
             <template v-if="store.latestReconciliation">
@@ -86,6 +86,7 @@
           模拟日期: {{ store.todayStr }}
         </div>
         <a-date-picker
+          v-if="showSimDatePicker || store.simulatedToday"
           :value="simulatedDateValue"
           size="small"
           placeholder="模拟日期"
@@ -179,6 +180,22 @@ const reconcileOpen = ref(false);
 const multiAccountOpen = ref(false);
 const createAccountOpen = ref(false);
 const accountManageOpen = ref(false);
+
+// 点击余额 10 次解锁模拟日期
+const showSimDatePicker = ref(false);
+const balanceTapCount = ref(0);
+let balanceTapTimer: ReturnType<typeof setTimeout> | null = null;
+
+const handleBalanceTap = () => {
+  if (showSimDatePicker.value) return;
+  balanceTapCount.value++;
+  if (balanceTapTimer) clearTimeout(balanceTapTimer);
+  balanceTapTimer = setTimeout(() => { balanceTapCount.value = 0; }, 3000);
+  if (balanceTapCount.value >= 10) {
+    showSimDatePicker.value = true;
+    message.success('已解锁模拟日期');
+  }
+};
 
 const simulatedDateValue = computed(() => {
   return store.simulatedToday ? dayjs(store.simulatedToday) : null;
