@@ -86,12 +86,6 @@ body {
 .premium-card {
   background: var(--fm-surface);
   border: 1px solid var(--fm-border-subtle);
-  border-radius: 16px;
+  border-radius: 12px;
   box-shadow: var(--fm-shadow-sm);
-  transition: all 0.3s ease;
-}
-
-.premium-card:hover {
-  box-shadow: var(--fm-shadow-md);
-  transform: translateY(-2px);
 }

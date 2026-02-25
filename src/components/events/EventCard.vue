@@ -63,7 +63,11 @@ const recurrenceLabel = computed(() => {
     case 'once':
       return `一次性 · ${props.event.onceDate ?? props.event.startDate}`;
     case 'monthly':
-      return `每月${props.event.monthlyDay ?? '某日'}`;
+      return `每月${props.event.monthlyDay ?? '某'}日`;
+    case 'quarterly':
+      return `每季度${props.event.monthlyDay ?? '某'}日`;
+    case 'semi-annual':
+      return `每半年${props.event.monthlyDay ?? '某'}日`;
     case 'yearly':
       return `每年 ${props.event.yearlyMonth} 月 ${props.event.yearlyDay} 日`;
     default:

@@ -98,15 +98,15 @@ const handleSubmit = (values: EventFormValues) => {
   position: fixed;
   right: 48px;
   bottom: 48px;
-  width: 64px;
-  height: 64px;
-  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  width: 56px;
+  height: 56px;
+  background: #4f46e5;
   color: white;
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  transition: background 0.2s, box-shadow 0.2s;
   z-index: 999;
   display: flex;
   align-items: center;
@@ -114,35 +114,13 @@ const handleSubmit = (values: EventFormValues) => {
   padding: 0;
 }
 
-.floating-add-button::before {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-  opacity: 0;
-  animation: pulse 2s ease-in-out infinite;
-  z-index: -1;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 0;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.3;
-    transform: scale(1.15);
-  }
-}
-
 .floating-add-button:hover {
-  transform: translateY(-4px) scale(1.05);
-  box-shadow: 0 15px 35px rgba(79, 70, 229, 0.5);
+  background: #4338ca;
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
 }
 
 .floating-add-button:active {
-  transform: translateY(-2px) scale(1.02);
+  background: #3730a3;
 }
 
 .add-icon {

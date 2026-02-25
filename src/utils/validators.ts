@@ -12,6 +12,8 @@ const isPositive = (value: unknown): boolean => typeof value === 'number' && Num
 const recurrenceLabels: Record<RecurrenceType, string> = {
   once: '一次性',
   monthly: '每月',
+  quarterly: '每季度',
+  'semi-annual': '每半年',
   yearly: '每年',
 };
 
@@ -30,7 +32,7 @@ export const validateCashFlowEvent = (event: Partial<CashFlowEvent>): string[] =
     errors.push('请选择收入或支出');
   }
 
-  if (!event.type || !['once', 'monthly', 'yearly'].includes(event.type)) {
+  if (!event.type || !['once', 'monthly', 'quarterly', 'semi-annual', 'yearly'].includes(event.type)) {
     errors.push('请选择合法的重复类型');
   }
 
@@ -53,8 +55,10 @@ export const validateCashFlowEvent = (event: Partial<CashFlowEvent>): string[] =
       }
       break;
     case 'monthly':
+    case 'quarterly':
+    case 'semi-annual':
       if (!event.monthlyDay || event.monthlyDay < 1 || event.monthlyDay > 31) {
-        errors.push('每月事件需要 1-31 的日期');
+        errors.push('需要 1-31 的日期');
       }
       break;
     case 'yearly':

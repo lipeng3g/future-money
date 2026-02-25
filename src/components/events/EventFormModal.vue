@@ -25,6 +25,8 @@
           <a-select v-model:value="formState.type">
             <a-select-option value="once">一次性</a-select-option>
             <a-select-option value="monthly">每月</a-select-option>
+            <a-select-option value="quarterly">每季度</a-select-option>
+            <a-select-option value="semi-annual">每半年</a-select-option>
             <a-select-option value="yearly">每年</a-select-option>
           </a-select>
         </a-form-item>
@@ -42,8 +44,8 @@
         </a-form-item>
       </template>
 
-      <template v-else-if="formState.type === 'monthly'">
-        <a-form-item label="每月日期 (1-31)" required>
+      <template v-else-if="formState.type === 'monthly' || formState.type === 'quarterly' || formState.type === 'semi-annual'">
+        <a-form-item :label="periodicDayLabel" required>
           <a-input-number v-model:value="formState.monthlyDay" :min="1" :max="31" />
         </a-form-item>
       </template>
@@ -148,6 +150,15 @@ const onceDateValue = computed<Dayjs | null>({
 
 const title = computed(() => (props.event ? '编辑现金流事件' : '添加现金流事件'));
 
+const periodicDayLabel = computed(() => {
+  const labels: Record<string, string> = {
+    monthly: '每月日期 (1-31)',
+    quarterly: '每季度日期 (1-31)',
+    'semi-annual': '每半年日期 (1-31)',
+  };
+  return labels[formState.type] ?? '日期 (1-31)';
+});
+
 const fillForm = (source?: CashFlowEvent | null) => {
   if (!source) {
     Object.assign(formState, defaultFormState());
@@ -193,7 +204,7 @@ watch(
   (newType) => {
     if (newType === 'once' && !formState.onceDate) {
       formState.onceDate = dayjs().format('YYYY-MM-DD');
-    } else if (newType === 'monthly' && !formState.monthlyDay) {
+    } else if ((newType === 'monthly' || newType === 'quarterly' || newType === 'semi-annual') && !formState.monthlyDay) {
       formState.monthlyDay = 1;
     } else if (newType === 'yearly') {
       if (!formState.yearlyMonth) formState.yearlyMonth = 1;

@@ -38,32 +38,32 @@ interface Step {
 }
 
 // 引导版本号：改动较大时可以更新 key 让老用户也重新看到一次
-const STORAGE_KEY = 'futureMoney.onboarding.v2';
+const STORAGE_KEY = 'futureMoney.onboarding.v3';
 
 const steps: Step[] = [
   {
-    title: '设置当前账户余额',
+    title: '添加现金流事件',
     description:
-      '先输入你今天这个账户的当前余额（可用资金）。未来的所有预测，都会以这个数作为起点，请确认左上角选中的是你正在管理的账户。',
-    selector: '#balance-input',
-    placement: 'right',
-  },
-  {
-    title: '设定预警线',
-    description: '为当前账户输入最低安全余额，图表会标出预警线，并在预测到跌破时高亮提示你提前留意。',
-    selector: '#threshold-input',
-    placement: 'right',
-  },
-  {
-    title: '添加你的第一条事件',
-    description: '点击右下角的 “+” 可以快速添加工资、房贷、信用卡还款等现金流事件，这是时间线的基础数据。',
+      '点击右下角的 "+" 添加工资、房贷、信用卡还款等固定收支事件，支持月度、季度、半年、年度和一次性频率。这是时间线预测的基础。',
     selector: '#floating-add-button',
     placement: 'left',
   },
   {
+    title: '完成首次对账',
+    description: '添加事件后，点击顶部横幅的「立即对账」按钮，输入当前真实余额。对账会冻结历史数据，确保预测从真实数据出发。',
+    selector: '#reconciliation-banner',
+    placement: 'bottom',
+  },
+  {
+    title: '设定预警线',
+    description: '在右上角输入最低安全余额，图表会标出预警线，当预测余额跌破时会高亮提醒你提前做好准备。',
+    selector: '#threshold-input',
+    placement: 'right',
+  },
+  {
     title: '查看关键指标',
     description:
-      '这里汇总期末余额、累计收支和预警天数，是你快速评估当前账户健康度的地方。熟悉后，可以再尝试顶部的「快照历史」和「多账户视图」。',
+      '这里汇总期末余额、累计收支和预警天数，帮你快速评估账户健康度。还可以尝试「对账历史」和「多账户视图」等功能。',
     selector: '#stats-panel',
     placement: 'bottom',
   },

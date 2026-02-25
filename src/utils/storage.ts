@@ -1,5 +1,7 @@
 import type { AppState, PersistedStateEnvelope } from '@/types/storage';
+import type { Reconciliation } from '@/types/reconciliation';
 import { APP_VERSION, DEFAULT_ACCOUNT_CONFIG, DEFAULT_PREFERENCES, DEFAULT_SNAPSHOT } from '@/utils/defaults';
+import { createId } from '@/utils/id';
 
 const STORAGE_KEY = 'futureMoney.state';
 
@@ -13,7 +15,37 @@ export const createDefaultState = (): AppState => {
     accounts: [account],
     events: [],
     preferences: DEFAULT_PREFERENCES(),
-    snapshots: [DEFAULT_SNAPSHOT(account)],
+    snapshots: [],
+    reconciliations: [],
+    ledgerEntries: [],
+    eventOverrides: [],
+  };
+};
+
+/** 将 v1 快照迁移为 v2 对账记录 */
+const migrateV1ToV2 = (state: AppState): AppState => {
+  const reconciliations: Reconciliation[] = [];
+
+  if (state.snapshots && state.snapshots.length > 0) {
+    for (const snap of state.snapshots) {
+      reconciliations.push({
+        id: createId(),
+        accountId: snap.accountId,
+        date: snap.date,
+        balance: snap.balance,
+        note: snap.note ?? (snap.source === 'initial' ? '初始对账（从快照迁移）' : '从快照迁移'),
+        createdAt: snap.createdAt,
+      });
+    }
+  }
+  // 没有快照时不自动创建对账记录，等待用户首次对账
+
+  return {
+    ...state,
+    version: APP_VERSION,
+    reconciliations,
+    ledgerEntries: [],
+    eventOverrides: [],
   };
 };
 
@@ -49,6 +81,21 @@ export class StorageManager {
       if (!state.snapshots || state.snapshots.length === 0) {
         state.snapshots = [DEFAULT_SNAPSHOT(state.account)];
       }
+
+      // v1 → v2 迁移：如果没有 reconciliations，从 snapshots 迁移
+      if (!state.reconciliations || state.reconciliations.length === 0) {
+        const migrated = migrateV1ToV2(state);
+        state.reconciliations = migrated.reconciliations;
+        state.ledgerEntries = migrated.ledgerEntries;
+        state.eventOverrides = migrated.eventOverrides;
+        // 保存迁移后的状态
+        this.saveState(state);
+      }
+
+      // 确保新字段有默认值
+      if (!state.ledgerEntries) state.ledgerEntries = [];
+      if (!state.eventOverrides) state.eventOverrides = [];
+
       return state;
     } catch (error) {
       console.warn('无法解析本地数据，回退默认值', error);
@@ -104,6 +151,15 @@ export class StorageManager {
     if (!state.snapshots || state.snapshots.length === 0) {
       state.snapshots = [DEFAULT_SNAPSHOT(state.account)];
     }
+    // 迁移 v1 数据
+    if (!state.reconciliations || state.reconciliations.length === 0) {
+      const migrated = migrateV1ToV2(state);
+      state.reconciliations = migrated.reconciliations;
+      state.ledgerEntries = migrated.ledgerEntries;
+      state.eventOverrides = migrated.eventOverrides;
+    }
+    if (!state.ledgerEntries) state.ledgerEntries = [];
+    if (!state.eventOverrides) state.eventOverrides = [];
     return state;
   }
 }

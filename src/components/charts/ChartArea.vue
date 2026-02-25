@@ -1,9 +1,15 @@
 <template>
   <section class="chart-area">
+    <!-- 引导/对账横幅 -->
+    <ReconciliationBanner
+      @reconcile="reconcileModalOpen = true"
+      @open-drawer="$emit('openDrawer')"
+    />
+
     <header class="panel-header">
       <div>
         <h2>未来余额走势</h2>
-        <p>通过曲线预判未来 12~36 个月的现金余额，辅助提前决策。</p>
+        <p>预测未来现金余额走势，提前发现资金缺口。</p>
       </div>
       <TimeRangeControl :value="store.viewMonths" @change="store.setViewMonths" />
     </header>
@@ -21,9 +27,8 @@
           :warning-threshold="store.warningThreshold"
           :chart-type="store.preferences.chartType"
           :show-weekends="store.preferences.showWeekends"
-          :snapshot-date="store.activeSnapshot?.date"
-          :snapshot-balance="store.activeSnapshot?.balance"
-          :is-historical="store.isHistoricalView"
+          :reconciliation-date="store.latestReconciliation?.date"
+          :reconciliation-balance="store.latestReconciliation?.balance"
         />
       </div>
       <div class="upcoming-wrapper">
@@ -42,19 +47,36 @@
     <div id="cashflow-chart-card">
       <CashFlowChart :months="store.analytics.months" />
     </div>
+
+    <!-- 对账弹窗 -->
+    <ReconciliationModal
+      :open="reconcileModalOpen"
+      @cancel="reconcileModalOpen = false"
+      @done="handleReconcileDone"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+import { message } from 'ant-design-vue';
 import TimeRangeControl from '@/components/charts/TimeRangeControl.vue';
 import BalanceChart from '@/components/charts/BalanceChart.vue';
 import CashFlowChart from '@/components/charts/CashFlowChart.vue';
 import StatisticsPanel from '@/components/charts/StatisticsPanel.vue';
 import UpcomingEvents from '@/components/charts/UpcomingEvents.vue';
+import ReconciliationBanner from '@/components/reconciliation/ReconciliationBanner.vue';
+import ReconciliationModal from '@/components/reconciliation/ReconciliationModal.vue';
 import { useFinanceStore } from '@/stores/finance';
 import AppIcon from '@/components/common/AppIcon.vue';
 
 const store = useFinanceStore();
+const reconcileModalOpen = ref(false);
+
+const handleReconcileDone = () => {
+  reconcileModalOpen.value = false;
+  message.success('对账完成');
+};
 </script>
 
 <style scoped>
@@ -94,10 +116,10 @@ const store = useFinanceStore();
 }
 
 .events-trigger {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  background: #fff;
   color: var(--fm-text-primary);
   border: 1px solid var(--fm-border-subtle);
-  border-radius: 999px;
+  border-radius: 12px;
   padding: 20px 14px;
   display: flex;
   flex-direction: column;
@@ -105,17 +127,15 @@ const store = useFinanceStore();
   justify-content: center;
   gap: 16px;
   cursor: pointer;
-  box-shadow: var(--fm-shadow-md);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--fm-shadow-sm);
+  transition: border-color 0.2s, box-shadow 0.2s;
   width: 72px;
   min-height: 320px;
 }
 
 .events-trigger:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--fm-shadow-lg);
   border-color: var(--fm-primary);
-  background: #fff;
+  box-shadow: var(--fm-shadow-md);
 }
 
 .trigger-icon,

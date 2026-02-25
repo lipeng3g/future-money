@@ -13,10 +13,10 @@ interface Props {
   warningThreshold: number;
   chartType?: 'line' | 'area';
   showWeekends?: boolean;
-  snapshotDate?: string;
-  snapshotBalance?: number;
-  /** 是否处于历史快照视图 */
-  isHistorical?: boolean;
+  /** 最新对账日期 */
+  reconciliationDate?: string;
+  /** 最新对账余额 */
+  reconciliationBalance?: number;
 }
 
 const props = defineProps<Props>();
@@ -41,8 +41,49 @@ const chartOption = computed(() => {
     }
   }
 
-  const lineData = props.timeline.map((point) => point.balance);
-  const isHistorical = !!props.isHistorical;
+  // 分离冻结区和预测区数据
+  const frozenData: (number | null)[] = [];
+  const projectedData: (number | null)[] = [];
+  let lastFrozenIndex = -1;
+
+  props.timeline.forEach((point, index) => {
+    if (point.zone === 'frozen') {
+      frozenData.push(point.balance);
+      projectedData.push(null);
+      lastFrozenIndex = index;
+    } else {
+      frozenData.push(null);
+      projectedData.push(point.balance);
+    }
+  });
+
+  // 让预测区第一个点连接到冻结区最后一个点（视觉连续）
+  if (lastFrozenIndex >= 0 && lastFrozenIndex + 1 < props.timeline.length) {
+    projectedData[lastFrozenIndex] = frozenData[lastFrozenIndex];
+  }
+
+  const hasFrozenData = frozenData.some((v) => v !== null);
+
+  // 构建每日变动信息，用于动态标记点
+  const changeInfo = props.timeline.map((point) => {
+    const hasIncome = point.events.some((e) => e.category === 'income');
+    const hasExpense = point.events.some((e) => e.category === 'expense');
+    return { hasEvent: point.events.length > 0, hasIncome, hasExpense };
+  });
+
+  const dynamicSymbolSize = (value: number | null, params: any) => {
+    if (value == null) return 0;
+    const info = changeInfo[params.dataIndex];
+    return info?.hasEvent ? 8 : 0;
+  };
+
+  const dynamicItemColor = (params: any, fallback: string) => {
+    const info = changeInfo[params.dataIndex];
+    if (!info?.hasEvent) return fallback;
+    if (info.hasIncome && !info.hasExpense) return '#10b981';
+    if (info.hasExpense && !info.hasIncome) return '#f43f5e';
+    return '#f59e0b'; // 同时有收支
+  };
 
   const baseOption: any = {
     tooltip: {
@@ -54,7 +95,11 @@ const chartOption = computed(() => {
         color: '#374151',
       },
       formatter: (params: any) => {
-        const point = props.timeline[params[0].dataIndex];
+        const dataIndex = params[0]?.dataIndex;
+        if (dataIndex == null) return '';
+        const point = props.timeline[dataIndex];
+        if (!point) return '';
+        const zoneLabel = point.zone === 'frozen' ? '<span style="color:#6b7280;font-size:11px">已对账</span>' : '<span style="color:#3b82f6;font-size:11px">预测</span>';
         const events = point.events
           .map((event) => {
             const sign = event.category === 'income' ? '+' : '-';
@@ -64,7 +109,7 @@ const chartOption = computed(() => {
           .join('');
         return `
           <div style="padding:4px">
-            <div style="font-weight:600;margin-bottom:4px">${point.date}</div>
+            <div style="font-weight:600;margin-bottom:4px">${point.date} ${zoneLabel}</div>
             <div style="font-size:14px">余额：<strong>¥${point.balance.toLocaleString('zh-CN')}</strong></div>
             ${events}
           </div>
@@ -89,11 +134,9 @@ const chartOption = computed(() => {
         formatter: (value: number) => {
           if (value >= 1000) {
             const kValue = value / 1000;
-            // 如果是整数k，不显示小数
             if (kValue % 1 === 0) {
               return `¥${kValue}k`;
             }
-            // 否则显示一位小数
             return `¥${kValue.toFixed(1)}k`;
           }
           return `¥${value}`;
@@ -114,83 +157,82 @@ const chartOption = computed(() => {
     ],
   };
 
-  // 公共的预警线 + 校准线配置
+  // 标记线：预警线 + 对账点标记
+  const markLineData: any[] = [
+    {
+      yAxis: props.warningThreshold,
+      lineStyle: {
+        color: '#f59e0b',
+        type: 'dashed',
+        width: 2,
+      },
+      label: {
+        formatter: '预警线',
+        color: '#f59e0b',
+        fontSize: 12,
+        fontWeight: 600,
+      },
+    },
+  ];
+
+  // 对账日期标记线
+  if (props.reconciliationDate) {
+    markLineData.push({
+      xAxis: props.reconciliationDate,
+      lineStyle: {
+        color: '#4f46e5',
+        type: 'dotted',
+        width: 1.5,
+      },
+      label: {
+        formatter: () =>
+          props.reconciliationBalance != null
+            ? `对账：¥${props.reconciliationBalance.toLocaleString('zh-CN')}`
+            : '最近对账',
+        color: '#4f46e5',
+        fontSize: 11,
+      },
+    } as any);
+  }
+
   const commonMarkLine = {
     silent: true,
     symbol: 'none',
-    data: [
-      {
-        yAxis: props.warningThreshold,
-        lineStyle: {
-          color: '#f59e0b',
-          type: 'dashed',
-          width: 2,
-        },
-        label: {
-          formatter: '预警线',
-          color: '#f59e0b',
-          fontSize: 12,
-          fontWeight: 600,
-        },
-      },
-      ...(props.snapshotDate
-        ? [
-            {
-              xAxis: props.snapshotDate,
-              lineStyle: {
-                color: '#6b7280',
-                type: 'dotted',
-                width: 1,
-              },
-              label: {
-                formatter: () =>
-                  props.snapshotBalance != null
-                    ? `校准：¥${props.snapshotBalance.toLocaleString('zh-CN')}`
-                    : '最近校准',
-                color: '#6b7280',
-                fontSize: 11,
-              },
-            } as any,
-          ]
-        : []),
-    ],
+    data: markLineData,
   };
 
-  // 单条连续余额曲线：根据是否为历史视图调整配色
-  const lineColor = isHistorical ? '#94a3b8' : '#2563eb';
-  const areaStyle = useArea && !isHistorical
-    ? {
-        color: {
-          type: 'linear',
-          x: 0,
-          y: 0,
-          x2: 0,
-          y2: 1,
-          colorStops: [
-            { offset: 0, color: 'rgba(37, 99, 235, 0.20)' },
-            { offset: 1, color: 'rgba(37, 99, 235, 0.03)' },
-          ],
-        },
-      }
-    : undefined;
+  const series: any[] = [];
 
-  baseOption.series = [
-    {
+  // 冻结区：实线 + 深色
+  if (hasFrozenData) {
+    series.push({
       type: 'line',
-      data: lineData,
+      data: frozenData,
       smooth: true,
       symbol: 'circle',
-      symbolSize: 4,
+      symbolSize: (value: number | null, params: any) => dynamicSymbolSize(value, params),
+      connectNulls: false,
       lineStyle: {
-        color: lineColor,
-        width: 2,
+        color: '#1e40af',
+        width: 2.5,
       },
       itemStyle: {
-        color: lineColor,
+        color: (params: any) => dynamicItemColor(params, '#1e40af'),
         borderColor: '#ffffff',
         borderWidth: 2,
       },
-      areaStyle,
+      areaStyle: useArea
+        ? {
+            color: {
+              type: 'linear',
+              x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(30, 64, 175, 0.15)' },
+                { offset: 1, color: 'rgba(30, 64, 175, 0.02)' },
+              ],
+            },
+          }
+        : undefined,
       markArea: weekendAreas.length
         ? {
             itemStyle: { color: 'rgba(226, 232, 240, 0.3)' },
@@ -198,8 +240,49 @@ const chartOption = computed(() => {
           }
         : undefined,
       markLine: commonMarkLine,
+    });
+  }
+
+  // 预测区：虚线 + 浅色
+  series.push({
+    type: 'line',
+    data: projectedData,
+    smooth: true,
+    symbol: 'circle',
+    symbolSize: (value: number | null, params: any) => dynamicSymbolSize(value, params),
+    connectNulls: false,
+    lineStyle: {
+      color: '#60a5fa',
+      width: 2,
+      type: 'dashed',
     },
-  ];
+    itemStyle: {
+      color: (params: any) => dynamicItemColor(params, '#60a5fa'),
+      borderColor: '#ffffff',
+      borderWidth: 2,
+    },
+    areaStyle: useArea
+      ? {
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(96, 165, 250, 0.12)' },
+              { offset: 1, color: 'rgba(96, 165, 250, 0.02)' },
+            ],
+          },
+        }
+      : undefined,
+    markArea: !hasFrozenData && weekendAreas.length
+      ? {
+          itemStyle: { color: 'rgba(226, 232, 240, 0.3)' },
+          data: weekendAreas,
+        }
+      : undefined,
+    markLine: !hasFrozenData ? commonMarkLine : undefined,
+  });
+
+  baseOption.series = series;
 
   return baseOption;
 });
@@ -208,10 +291,10 @@ const chartOption = computed(() => {
 <style scoped>
 .chart-card {
   border: 1px solid var(--fm-border-subtle);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 20px;
   background: var(--fm-surface);
-  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05);
+  box-shadow: var(--fm-shadow-sm);
 }
 
 .chart {

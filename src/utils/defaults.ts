@@ -1,8 +1,9 @@
 import { formatISO } from 'date-fns';
 import type { AccountConfig, BalanceSnapshot, UserPreferences } from '@/types/account';
+import type { Reconciliation } from '@/types/reconciliation';
 import { createId } from '@/utils/id';
 
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '2.0.0';
 
 // 预设账户颜色与图标 key，用于新建账户时轮询分配
 export const ACCOUNT_COLORS = ['#3b82f6', '#10b981', '#f97316', '#a855f7', '#ef4444', '#14b8a6', '#64748b'];
@@ -14,7 +15,7 @@ export const DEFAULT_ACCOUNT_CONFIG = (): AccountConfig => {
     id: createId(),
     name: '主账户',
     typeLabel: '现金账户',
-    initialBalance: 10000,
+    initialBalance: 0,
     currency: '¥',
     warningThreshold: 1000,
     color: ACCOUNT_COLORS[0],
@@ -37,6 +38,15 @@ export const DEFAULT_PREFERENCES = (): UserPreferences => ({
   defaultViewMonths: 12,
   chartType: 'line',
   showWeekends: true,
+});
+
+export const DEFAULT_RECONCILIATION = (account: AccountConfig): Reconciliation => ({
+  id: createId(),
+  accountId: account.id,
+  date: formatISO(new Date(), { representation: 'date' }),
+  balance: account.initialBalance,
+  note: '初始对账',
+  createdAt: account.createdAt,
 });
 
 export const COLOR_PALETTE = {

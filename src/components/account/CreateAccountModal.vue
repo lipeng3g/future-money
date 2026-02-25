@@ -15,15 +15,6 @@
       <a-form-item label="类型/说明">
         <a-input v-model:value="typeLabel" placeholder="例如：活期 / 长期投资（可选）" />
       </a-form-item>
-      <a-form-item label="初始可用余额">
-        <a-input-number
-          v-model:value="initialBalance"
-          :min="0"
-          :step="100"
-          addon-after="元"
-          style="width: 100%"
-        />
-      </a-form-item>
       <a-form-item label="预警阈值">
         <a-input-number
           v-model:value="warningThreshold"
@@ -33,6 +24,7 @@
           style="width: 100%"
         />
       </a-form-item>
+      <p class="create-hint">创建后请进行首次对账，设定账户的当前余额。</p>
     </a-form>
   </a-modal>
 </template>
@@ -47,13 +39,12 @@ interface Props {
 
 const props = defineProps<Props>();
 const emit = defineEmits<{
-  (e: 'submit', payload: { name: string; typeLabel?: string; initialBalance?: number; warningThreshold?: number }): void;
+  (e: 'submit', payload: { name: string; typeLabel?: string; warningThreshold?: number }): void;
   (e: 'cancel'): void;
 }>();
 
 const name = ref('');
 const typeLabel = ref('');
-const initialBalance = ref<number | null>(0);
 const warningThreshold = ref<number | null>(props.defaultWarningThreshold);
 
 watch(
@@ -62,7 +53,6 @@ watch(
     if (open) {
       name.value = '';
       typeLabel.value = '';
-      initialBalance.value = 0;
       warningThreshold.value = props.defaultWarningThreshold;
     }
   },
@@ -75,9 +65,18 @@ const handleOk = () => {
   emit('submit', {
     name: name.value,
     typeLabel: typeLabel.value,
-    initialBalance: typeof initialBalance.value === 'number' ? initialBalance.value : undefined,
     warningThreshold: typeof warningThreshold.value === 'number' ? warningThreshold.value : undefined,
   });
 };
 </script>
 
+<style scoped>
+.create-hint {
+  margin: 0;
+  padding: 8px 12px;
+  background: #f0f9ff;
+  border-radius: 6px;
+  color: #0369a1;
+  font-size: 0.8rem;
+}
+</style>

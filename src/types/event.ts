@@ -1,4 +1,4 @@
-export type RecurrenceType = 'once' | 'monthly' | 'yearly';
+export type RecurrenceType = 'once' | 'monthly' | 'quarterly' | 'semi-annual' | 'yearly';
 export type TransactionCategory = 'income' | 'expense';
 
 export interface CashFlowEvent {

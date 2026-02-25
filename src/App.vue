@@ -6,33 +6,15 @@
         <MainLayout />
       </main>
       <footer class="app-footer">
-        <div class="footer-title">FutureMoney</div>
         <p class="footer-desc">
-          一个用时间线管理个人收支和余额预测的小工具，
-          <strong class="footer-warning">所有数据仅保存在浏览器本地，请及时导出数据备份，防止丢失。</strong>
+          FutureMoney — 数据仅存于浏览器本地，请定期导出备份。
         </p>
         <div class="footer-links">
-          <a
-            href="https://github.com/lipeng3g/future-money"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            GitHub 仓库
-          </a>
-          <a
-            href="https://future-money.pages.dev"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            在线体验
-          </a>
-          <a
-            href="https://linux.do/t/topic/1224494"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Linux.do 讨论帖
-          </a>
+          <a href="https://github.com/lipeng3g/future-money" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <span class="footer-sep">·</span>
+          <a href="https://future-money.pages.dev" target="_blank" rel="noopener noreferrer">在线体验</a>
+          <span class="footer-sep">·</span>
+          <a href="https://linux.do/t/topic/1224494" target="_blank" rel="noopener noreferrer">讨论</a>
         </div>
       </footer>
       <OnboardingGuide />
@@ -71,41 +53,28 @@ const themeConfig = {
   text-align: center;
 }
 
-.footer-title {
-  font-weight: 600;
-  color: #0f172a;
-}
-
 .footer-desc {
   margin: 0;
-}
-
-.footer-warning {
-  color: #ef4444;
-  font-weight: 600;
+  color: #94a3b8;
 }
 
 .footer-links {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 4px;
+  align-items: center;
+  gap: 6px;
 }
 
 .footer-links a {
-  color: #4f46e5;
+  color: #64748b;
   text-decoration: none;
 }
 
 .footer-links a:hover {
-  text-decoration: underline;
+  color: #4f46e5;
 }
 
-@media (max-width: 768px) {
-  .app-footer {
-    flex-direction: column;
-    align-items: center;
-  }
+.footer-sep {
+  color: #cbd5e1;
+  font-size: 0.7rem;
 }
 </style>

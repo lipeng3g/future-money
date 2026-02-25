@@ -34,10 +34,6 @@
           </a-button>
           <a-button size="small" @click="openMultiAccountModal">多账户视图</a-button>
         </div>
-        <p v-if="store.isHistoricalView && lastSnapshotDate" class="history-banner">
-          当前正在查看历史快照 {{ lastSnapshotDate }}，所有账户与事件编辑已锁定。
-          <a-button type="link" size="small" @click="store.setViewSnapshot(null)">返回最新</a-button>
-        </p>
       </div>
 
       <!-- 多账户视图下：只展示视图状态 + 返回 -->
@@ -55,24 +51,21 @@
       <div class="metric-row">
         <div class="metric-card">
           <div class="metric-label">当前账户余额</div>
-          <div class="metric-input-row">
-            <a-input-number
-              id="balance-input"
-              :value="currentBalance"
-              :min="0"
-              :step="100"
-              addon-after="元"
-              :disabled="store.isReadOnly"
-              @change="handleQuickCalibrate"
-            />
-            <a-button size="small" type="link" :disabled="store.isReadOnly" @click="openCalibrateModal">
-              校准
-            </a-button>
+          <div class="metric-value" :class="{ 'not-reconciled': !store.latestReconciliation }">
+            <template v-if="store.latestReconciliation">
+              ¥{{ currentBalance.toLocaleString('zh-CN') }}
+            </template>
+            <template v-else>
+              未对账
+            </template>
           </div>
           <p class="metric-helper">
-            最近校准：
-            <span v-if="lastSnapshotDate">{{ lastSnapshotDate }}</span>
-            <span v-else>尚未校准</span>
+            <template v-if="store.latestReconciliation">
+              最近对账：{{ store.latestReconciliation.date }}
+            </template>
+            <template v-else>
+              请先完成首次对账
+            </template>
           </p>
         </div>
         <div class="metric-card">
@@ -89,11 +82,28 @@
         </div>
       </div>
       <div class="actions-row">
-        <a-button size="small" @click="openSnapshotHistory">快照历史</a-button>
+        <div v-if="store.simulatedToday" class="simulated-date-indicator">
+          模拟日期: {{ store.todayStr }}
+        </div>
+        <a-date-picker
+          :value="simulatedDateValue"
+          size="small"
+          placeholder="模拟日期"
+          :allow-clear="true"
+          style="width: 140px"
+          @change="handleSimulatedDateChange"
+        />
+        <a-button
+          size="small"
+          :type="store.needsReconciliation ? 'primary' : 'default'"
+          :disabled="store.isReadOnly"
+          @click="openReconcileModal"
+        >
+          {{ store.needsReconciliation ? '对账' : '对账' }}
+        </a-button>
+        <a-button size="small" @click="openReconciliationHistory">对账历史</a-button>
         <a-button size="small" @click="openPreferences">偏好设置</a-button>
-        <a-button size="small" :disabled="store.isReadOnly" @click="triggerImport">导入当前账户数据</a-button>
-        <a-button size="small" :disabled="store.isReadOnly" @click="exportData">导出当前账户数据</a-button>
-        <a-button size="small" danger ghost :disabled="store.isReadOnly" @click="confirmReset">清空当前账户</a-button>
+        <a-button size="small" :disabled="store.isReadOnly" @click="accountManageOpen = true">账户管理</a-button>
       </div>
     </div>
 
@@ -117,7 +127,12 @@
       @save="savePreferences"
       @cancel="preferencesOpen = false"
     />
-    <SnapshotHistory :open="snapshotHistoryOpen" @close="snapshotHistoryOpen = false" />
+    <ReconciliationHistory :open="reconciliationHistoryOpen" @close="reconciliationHistoryOpen = false" />
+    <ReconciliationModal
+      :open="reconcileOpen"
+      @cancel="reconcileOpen = false"
+      @done="handleReconcileDone"
+    />
     <CreateAccountModal
       :open="createAccountOpen"
       :default-warning-threshold="store.currentAccount.warningThreshold"
@@ -131,34 +146,47 @@
       @confirm="handleMultiAccountConfirm"
       @cancel="multiAccountOpen = false"
     />
-    <CalibrateBalanceModal
-      :open="calibrateOpen"
-      :default-date="todayIso()"
-      :default-balance="currentBalance"
-      @submit="handleCalibrateSubmit"
-      @cancel="calibrateOpen = false"
+    <AccountManageModal
+      :open="accountManageOpen"
+      @close="accountManageOpen = false"
+      @import="handleManageImport"
+      @export="handleManageExport"
+      @clear="handleManageClear"
+      @delete="handleManageDelete"
     />
   </header>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, h } from 'vue';
+import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 import { Modal, message } from 'ant-design-vue';
 import type { UserPreferences } from '@/types/account';
 import { useFinanceStore } from '@/stores/finance';
 import PreferencesModal from '@/components/common/PreferencesModal.vue';
-import SnapshotHistory from '@/components/account/SnapshotHistory.vue';
-import CalibrateBalanceModal from '@/components/common/CalibrateBalanceModal.vue';
+import ReconciliationHistory from '@/components/reconciliation/ReconciliationHistory.vue';
+import ReconciliationModal from '@/components/reconciliation/ReconciliationModal.vue';
 import AccountMultiSelectModal from '@/components/account/AccountMultiSelectModal.vue';
 import CreateAccountModal from '@/components/account/CreateAccountModal.vue';
+import AccountManageModal from '@/components/account/AccountManageModal.vue';
 
 const store = useFinanceStore();
 const preferencesOpen = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
-const calibrateOpen = ref(false);
-const snapshotHistoryOpen = ref(false);
+const reconciliationHistoryOpen = ref(false);
+const reconcileOpen = ref(false);
 const multiAccountOpen = ref(false);
 const createAccountOpen = ref(false);
+const accountManageOpen = ref(false);
+
+const simulatedDateValue = computed(() => {
+  return store.simulatedToday ? dayjs(store.simulatedToday) : null;
+});
+
+const handleSimulatedDateChange = (date: Dayjs | null) => {
+  store.setSimulatedToday(date ? date.format('YYYY-MM-DD') : null);
+};
 
 const accountOptions = computed(() =>
   store.accounts.map((acc) => ({
@@ -168,36 +196,22 @@ const accountOptions = computed(() =>
 );
 
 const currentBalance = computed(
-  () => store.activeSnapshot?.balance ?? store.currentAccount.initialBalance,
+  () => store.latestReconciliation?.balance ?? store.currentAccount.initialBalance,
 );
-
-const lastSnapshotDate = computed(
-  () => store.activeSnapshot?.date ?? '',
-);
-
-const todayIso = () => new Date().toISOString().split('T')[0];
-
-const handleQuickCalibrate = (value: number | null) => {
-  if (typeof value === 'number' && !store.isReadOnly) {
-    store.addSnapshot(value, todayIso());
-    message.success('已快速校准当前余额');
-  }
-};
-
-const openCalibrateModal = () => {
-  calibrateOpen.value = true;
-};
-
-const handleCalibrateSubmit = (payload: { date: string; balance: number; note?: string }) => {
-  store.addSnapshot(payload.balance, payload.date, payload.note);
-  calibrateOpen.value = false;
-  message.success('余额已校准');
-};
 
 const handleThresholdChange = (value: number | null) => {
   if (typeof value === 'number' && !store.isReadOnly) {
     store.updateAccount({ warningThreshold: value });
   }
+};
+
+const openReconcileModal = () => {
+  reconcileOpen.value = true;
+};
+
+const handleReconcileDone = () => {
+  reconcileOpen.value = false;
+  message.success('对账完成');
 };
 
 const triggerImport = () => {
@@ -268,12 +282,70 @@ const confirmReset = () => {
   });
 };
 
+const handleManageImport = () => {
+  accountManageOpen.value = false;
+  triggerImport();
+};
+
+const handleManageExport = () => {
+  accountManageOpen.value = false;
+  exportData();
+};
+
+const handleManageClear = () => {
+  accountManageOpen.value = false;
+  confirmReset();
+};
+
+const handleManageDelete = () => {
+  accountManageOpen.value = false;
+  confirmDeleteAccount();
+};
+
+const confirmDeleteAccount = () => {
+  let inputValue = '';
+  const name = store.currentAccount.name;
+
+  Modal.confirm({
+    title: `确定删除账户「${name}」？`,
+    content: h('div', [
+      h('p', { style: 'color: #ef4444; margin-bottom: 12px;' }, '该账户及其所有数据将被永久删除，不可恢复！'),
+      h('p', { style: 'margin-bottom: 8px;' }, `请输入"${name}"以确认：`),
+      h('input', {
+        type: 'text',
+        class: 'ant-input',
+        placeholder: `请输入：${name}`,
+        style: 'width: 100%;',
+        onInput: (e: Event) => {
+          inputValue = (e.target as HTMLInputElement).value;
+        },
+      }),
+    ]),
+    okText: '删除账户',
+    okButtonProps: { danger: true },
+    cancelText: '取消',
+    onOk: () => {
+      if (inputValue.trim() === name) {
+        const result = store.deleteAccount(store.currentAccount.id);
+        if (result.success) {
+          message.success('账户已删除');
+        } else {
+          message.error(result.message ?? '删除失败');
+        }
+      } else {
+        message.error('输入的文字不正确，操作已取消');
+        return Promise.reject();
+      }
+    },
+  });
+};
+
 const openPreferences = () => {
   preferencesOpen.value = true;
 };
 
-const openSnapshotHistory = () => {
-  snapshotHistoryOpen.value = true;
+const openReconciliationHistory = () => {
+  reconciliationHistoryOpen.value = true;
 };
 
 const openMultiAccountModal = () => {
@@ -305,10 +377,10 @@ const openCreateAccount = () => {
   createAccountOpen.value = true;
 };
 
-const handleCreateAccountSubmit = (payload: { name: string; typeLabel?: string; initialBalance?: number; warningThreshold?: number }) => {
+const handleCreateAccountSubmit = (payload: { name: string; typeLabel?: string; warningThreshold?: number }) => {
   store.addAccount(payload);
   createAccountOpen.value = false;
-  message.success('账户已创建');
+  message.success('账户已创建，请进行首次对账');
 };
 
 const savePreferences = (prefs: UserPreferences) => {
@@ -354,44 +426,37 @@ const savePreferences = (prefs: UserPreferences) => {
 
 .title-block h1 {
   margin: 0 0 2px;
-  font-size: 1.5rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #4f46e5 0%, #0f172a 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.03em;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
 }
 
 .github-link {
-  padding: 3px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(79, 70, 229, 0.25);
-  background: rgba(79, 70, 229, 0.06);
-  color: #4338ca;
-  font-size: 0.78rem;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.75rem;
   font-weight: 500;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  transition: all 0.15s ease;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  gap: 5px;
+  transition: color 0.15s, border-color 0.15s;
 }
 
 .github-icon {
   width: 14px;
   height: 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.4);
-  background: radial-gradient(circle at 30% 30%, #ffffff 0, #111827 60%);
+  border-radius: 50%;
+  background: #334155;
 }
 
 .github-link:hover {
-  background: #4f46e5;
-  color: #f9fafb;
-  border-color: #4f46e5;
-  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.35);
+  color: #4f46e5;
+  border-color: #c7d2fe;
 }
 
 .github-text {
@@ -414,15 +479,6 @@ const savePreferences = (prefs: UserPreferences) => {
 
 .account-row {
   margin-top: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.history-banner {
-  margin: 4px 0 0;
-  font-size: 0.8rem;
-  color: #f97316;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -467,10 +523,16 @@ const savePreferences = (prefs: UserPreferences) => {
   gap: 6px;
 }
 
-.metric-input-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.metric-value.not-reconciled {
+  font-size: 1.1rem;
+  color: #9ca3af;
+  font-weight: 500;
 }
 
 .metric-label {
@@ -526,5 +588,15 @@ const savePreferences = (prefs: UserPreferences) => {
 
 .file-input {
   display: none;
+}
+
+.simulated-date-indicator {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 </style>

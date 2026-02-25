@@ -2,6 +2,7 @@ import { computed, ref, watch } from 'vue';
 import { defineStore } from 'pinia';
 import { TimelineGenerator } from '@/utils/timeline';
 import { AnalyticsEngine } from '@/utils/analytics';
+import { ReconciliationEngine } from '@/utils/reconciliation';
 import { StorageManager, createDefaultState } from '@/utils/storage';
 import { validateCashFlowEvent } from '@/utils/validators';
 import { APP_VERSION, DEFAULT_PREFERENCES, ACCOUNT_COLORS, ACCOUNT_ICONS } from '@/utils/defaults';
@@ -18,6 +19,9 @@ import type {
   BalanceSnapshot,
   DailySnapshot,
   EventOccurrence,
+  Reconciliation,
+  LedgerEntry,
+  EventOverride,
 } from '@/types';
 import { createId } from '@/utils/id';
 import { generateSampleEvents } from '@/utils/sample-data';
@@ -25,6 +29,7 @@ import { generateSampleEvents } from '@/utils/sample-data';
 const storage = new StorageManager();
 const generator = new TimelineGenerator();
 const analyticsEngine = new AnalyticsEngine();
+const reconciliationEngine = new ReconciliationEngine();
 
 const seedState = storage.loadState();
 
@@ -36,6 +41,19 @@ export const useFinanceStore = defineStore('finance', () => {
   const preferences = ref<UserPreferences>({ ...seedState.preferences });
   const viewMonths = ref(preferences.value.defaultViewMonths || 12);
   const snapshots = ref<BalanceSnapshot[]>([...(seedState.snapshots ?? [])]);
+
+  // 新增：对账系统状态
+  const reconciliations = ref<Reconciliation[]>([...(seedState.reconciliations ?? [])]);
+  const ledgerEntries = ref<LedgerEntry[]>([...(seedState.ledgerEntries ?? [])]);
+  const eventOverrides = ref<EventOverride[]>([...(seedState.eventOverrides ?? [])]);
+
+  // 模拟日期（用于测试），null 表示使用系统真实日期
+  const simulatedToday = ref<string | null>(null);
+
+  /** 当前逻辑日期字符串 (YYYY-MM-DD) */
+  const todayStr = computed<string>(() => {
+    return simulatedToday.value ?? new Date().toISOString().split('T')[0];
+  });
 
   type ViewMode = 'single' | 'multi';
   const viewMode = ref<ViewMode>('single');
@@ -65,10 +83,40 @@ export const useFinanceStore = defineStore('finance', () => {
     if (multiAccountSelection.value.length) {
       return [...multiAccountSelection.value];
     }
-    // 多账户视图但尚未选择时，默认全选
     return accounts.value.map((a) => a.id);
   });
 
+  // --- 对账相关 Computed ---
+
+  /** 当前账户的对账记录（按日期排序） */
+  const sortedReconciliations = computed<Reconciliation[]>(() => {
+    return reconciliations.value
+      .filter((r) => r.accountId === currentAccount.value.id)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  });
+
+  /** 最新对账记录 */
+  const latestReconciliation = computed<Reconciliation | null>(() => {
+    return sortedReconciliations.value.at(-1) ?? null;
+  });
+
+  /** 是否需要对账（最新对账日 < 今天） */
+  const needsReconciliation = computed<boolean>(() => {
+    if (!latestReconciliation.value) return true;
+    return latestReconciliation.value.date < todayStr.value;
+  });
+
+  /** 当前账户的账本条目 */
+  const accountLedgerEntries = computed<LedgerEntry[]>(() => {
+    return ledgerEntries.value.filter((e) => e.accountId === currentAccount.value.id);
+  });
+
+  /** 当前账户的事件覆盖 */
+  const accountOverrides = computed<EventOverride[]>(() => {
+    return eventOverrides.value.filter((o) => o.accountId === currentAccount.value.id);
+  });
+
+  // --- 旧版兼容 Computed (snapshots) ---
   const snapshotsByAccount = computed<Record<string, BalanceSnapshot[]>>(() => {
     const map: Record<string, BalanceSnapshot[]> = {};
     snapshots.value.forEach((snap) => {
@@ -82,10 +130,9 @@ export const useFinanceStore = defineStore('finance', () => {
   });
 
   const sortedSnapshots = computed<BalanceSnapshot[]>(() => snapshotsByAccount.value[currentAccount.value.id] ?? []);
-
   const latestSnapshot = computed<BalanceSnapshot | null>(() => sortedSnapshots.value.at(-1) ?? null);
 
-  // 当前视图使用的快照 id（null 表示使用最新快照）
+  // 当前视图使用的快照 id（null 表示使用最新快照 — 保留兼容）
   const viewSnapshotId = ref<string | null>(null);
 
   const activeSnapshot = computed<BalanceSnapshot | null>(() => {
@@ -100,41 +147,43 @@ export const useFinanceStore = defineStore('finance', () => {
     return activeSnapshot.value.id !== latestSnapshot.value.id;
   });
 
-  // 单账户视图下的时间线（基于当前账户 + 当前/历史快照）
+  // 单账户视图下的时间线（基于对账系统）
   const singleTimeline = computed<DailySnapshot[]>(() => {
-    const snaps = sortedSnapshots.value;
-    if (!snaps.length || !latestSnapshot.value) return [];
-    const active = activeSnapshot.value ?? latestSnapshot.value;
-    const snapsForView =
-      viewSnapshotId.value == null
-        ? snaps
-        : snaps.filter((snap) => snap.date <= active.date);
+    const accountRecons = sortedReconciliations.value;
+    if (!accountRecons.length) return [];
 
     const accountEvents = events.value.filter((e) => e.accountId === currentAccount.value.id);
 
     return generator.generate({
       events: accountEvents,
-      snapshots: snapsForView,
+      reconciliations: accountRecons,
+      ledgerEntries: accountLedgerEntries.value,
+      eventOverrides: accountOverrides.value,
       months: viewMonths.value,
-      mode: 'latest',
+      today: todayStr.value,
     });
   });
 
   // 多账户视图下：先为每个账户生成独立时间线，再汇总
   const timelinesByAccount = computed<Record<string, DailySnapshot[]>>(() => {
     const map: Record<string, DailySnapshot[]> = {};
-    const todayIso = new Date().toISOString().split('T')[0];
 
     selectedAccountIds.value.forEach((accId) => {
       const evts = events.value.filter((e) => e.accountId === accId);
-      const snaps = snapshotsByAccount.value[accId] ?? [];
-      if (!snaps.length) return;
+      const recons = reconciliations.value
+        .filter((r) => r.accountId === accId)
+        .sort((a, b) => a.date.localeCompare(b.date));
+      if (!recons.length) return;
+      const entries = ledgerEntries.value.filter((e) => e.accountId === accId);
+      const overrides = eventOverrides.value.filter((o) => o.accountId === accId);
+
       map[accId] = generator.generate({
         events: evts,
-        snapshots: snaps,
+        reconciliations: recons,
+        ledgerEntries: entries,
+        eventOverrides: overrides,
         months: viewMonths.value,
-        mode: 'latest',
-        today: todayIso,
+        today: todayStr.value,
       });
     });
 
@@ -153,6 +202,7 @@ export const useFinanceStore = defineStore('finance', () => {
       const eventsAgg: EventOccurrence[] = [];
       let isWeekend = false;
       let isToday = false;
+      let zone: 'frozen' | 'projected' = 'projected';
 
       selectedAccountIds.value.forEach((accId) => {
         const tl = map[accId];
@@ -166,13 +216,13 @@ export const useFinanceStore = defineStore('finance', () => {
             (e) =>
               ({
                 ...e,
-                // 在聚合视图中带上账户信息，方便前端打 tag
                 accountId: (e as any).accountId ?? accId,
               } as any),
           ),
         );
         isWeekend ||= day.isWeekend;
         isToday ||= day.isToday;
+        if (day.zone === 'frozen') zone = 'frozen';
       });
 
       return {
@@ -182,6 +232,7 @@ export const useFinanceStore = defineStore('finance', () => {
         events: eventsAgg,
         isWeekend,
         isToday,
+        zone,
       };
     });
   });
@@ -221,6 +272,9 @@ export const useFinanceStore = defineStore('finance', () => {
       events: events.value,
       preferences: preferences.value,
       snapshots: snapshots.value,
+      reconciliations: reconciliations.value,
+      ledgerEntries: ledgerEntries.value,
+      eventOverrides: eventOverrides.value,
     };
     storage.saveState(payload);
   };
@@ -230,7 +284,6 @@ export const useFinanceStore = defineStore('finance', () => {
   };
 
   const addEvent = (payload: NewCashFlowEvent) => {
-    // 确保事件绑定到当前账户
     const withAccount: NewCashFlowEvent = {
       ...payload,
       accountId: payload.accountId ?? account.value.id,
@@ -273,6 +326,7 @@ export const useFinanceStore = defineStore('finance', () => {
   };
 
   const toggleEvent = (id: string, enabled: boolean) => updateEvent(id, { enabled });
+
   const visibleEvents = computed(() => {
     const base = isMultiAccountView.value
       ? events.value.filter((e) => selectedAccountIds.value.includes(e.accountId))
@@ -280,46 +334,228 @@ export const useFinanceStore = defineStore('finance', () => {
     return [...base].sort((a, b) => a.startDate.localeCompare(b.startDate));
   });
 
-  const addSnapshot = (balance: number, date: string, note?: string) => {
-    const nowIso = new Date().toISOString();
-    const existingIndex = snapshots.value.findIndex(
-      (snap) => snap.date === date && snap.accountId === account.value.id,
-    );
-    let snapshot: BalanceSnapshot;
+  // --- 对账 Actions ---
 
-    if (existingIndex >= 0) {
-      // 同一天只保留一条快照：用最新的覆盖该日期的快照
-      const base = snapshots.value[existingIndex];
-      snapshot = {
-        ...base,
-        balance,
-        note,
-        createdAt: nowIso,
-        source: base.source ?? 'manual',
-      };
-      snapshots.value.splice(existingIndex, 1, snapshot);
-    } else {
-      snapshot = {
-        id: createId(),
-        accountId: account.value.id,
-        date,
-        balance,
-        note,
-        source: snapshots.value.length === 0 ? 'initial' : 'manual',
-        createdAt: nowIso,
-      };
-      snapshots.value = [...snapshots.value, snapshot];
+  /** 执行对账 */
+  const reconcile = (
+    date: string,
+    balance: number,
+    entries: Array<{ ruleId?: string; name: string; amount: number; category: 'income' | 'expense'; date: string; source: 'rule' | 'manual' }>,
+    note?: string,
+  ) => {
+    const accId = currentAccount.value.id;
+    const lastRecon = latestReconciliation.value;
+
+    const { reconciliation, ledgerEntries: newEntries } = reconciliationEngine.createReconciliation(
+      accId,
+      date,
+      balance,
+      entries,
+      lastRecon,
+      note,
+    );
+
+    reconciliations.value = [...reconciliations.value, reconciliation];
+    ledgerEntries.value = [...ledgerEntries.value, ...newEntries];
+
+    // 清理已冻结期间的 confirmed 覆盖（不再需要）
+    if (lastRecon) {
+      const confirmedOverrideIds = new Set(
+        eventOverrides.value
+          .filter((o) => o.accountId === accId && o.action === 'confirmed')
+          .map((o) => o.id),
+      );
+      if (confirmedOverrideIds.size > 0) {
+        eventOverrides.value = eventOverrides.value.filter((o) => !confirmedOverrideIds.has(o.id));
+      }
     }
 
-    snapshots.value = snapshots.value.sort((a, b) => a.date.localeCompare(b.date));
+    // 同步 account 的 initialBalance
     account.value = {
       ...account.value,
       initialBalance: balance,
-      updatedAt: snapshot.createdAt,
+      updatedAt: new Date().toISOString(),
     };
     syncCurrentAccountToList();
+
+    // 同步添加一条快照（向后兼容）
+    const nowIso = new Date().toISOString();
+    const existingSnapIdx = snapshots.value.findIndex(
+      (s) => s.date === date && s.accountId === accId,
+    );
+    if (existingSnapIdx >= 0) {
+      snapshots.value.splice(existingSnapIdx, 1, {
+        ...snapshots.value[existingSnapIdx],
+        balance,
+        createdAt: nowIso,
+      });
+    } else {
+      snapshots.value.push({
+        id: createId(),
+        accountId: accId,
+        date,
+        balance,
+        source: 'manual',
+        createdAt: nowIso,
+      });
+      snapshots.value.sort((a, b) => a.date.localeCompare(b.date));
+    }
+
     persist();
-    return snapshot;
+    return reconciliation;
+  };
+
+  /** 编辑冻结区账本条目 */
+  const updateLedgerEntry = (id: string, updates: Partial<Pick<LedgerEntry, 'name' | 'amount' | 'category' | 'date'>>) => {
+    const idx = ledgerEntries.value.findIndex((e) => e.id === id);
+    if (idx === -1) return;
+
+    const entry = { ...ledgerEntries.value[idx], ...updates, updatedAt: new Date().toISOString() };
+    ledgerEntries.value.splice(idx, 1, entry);
+
+    // 重算该对账期的 adjustment
+    recalculateAdjustmentForReconciliation(entry.reconciliationId);
+    persist();
+  };
+
+  /** 删除冻结区账本条目 */
+  const deleteLedgerEntry = (id: string) => {
+    const entry = ledgerEntries.value.find((e) => e.id === id);
+    if (!entry) return;
+    const reconId = entry.reconciliationId;
+    ledgerEntries.value = ledgerEntries.value.filter((e) => e.id !== id);
+    recalculateAdjustmentForReconciliation(reconId);
+    persist();
+  };
+
+  /** 手动添加账本条目到某个对账期 */
+  const addManualLedgerEntry = (
+    reconciliationId: string,
+    entry: { name: string; amount: number; category: 'income' | 'expense'; date: string },
+  ) => {
+    const recon = reconciliations.value.find((r) => r.id === reconciliationId);
+    if (!recon) return;
+    const nowIso = new Date().toISOString();
+    const newEntry: LedgerEntry = {
+      id: createId(),
+      accountId: recon.accountId,
+      reconciliationId,
+      name: entry.name,
+      amount: entry.amount,
+      category: entry.category,
+      date: entry.date,
+      source: 'manual',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+    ledgerEntries.value = [...ledgerEntries.value, newEntry];
+    recalculateAdjustmentForReconciliation(reconciliationId);
+    persist();
+  };
+
+  /** 重算某个对账期的调整条目 */
+  const recalculateAdjustmentForReconciliation = (reconciliationId: string) => {
+    const recon = reconciliations.value.find((r) => r.id === reconciliationId);
+    if (!recon) return;
+
+    // 获取前一个对账点的余额
+    const sorted = [...reconciliations.value]
+      .filter((r) => r.accountId === recon.accountId)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const reconIdx = sorted.findIndex((r) => r.id === reconciliationId);
+    const previousBalance = reconIdx > 0 ? sorted[reconIdx - 1].balance : 0;
+
+    const periodEntries = ledgerEntries.value.filter((e) => e.reconciliationId === reconciliationId);
+    const newEntries = reconciliationEngine.recalculateAdjustment(recon, periodEntries, previousBalance);
+
+    // 替换该对账期的所有条目
+    ledgerEntries.value = [
+      ...ledgerEntries.value.filter((e) => e.reconciliationId !== reconciliationId),
+      ...newEntries,
+    ];
+  };
+
+  // --- 事件覆盖 Actions ---
+
+  /** 添加或更新事件覆盖（ruleId + period 唯一） */
+  const addEventOverride = (
+    ruleId: string,
+    period: string,
+    action: EventOverride['action'],
+    options?: { amount?: number; name?: string; actualDate?: string },
+  ) => {
+    const accId = currentAccount.value.id;
+    const existing = eventOverrides.value.findIndex(
+      (o) => o.accountId === accId && o.ruleId === ruleId && o.period === period,
+    );
+
+    const nowIso = new Date().toISOString();
+
+    if (existing >= 0) {
+      eventOverrides.value.splice(existing, 1, {
+        ...eventOverrides.value[existing],
+        action,
+        amount: options?.amount,
+        name: options?.name,
+        actualDate: options?.actualDate,
+        createdAt: nowIso,
+      });
+    } else {
+      eventOverrides.value = [
+        ...eventOverrides.value,
+        {
+          id: createId(),
+          accountId: accId,
+          ruleId,
+          period,
+          action,
+          amount: options?.amount,
+          name: options?.name,
+          actualDate: options?.actualDate,
+          createdAt: nowIso,
+        },
+      ];
+    }
+
+    persist();
+  };
+
+  /** 删除事件覆盖 */
+  const removeEventOverride = (id: string) => {
+    eventOverrides.value = eventOverrides.value.filter((o) => o.id !== id);
+    persist();
+  };
+
+  /** 设置模拟日期（null 表示使用真实日期） */
+  const setSimulatedToday = (date: string | null) => {
+    simulatedToday.value = date;
+  };
+
+  // --- 旧版兼容 Actions ---
+
+  /** 向后兼容：addSnapshot 内部改为调用 reconcile */
+  const addSnapshot = (balance: number, date: string, note?: string) => {
+    const accId = currentAccount.value.id;
+    const lastRecon = latestReconciliation.value;
+    const accountEvents = events.value.filter((e) => e.accountId === accId);
+
+    // 自动生成对账期间的事件
+    const pendingEntries = reconciliationEngine.generatePendingEntries(
+      accountEvents,
+      lastRecon,
+      date,
+    );
+
+    const entries = pendingEntries.map((pe) => ({
+      ruleId: pe.ruleId,
+      name: pe.name,
+      amount: pe.amount,
+      category: pe.category,
+      date: pe.date,
+      source: pe.source as 'rule' | 'manual',
+    }));
+
+    return reconcile(date, balance, entries, note);
   };
 
   const addAccount = (payload: { name: string; typeLabel?: string; initialBalance?: number; warningThreshold?: number }) => {
@@ -347,16 +583,7 @@ export const useFinanceStore = defineStore('finance', () => {
     currentAccountId.value = accountConfig.id;
     account.value = { ...accountConfig };
 
-    const today = new Date().toISOString().split('T')[0];
-    snapshots.value.push({
-      id: createId(),
-      accountId: accountConfig.id,
-      date: today,
-      balance: accountConfig.initialBalance,
-      source: 'initial',
-      createdAt: nowIso,
-    });
-    snapshots.value.sort((a, b) => a.date.localeCompare(b.date));
+    // 不创建初始对账记录，等待用户首次对账来设定真实余额
 
     viewMode.value = 'single';
     viewSnapshotId.value = null;
@@ -371,7 +598,6 @@ export const useFinanceStore = defineStore('finance', () => {
       viewSnapshotId.value = null;
       return;
     }
-    // 点击最新快照等价于退出历史模式
     if (latestSnapshot.value && id === latestSnapshot.value.id) {
       viewSnapshotId.value = null;
     } else {
@@ -414,6 +640,9 @@ export const useFinanceStore = defineStore('finance', () => {
     preferences.value = defaults.preferences;
     viewMonths.value = defaults.preferences.defaultViewMonths;
     snapshots.value = defaults.snapshots;
+    reconciliations.value = [...defaults.reconciliations];
+    ledgerEntries.value = [...defaults.ledgerEntries];
+    eventOverrides.value = [...defaults.eventOverrides];
     viewMode.value = 'single';
     multiAccountSelection.value = [];
     viewSnapshotId.value = null;
@@ -422,8 +651,7 @@ export const useFinanceStore = defineStore('finance', () => {
 
   const loadSampleData = () => {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    // 仅重置当前账户为示例数据：初始余额16000元，预警阈值1000元，并生成对应快照
+    const today = todayStr.value;
     const updated: AccountConfig = {
       ...currentAccount.value,
       initialBalance: 16000,
@@ -443,6 +671,22 @@ export const useFinanceStore = defineStore('finance', () => {
       source: 'initial',
       createdAt: now.toISOString(),
     });
+
+    // 重建对账记录
+    reconciliations.value = reconciliations.value.filter((r) => r.accountId !== updated.id);
+    reconciliations.value.push({
+      id: createId(),
+      accountId: updated.id,
+      date: today,
+      balance: 16000,
+      note: '示例数据初始对账',
+      createdAt: now.toISOString(),
+    });
+
+    // 清理该账户的账本条目和覆盖
+    ledgerEntries.value = ledgerEntries.value.filter((e) => e.accountId !== updated.id);
+    eventOverrides.value = eventOverrides.value.filter((o) => o.accountId !== updated.id);
+
     events.value = [
       ...events.value.filter((e) => e.accountId !== updated.id),
       ...generateSampleEvents(updated.id),
@@ -453,28 +697,40 @@ export const useFinanceStore = defineStore('finance', () => {
 
   const importState = (content: string) => {
     const imported = storage.importState(content);
-    const importedAccount = imported.account;
-    const importedEvents = imported.events.filter((e) => e.accountId === importedAccount.id);
-    const importedSnapshots = imported.snapshots.filter((s) => s.accountId === importedAccount.id);
+    const sourceId = imported.account.id;
+    const targetId = currentAccount.value.id;
 
-    const idx = accounts.value.findIndex((a) => a.id === importedAccount.id);
+    // 将导入数据的 accountId 全部重映射为当前账户 ID
+    const remap = (id: string) => (id === sourceId ? targetId : id);
+
+    const mergedAccount: AccountConfig = { ...imported.account, id: targetId };
+    const idx = accounts.value.findIndex((a) => a.id === targetId);
     if (idx >= 0) {
-      accounts.value.splice(idx, 1, importedAccount);
-    } else {
-      accounts.value.push(importedAccount);
+      accounts.value.splice(idx, 1, mergedAccount);
     }
-
-    currentAccountId.value = importedAccount.id;
-    account.value = importedAccount;
+    account.value = mergedAccount;
 
     events.value = [
-      ...events.value.filter((e) => e.accountId !== importedAccount.id),
-      ...importedEvents,
+      ...events.value.filter((e) => e.accountId !== targetId),
+      ...imported.events.filter((e) => e.accountId === sourceId).map((e) => ({ ...e, accountId: remap(e.accountId) })),
     ];
     snapshots.value = [
-      ...snapshots.value.filter((s) => s.accountId !== importedAccount.id),
-      ...importedSnapshots,
+      ...snapshots.value.filter((s) => s.accountId !== targetId),
+      ...imported.snapshots.filter((s) => s.accountId === sourceId).map((s) => ({ ...s, accountId: remap(s.accountId) })),
     ].sort((a, b) => a.date.localeCompare(b.date));
+
+    reconciliations.value = [
+      ...reconciliations.value.filter((r) => r.accountId !== targetId),
+      ...imported.reconciliations.filter((r) => r.accountId === sourceId).map((r) => ({ ...r, accountId: remap(r.accountId) })),
+    ];
+    ledgerEntries.value = [
+      ...ledgerEntries.value.filter((e) => e.accountId !== targetId),
+      ...imported.ledgerEntries.filter((e) => e.accountId === sourceId).map((e) => ({ ...e, accountId: remap(e.accountId) })),
+    ];
+    eventOverrides.value = [
+      ...eventOverrides.value.filter((o) => o.accountId !== targetId),
+      ...imported.eventOverrides.filter((o) => o.accountId === sourceId).map((o) => ({ ...o, accountId: remap(o.accountId) })),
+    ];
 
     viewMode.value = 'single';
     multiAccountSelection.value = [];
@@ -491,12 +747,18 @@ export const useFinanceStore = defineStore('finance', () => {
       events: events.value.filter((e) => e.accountId === currentAccount.value.id),
       preferences: preferences.value,
       snapshots: snapshots.value.filter((s) => s.accountId === currentAccount.value.id),
+      reconciliations: reconciliations.value.filter((r) => r.accountId === currentAccount.value.id),
+      ledgerEntries: ledgerEntries.value.filter((e) => e.accountId === currentAccount.value.id),
+      eventOverrides: eventOverrides.value.filter((o) => o.accountId === currentAccount.value.id),
     });
 
   const clearCurrentAccount = () => {
     const targetId = currentAccount.value.id;
     events.value = events.value.filter((e) => e.accountId !== targetId);
     snapshots.value = snapshots.value.filter((s) => s.accountId !== targetId);
+    reconciliations.value = reconciliations.value.filter((r) => r.accountId !== targetId);
+    ledgerEntries.value = ledgerEntries.value.filter((e) => e.accountId !== targetId);
+    eventOverrides.value = eventOverrides.value.filter((o) => o.accountId !== targetId);
 
     const nowIso = new Date().toISOString();
     const updated: AccountConfig = {
@@ -508,22 +770,36 @@ export const useFinanceStore = defineStore('finance', () => {
     const idx = accounts.value.findIndex((a) => a.id === updated.id);
     if (idx >= 0) accounts.value.splice(idx, 1, updated);
 
-    const today = nowIso.split('T')[0];
-    snapshots.value.push({
-      id: createId(),
-      accountId: updated.id,
-      date: today,
-      balance: 0,
-      source: 'manual',
-      createdAt: nowIso,
-    });
-    snapshots.value.sort((a, b) => a.date.localeCompare(b.date));
+    // 不创建初始对账记录，等待用户重新首次对账
 
     viewMode.value = 'single';
     viewSnapshotId.value = null;
     multiAccountSelection.value = [];
 
     persist();
+  };
+
+  const deleteAccount = (accountId: string) => {
+    if (accounts.value.length <= 1) {
+      return { success: false as const, message: '至少保留一个账户' };
+    }
+    events.value = events.value.filter((e) => e.accountId !== accountId);
+    snapshots.value = snapshots.value.filter((s) => s.accountId !== accountId);
+    reconciliations.value = reconciliations.value.filter((r) => r.accountId !== accountId);
+    ledgerEntries.value = ledgerEntries.value.filter((e) => e.accountId !== accountId);
+    eventOverrides.value = eventOverrides.value.filter((o) => o.accountId !== accountId);
+
+    accounts.value = accounts.value.filter((a) => a.id !== accountId);
+    if (currentAccountId.value === accountId) {
+      currentAccountId.value = accounts.value[0].id;
+      account.value = { ...accounts.value[0] };
+    }
+
+    viewMode.value = 'single';
+    viewSnapshotId.value = null;
+    multiAccountSelection.value = [];
+    persist();
+    return { success: true as const };
   };
 
   const ensurePreferencesFilled = () => {
@@ -557,6 +833,16 @@ export const useFinanceStore = defineStore('finance', () => {
     selectedAccountIds,
     visibleEvents,
     isReadOnly,
+    // 对账系统
+    reconciliations,
+    ledgerEntries,
+    eventOverrides,
+    sortedReconciliations,
+    latestReconciliation,
+    needsReconciliation,
+    accountLedgerEntries,
+    accountOverrides,
+    // Actions
     addAccount,
     addSnapshot,
     setViewSnapshot,
@@ -572,5 +858,17 @@ export const useFinanceStore = defineStore('finance', () => {
     importState,
     exportState,
     clearCurrentAccount,
+    deleteAccount,
+    // 对账 Actions
+    reconcile,
+    updateLedgerEntry,
+    deleteLedgerEntry,
+    addManualLedgerEntry,
+    addEventOverride,
+    removeEventOverride,
+    // 模拟日期
+    simulatedToday,
+    todayStr,
+    setSimulatedToday,
   };
 });
