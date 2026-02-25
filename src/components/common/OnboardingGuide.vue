@@ -65,7 +65,7 @@ const steps: Step[] = [
     description:
       '这里汇总期末余额、累计收支和预警天数，帮你快速评估账户健康度。还可以尝试「对账历史」和「多账户视图」等功能。',
     selector: '#stats-panel',
-    placement: 'bottom',
+    placement: 'top',
   },
 ];
 
@@ -93,11 +93,22 @@ const updateHighlight = async (ensureVisible = false) => {
   }
   const element = document.querySelector(selector);
   if (element) {
+    if (ensureVisible) {
+      // 根据元素位置决定滚动策略
+      const rect = element.getBoundingClientRect();
+      const isNearBottom = rect.bottom > window.innerHeight - 100;
+
+      if (isNearBottom) {
+        // 底部元素：滚动到底部让元素和上方的卡片都能显示
+        element.scrollIntoView({ behavior: 'instant', block: 'end', inline: 'nearest' });
+      } else {
+        // 其他元素：居中显示
+        element.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' });
+      }
+    }
+    // 滚动完成后再计算位置（使用 instant 确保同步完成）
     const rect = getAbsoluteRect(element);
     highlightRect.value = rect;
-    if (ensureVisible) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-    }
   } else {
     highlightRect.value = null;
   }
@@ -165,38 +176,75 @@ const cardStyle = computed(() => {
       transform: 'translate(-50%, -50%)',
     };
   }
+
   const gutter = 16;
+  const cardWidth = 320;
+  const cardHeight = 200; // 预估卡片高度
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
+
+  // 计算各种位置方案是否可行
+  const canPlaceRight = rect.right + gutter + cardWidth <= scrollX + viewportWidth - 16;
+  const canPlaceLeft = rect.left - gutter - cardWidth >= scrollX + 16;
+  const canPlaceBottom = rect.bottom + gutter + cardHeight <= scrollY + viewportHeight - 16;
+  const canPlaceTop = rect.top - gutter - cardHeight >= scrollY + 16;
+
+  // 根据首选位置和边界情况确定最终位置
+  let placement = step.placement || 'bottom';
+
+  // 如果首选位置放不下，尝试翻转或找其他位置
+  if (placement === 'bottom' && !canPlaceBottom) {
+    if (canPlaceTop) placement = 'top';
+    else if (canPlaceRight) placement = 'right';
+    else if (canPlaceLeft) placement = 'left';
+  } else if (placement === 'top' && !canPlaceTop) {
+    if (canPlaceBottom) placement = 'bottom';
+    else if (canPlaceRight) placement = 'right';
+    else if (canPlaceLeft) placement = 'left';
+  } else if (placement === 'right' && !canPlaceRight) {
+    if (canPlaceLeft) placement = 'left';
+    else if (canPlaceBottom) placement = 'bottom';
+    else if (canPlaceTop) placement = 'top';
+  } else if (placement === 'left' && !canPlaceLeft) {
+    if (canPlaceRight) placement = 'right';
+    else if (canPlaceBottom) placement = 'bottom';
+    else if (canPlaceTop) placement = 'top';
+  }
+
   let top = rect.top;
   let left = rect.left;
 
-  switch (step.placement) {
+  switch (placement) {
     case 'right':
       left = rect.right + gutter;
-      top = rect.top;
+      top = rect.top + rect.height / 2 - cardHeight / 2;
       break;
     case 'left':
-      left = rect.left - gutter - 320;
-      top = rect.top;
+      left = rect.left - gutter - cardWidth;
+      top = rect.top + rect.height / 2 - cardHeight / 2;
       break;
     case 'bottom':
       top = rect.bottom + gutter;
-      left = rect.left;
+      left = rect.left + rect.width / 2 - cardWidth / 2;
       break;
     case 'top':
-      top = rect.top - gutter - 160;
-      left = rect.left;
+      top = rect.top - gutter - cardHeight;
+      left = rect.left + rect.width / 2 - cardWidth / 2;
       break;
     default:
-      top = rect.top + rect.height + gutter;
-      left = rect.left;
+      top = rect.bottom + gutter;
+      left = rect.left + rect.width / 2 - cardWidth / 2;
   }
 
-  const maxLeft = window.scrollX + window.innerWidth - 340;
-  const minLeft = window.scrollX + 16;
+  // 最终边界限制
+  const maxLeft = scrollX + viewportWidth - cardWidth - 16;
+  const minLeft = scrollX + 16;
   left = Math.min(Math.max(left, minLeft), maxLeft);
 
-  const maxTop = window.scrollY + window.innerHeight - 200;
-  const minTop = window.scrollY + 16;
+  const maxTop = scrollY + viewportHeight - cardHeight - 16;
+  const minTop = scrollY + 16;
   top = Math.min(Math.max(top, minTop), maxTop);
 
   return {
