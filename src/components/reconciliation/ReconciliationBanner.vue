@@ -2,9 +2,22 @@
   <div v-if="mode !== 'hidden'" id="reconciliation-banner" class="setup-banner" :class="mode">
     <!-- 引导清单模式 -->
     <template v-if="mode === 'onboarding'">
+      <div class="intro-section">
+        <h3 class="intro-title">FutureMoney 是什么？</h3>
+        <p class="intro-desc">
+          一个纯本地的个人现金流预测工具。把你的工资、房贷、信用卡还款等固定收支录入后，
+          系统会自动生成未来余额走势图，帮你提前发现资金缺口，避免意外透支。
+        </p>
+        <div class="intro-features">
+          <span class="intro-tag">对账校准</span>
+          <span class="intro-tag">多账户汇总</span>
+          <span class="intro-tag">预警提醒</span>
+          <span class="intro-tag">数据纯本地</span>
+        </div>
+      </div>
       <div class="banner-title">
         <span class="banner-icon setup">?</span>
-        <span>开始使用 FutureMoney</span>
+        <span>两步开始使用</span>
       </div>
       <div class="checklist">
         <div class="checklist-item" :class="{ done: hasEvents }">
@@ -90,6 +103,42 @@ const daysSince = computed(() => {
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 16px;
+}
+
+.intro-section {
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(147, 197, 253, 0.3);
+}
+
+.intro-title {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.intro-desc {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: #475569;
+}
+
+.intro-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.intro-tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(147, 197, 253, 0.4);
+  font-size: 0.72rem;
+  color: #3b82f6;
+  font-weight: 500;
 }
 
 .setup-banner.onboarding {
