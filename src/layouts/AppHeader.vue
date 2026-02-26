@@ -144,6 +144,8 @@
       :open="multiAccountOpen"
       :accounts="store.accounts"
       :initial-selected="store.selectedAccountIds"
+      :latest-reconciliation-map="latestReconciliationMap"
+      :today="store.todayStr"
       @confirm="handleMultiAccountConfirm"
       @cancel="multiAccountOpen = false"
     />
@@ -171,6 +173,11 @@ import ReconciliationModal from '@/components/reconciliation/ReconciliationModal
 import AccountMultiSelectModal from '@/components/account/AccountMultiSelectModal.vue';
 import CreateAccountModal from '@/components/account/CreateAccountModal.vue';
 import AccountManageModal from '@/components/account/AccountManageModal.vue';
+
+interface LatestReconciliationBrief {
+  date: string;
+  balance: number;
+}
 
 const store = useFinanceStore();
 const preferencesOpen = ref(false);
@@ -215,6 +222,25 @@ const accountOptions = computed(() =>
 const currentBalance = computed(
   () => store.latestReconciliation?.balance ?? store.currentAccount.initialBalance,
 );
+
+const latestReconciliationMap = computed<Record<string, LatestReconciliationBrief | null>>(() => {
+  const map: Record<string, LatestReconciliationBrief | null> = {};
+  store.accounts.forEach((acc) => {
+    map[acc.id] = null;
+  });
+
+  store.reconciliations.forEach((recon) => {
+    const existing = map[recon.accountId];
+    if (!existing || recon.date > existing.date) {
+      map[recon.accountId] = {
+        date: recon.date,
+        balance: recon.balance,
+      };
+    }
+  });
+
+  return map;
+});
 
 const handleThresholdChange = (value: number | null) => {
   if (typeof value === 'number' && !store.isReadOnly) {
@@ -374,8 +400,41 @@ const handleMultiAccountConfirm = (ids: string[]) => {
     message.warning('请选择至少两个账户进入多账户视图');
     return;
   }
+
+  const accountMap = new Map(store.accounts.map((acc) => [acc.id, acc]));
+  const selectedAccounts = ids
+    .map((id) => accountMap.get(id))
+    .filter((acc): acc is NonNullable<typeof acc> => !!acc);
+
+  if (selectedAccounts.length < 2) {
+    message.warning('请选择至少两个有效账户进入多账户视图');
+    return;
+  }
+
+  const missingReconciliation = selectedAccounts.filter(
+    (acc) => !latestReconciliationMap.value[acc.id],
+  );
+  if (missingReconciliation.length) {
+    message.warning(`以下账户未完成首次对账：${missingReconciliation.map((acc) => acc.name).join('、')}`);
+    return;
+  }
+
+  const reconciliationDates = new Set(
+    selectedAccounts
+      .map((acc) => latestReconciliationMap.value[acc.id]?.date)
+      .filter((date): date is string => !!date),
+  );
+
+  if (reconciliationDates.size > 1) {
+    const detail = selectedAccounts
+      .map((acc) => `${acc.name}(${latestReconciliationMap.value[acc.id]?.date ?? '未对账'})`)
+      .join('，');
+    message.warning(`仅支持最新对账日一致的账户：${detail}`);
+    return;
+  }
+
   store.viewMode = 'multi';
-  store.multiAccountSelection = ids;
+  store.multiAccountSelection = selectedAccounts.map((acc) => acc.id);
   multiAccountOpen.value = false;
 };
 
