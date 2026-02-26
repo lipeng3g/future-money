@@ -469,10 +469,10 @@ const savePreferences = (prefs: UserPreferences) => {
 <style scoped>
 .app-header {
   padding: 16px 32px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  background: var(--fm-surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -480,7 +480,7 @@ const savePreferences = (prefs: UserPreferences) => {
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: var(--fm-shadow-sm);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
 }
 
 .app-header--multi {
@@ -600,9 +600,11 @@ const savePreferences = (prefs: UserPreferences) => {
 }
 
 .metric-value {
-  font-size: 1.5rem;
+  font-family: 'SF Pro Rounded', ui-monospace, sans-serif;
+  font-size: 1.6rem;
   font-weight: 700;
   color: #0f172a;
+  letter-spacing: -0.02em;
 }
 
 .metric-value.not-reconciled {

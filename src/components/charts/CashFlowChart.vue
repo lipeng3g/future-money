@@ -20,34 +20,43 @@ const chartOption = computed(() => {
   return {
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: 'rgba(0, 0, 0, 0.1)',
+      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+      borderColor: 'rgba(255, 255, 255, 0.5)',
       borderWidth: 1,
+      padding: 0,
+      extraCssText: 'backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.08); border-radius: 12px;',
       textStyle: {
-        color: '#374151',
+        color: '#0f172a',
       },
       axisPointer: {
         type: 'shadow',
+        shadowStyle: { color: 'rgba(15, 23, 42, 0.03)' },
       },
       formatter: (params: any) => {
         const month = params[0].axisValue;
         const income = params.find((p: any) => p.seriesName === '收入')?.value || 0;
         const expense = params.find((p: any) => p.seriesName === '支出')?.value || 0;
         const net = params.find((p: any) => p.seriesName === '结余')?.value || 0;
+        const netColor = net >= 0 ? '#10b981' : '#f43f5e';
 
         return `
-          <div style="padding:6px">
-            <div style="font-weight:600;margin-bottom:6px">${month}</div>
-            <div style="color:#10b981;margin-top:2px">
-              <span style="display:inline-block;width:6px;height:6px;border-radius:999px;background:#10b981;margin-right:4px;"></span>
-              收入: ¥${income.toLocaleString()}
+          <div style="padding:16px;min-width:180px">
+            <div style="font-weight:600;margin-bottom:12px;font-size:13px;color:#64748b;border-bottom:1px solid rgba(15,23,42,0.06);padding-bottom:8px">${month}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="color:#64748b;font-size:13px;display:flex;align-items:center;">
+                <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#10b981;margin-right:8px;"></span>收入
+              </span>
+              <span style="font-family:'SF Pro Rounded', ui-monospace, sans-serif;font-weight:600;color:#0f172a;">¥${income.toLocaleString()}</span>
             </div>
-            <div style="color:#f43f5e;margin-top:2px">
-              <span style="display:inline-block;width:6px;height:6px;border-radius:999px;background:#f43f5e;margin-right:4px;"></span>
-              支出: ¥${expense.toLocaleString()}
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <span style="color:#64748b;font-size:13px;display:flex;align-items:center;">
+                <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#f43f5e;margin-right:8px;"></span>支出
+              </span>
+              <span style="font-family:'SF Pro Rounded', ui-monospace, sans-serif;font-weight:600;color:#0f172a;">¥${Math.abs(expense).toLocaleString()}</span>
             </div>
-            <div style="margin-top:6px;padding-top:6px;border-top:1px solid #e5e7eb;font-weight:600;color:${net >= 0 ? '#10b981' : '#f43f5e'}">
-              结余: <span style="color:${net >= 0 ? '#10b981' : '#f43f5e'}">¥${net.toLocaleString()}</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid rgba(15,23,42,0.06);">
+              <span style="font-weight:600;color:${netColor};font-size:13px">结余</span>
+              <strong style="color:${netColor};font-family:'SF Pro Rounded', ui-monospace, sans-serif;font-size:15px">¥${net.toLocaleString()}</strong>
             </div>
           </div>
         `;
@@ -64,15 +73,17 @@ const chartOption = computed(() => {
     xAxis: {
       type: 'category',
       data: labels,
-      axisLine: {
-        lineStyle: { color: '#e5e7eb' },
-      },
+      axisLine: { show: false },
+      axisTick: { show: false },
       axisLabel: {
-        color: '#6b7280',
+        color: '#94a3b8',
+        margin: 12,
       },
     },
     yAxis: {
       type: 'value',
+      axisLine: { show: false },
+      axisTick: { show: false },
       axisLabel: {
         formatter: (value: number) => {
           if (value >= 1000) {
@@ -80,10 +91,11 @@ const chartOption = computed(() => {
           }
           return `¥${value}`;
         },
-        color: '#6b7280',
+        color: '#94a3b8',
+        fontFamily: "'SF Pro Rounded', ui-monospace, sans-serif",
       },
       splitLine: {
-        lineStyle: { color: '#f1f5f9', type: 'dashed' },
+        lineStyle: { color: 'rgba(15, 23, 42, 0.04)', type: 'dashed' },
       },
     },
     series: [
@@ -92,7 +104,11 @@ const chartOption = computed(() => {
         type: 'bar',
         stack: 'total',
         itemStyle: {
-          color: '#10b981',
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [{ offset: 0, color: '#34d399' }, { offset: 1, color: '#10b981' }]
+          },
+          borderRadius: [4, 4, 0, 0],
         },
         data: incomeData,
       },
@@ -100,26 +116,32 @@ const chartOption = computed(() => {
         name: '支出',
         type: 'bar',
         stack: 'total',
+        barWidth: 16,
         itemStyle: {
-          color: '#f43f5e',
+          color: {
+            type: 'linear', x: 0, y: 1, x2: 0, y2: 0,
+            colorStops: [{ offset: 0, color: '#fb7185' }, { offset: 1, color: '#f43f5e' }]
+          },
+          borderRadius: [0, 0, 4, 4],
         },
-        data: expenseData.map(v => -v), // 负值显示在下方
+        data: expenseData.map((v) => -v),
       },
       {
         name: '结余',
         type: 'line',
-        symbolSize: 8,
+        symbolSize: 0,
+        smooth: true,
         itemStyle: {
-          color: '#2563eb',
+          color: '#4338ca',
           borderWidth: 2,
           borderColor: '#ffffff',
         },
         lineStyle: {
-          width: 2,
-          color: '#2563eb',
+          width: 3,
+          color: '#4338ca',
         },
         data: netData,
-        z: 10, // 确保线在柱子上方
+        z: 10,
       },
     ],
   };
@@ -129,20 +151,25 @@ const chartOption = computed(() => {
 <style scoped>
 .chart-card {
   border: 1px solid var(--fm-border-subtle);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 16px;
+  padding: 24px;
   background: var(--fm-surface);
-  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05);
+  box-shadow: var(--fm-shadow-sm);
+  transition: box-shadow 0.3s ease;
+}
+
+.chart-card:hover {
+  box-shadow: var(--fm-shadow-md);
 }
 
 .chart-card h3 {
-  margin: 0 0 16px;
-  font-size: 1rem;
+  margin: 0 0 20px;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--fm-text-primary);
 }
 
 .chart {
-  height: 260px;
+  height: 280px;
 }
 </style>

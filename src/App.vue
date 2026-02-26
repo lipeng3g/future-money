@@ -29,12 +29,13 @@ import OnboardingGuide from '@/components/common/OnboardingGuide.vue';
 
 const themeConfig = {
   token: {
-    colorPrimary: '#4f46e5',
-    borderRadius: 8,
-    fontFamily: "'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif",
+    colorPrimary: '#4338ca', // Indigo 700
+    borderRadius: 12,        // More rounded corners
+    fontFamily: "'Inter', 'SF Pro Rounded', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif",
     colorText: '#0f172a',
     colorTextSecondary: '#64748b',
     colorBorder: '#e2e8f0',
+    boxShadowSecondary: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', // Premium shadow
   },
 };
 </script>

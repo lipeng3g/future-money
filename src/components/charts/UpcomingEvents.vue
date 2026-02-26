@@ -5,7 +5,10 @@
       <ul>
         <li v-for="item in items" :key="item.id" :class="[item.category, { overridden: item.overrideAction }]">
           <div class="event-info">
-            <strong>{{ item.name }}</strong>
+            <div class="event-header">
+              <span class="event-indicator"></span>
+              <strong class="event-name">{{ item.name }}</strong>
+            </div>
             <span class="event-date">{{ item.date }}</span>
             <span v-if="item.overrideAction" class="override-badge" :class="item.overrideAction">
               {{ overrideLabel(item.overrideAction) }}
@@ -145,15 +148,30 @@ const handleModifySubmit = () => {
 <style scoped>
 .chart-card {
   border: 1px solid var(--fm-border-subtle);
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 24px;
   background: var(--fm-surface);
   box-shadow: var(--fm-shadow-sm);
-  transition: all 0.3s ease;
+  transition: box-shadow 0.3s ease;
   height: 100%;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.chart-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: transparent;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+  border-radius: 20px 20px 0 0;
 }
 
 .chart-card:hover {
@@ -161,8 +179,8 @@ const handleModifySubmit = () => {
 }
 
 .chart-card h3 {
-  margin: 0 0 16px;
-  font-size: 1rem;
+  margin: 0 0 20px;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--fm-text-primary);
 }
@@ -173,7 +191,7 @@ ul {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   flex: 1;
   overflow-y: auto;
   min-height: 0;
@@ -183,18 +201,33 @@ li {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 16px;
   border-radius: 12px;
-  background: var(--fm-surface-muted);
-  transition: background 0.2s;
+  background: transparent;
+  border-bottom: 1px solid var(--fm-border-subtle);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+li:last-child {
+  border-bottom: none;
 }
 
 li:hover {
-  background: #f1f5f9;
+  background: var(--fm-surface-muted);
+  transform: translateX(4px);
 }
 
 li.overridden {
-  opacity: 0.7;
+  opacity: 0.5;
+}
+
+li.income .event-indicator {
+  background-color: var(--fm-income);
+}
+
+li.expense .event-indicator {
+  background-color: var(--fm-expense);
 }
 
 li.income .event-amount {
@@ -202,29 +235,51 @@ li.income .event-amount {
 }
 
 li.expense .event-amount {
-  color: var(--fm-expense);
+  color: var(--fm-text-primary);
+  font-weight: 600;
 }
 
 .event-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
-.event-date {
-  color: var(--fm-text-secondary);
-  font-size: 0.85rem;
-}
-
-.event-right {
+.event-header {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+.event-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0,0,0,0.1);
+}
+
+.event-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--fm-text-primary);
+}
+
+.event-date {
+  color: var(--fm-text-secondary);
+  font-size: 0.8rem;
+  margin-left: 16px; /* Align with text, bypassing indicator */
+}
+
+.event-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .event-amount {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  min-width: 96px;
+  font-family: 'SF Pro Rounded', ui-monospace, sans-serif;
+  font-size: 1.05rem;
+  min-width: 100px;
   text-align: right;
 }
 

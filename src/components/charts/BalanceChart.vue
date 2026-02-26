@@ -88,29 +88,31 @@ const chartOption = computed(() => {
   const baseOption: any = {
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: 'rgba(0, 0, 0, 0.1)',
+      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+      borderColor: 'rgba(255, 255, 255, 0.5)',
       borderWidth: 1,
+      padding: 0,
+      extraCssText: 'backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.08); border-radius: 12px;',
       textStyle: {
-        color: '#374151',
+        color: '#0f172a',
       },
       formatter: (params: any) => {
         const dataIndex = params[0]?.dataIndex;
         if (dataIndex == null) return '';
         const point = props.timeline[dataIndex];
         if (!point) return '';
-        const zoneLabel = point.zone === 'frozen' ? '<span style="color:#6b7280;font-size:11px">已对账</span>' : '<span style="color:#3b82f6;font-size:11px">预测</span>';
+        const zoneLabel = point.zone === 'frozen' ? '<span style="color:#64748b;font-size:12px;font-weight:500">已对账</span>' : '<span style="color:#4338ca;font-size:12px;font-weight:500">预测</span>';
         const events = point.events
           .map((event) => {
             const sign = event.category === 'income' ? '+' : '-';
             const color = event.category === 'income' ? '#10b981' : '#f43f5e';
-            return `<div style="color:${color};margin-top:4px;font-size:13px">${event.name}: ${sign}¥${event.amount.toLocaleString('zh-CN')}</div>`;
+            return `<div style="color:${color};margin-top:6px;font-size:13px;font-weight:500;display:flex;justify-content:space-between;gap:12px;"><span>${event.name}</span><span>${sign}¥${event.amount.toLocaleString('zh-CN')}</span></div>`;
           })
           .join('');
         return `
-          <div style="padding:4px">
-            <div style="font-weight:600;margin-bottom:4px">${point.date} ${zoneLabel}</div>
-            <div style="font-size:14px">余额：<strong>¥${point.balance.toLocaleString('zh-CN')}</strong></div>
+          <div style="padding:16px;min-width:180px">
+            <div style="font-weight:600;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;"><span>${point.date}</span> ${zoneLabel}</div>
+            <div style="font-size:16px;margin-bottom:8px;border-bottom:1px solid rgba(15,23,42,0.06);padding-bottom:12px">余额：<strong style="font-family:'SF Pro Rounded', ui-monospace, sans-serif;">¥${point.balance.toLocaleString('zh-CN')}</strong></div>
             ${events}
           </div>
         `;
@@ -120,16 +122,18 @@ const chartOption = computed(() => {
       type: 'category',
       data: labels,
       boundaryGap: false,
-      axisLine: {
-        lineStyle: { color: '#e5e7eb' },
-      },
+      axisLine: { show: false },
+      axisTick: { show: false },
       axisLabel: {
         formatter: (value: string) => value.slice(5),
-        color: '#64748b',
+        color: '#94a3b8',
+        margin: 12,
       },
     },
     yAxis: {
       type: 'value',
+      axisLine: { show: false },
+      axisTick: { show: false },
       axisLabel: {
         formatter: (value: number) => {
           if (value >= 1000) {
@@ -141,11 +145,12 @@ const chartOption = computed(() => {
           }
           return `¥${value}`;
         },
-        color: '#64748b',
+        color: '#94a3b8',
+        fontFamily: "'SF Pro Rounded', ui-monospace, sans-serif",
       },
       splitLine: {
         lineStyle: {
-          color: '#f1f5f9',
+          color: 'rgba(15, 23, 42, 0.04)',
           type: 'dashed',
         },
       },
@@ -213,11 +218,11 @@ const chartOption = computed(() => {
       symbolSize: (value: number | null, params: any) => dynamicSymbolSize(value, params),
       connectNulls: false,
       lineStyle: {
-        color: '#1e40af',
-        width: 2.5,
+        color: '#0f172a',
+        width: 3,
       },
       itemStyle: {
-        color: (params: any) => dynamicItemColor(params, '#1e40af'),
+        color: (params: any) => dynamicItemColor(params, '#0f172a'),
         borderColor: '#ffffff',
         borderWidth: 2,
       },
@@ -227,15 +232,15 @@ const chartOption = computed(() => {
               type: 'linear',
               x: 0, y: 0, x2: 0, y2: 1,
               colorStops: [
-                { offset: 0, color: 'rgba(30, 64, 175, 0.15)' },
-                { offset: 1, color: 'rgba(30, 64, 175, 0.02)' },
+                { offset: 0, color: 'rgba(15, 23, 42, 0.08)' },
+                { offset: 1, color: 'rgba(15, 23, 42, 0.01)' },
               ],
             },
           }
         : undefined,
       markArea: weekendAreas.length
         ? {
-            itemStyle: { color: 'rgba(226, 232, 240, 0.3)' },
+            itemStyle: { color: 'rgba(15, 23, 42, 0.02)' },
             data: weekendAreas,
           }
         : undefined,
@@ -252,12 +257,12 @@ const chartOption = computed(() => {
     symbolSize: (value: number | null, params: any) => dynamicSymbolSize(value, params),
     connectNulls: false,
     lineStyle: {
-      color: '#60a5fa',
-      width: 2,
+      color: '#4338ca',
+      width: 2.5,
       type: 'dashed',
     },
     itemStyle: {
-      color: (params: any) => dynamicItemColor(params, '#60a5fa'),
+      color: (params: any) => dynamicItemColor(params, '#4338ca'),
       borderColor: '#ffffff',
       borderWidth: 2,
     },
@@ -267,15 +272,15 @@ const chartOption = computed(() => {
             type: 'linear',
             x: 0, y: 0, x2: 0, y2: 1,
             colorStops: [
-              { offset: 0, color: 'rgba(96, 165, 250, 0.12)' },
-              { offset: 1, color: 'rgba(96, 165, 250, 0.02)' },
+              { offset: 0, color: 'rgba(67, 56, 202, 0.15)' },
+              { offset: 1, color: 'rgba(67, 56, 202, 0.02)' },
             ],
           },
         }
       : undefined,
     markArea: !hasFrozenData && weekendAreas.length
       ? {
-          itemStyle: { color: 'rgba(226, 232, 240, 0.3)' },
+          itemStyle: { color: 'rgba(15, 23, 42, 0.02)' },
           data: weekendAreas,
         }
       : undefined,
@@ -291,13 +296,18 @@ const chartOption = computed(() => {
 <style scoped>
 .chart-card {
   border: 1px solid var(--fm-border-subtle);
-  border-radius: 10px;
-  padding: 20px;
+  border-radius: 16px;
+  padding: 24px;
   background: var(--fm-surface);
   box-shadow: var(--fm-shadow-sm);
+  transition: box-shadow 0.3s ease;
+}
+
+.chart-card:hover {
+  box-shadow: var(--fm-shadow-md);
 }
 
 .chart {
-  height: 360px;
+  height: 380px;
 }
 </style>

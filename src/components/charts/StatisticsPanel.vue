@@ -12,7 +12,7 @@
       <div class="stat-card">
         <div class="stat-badge income">收入</div>
         <div class="stat-content">
-          <strong class="stat-value income">{{ formatCurrency(analytics.totalIncome) }}</strong>
+          <strong class="stat-value income" style="font-family: 'SF Pro Rounded', ui-monospace, sans-serif;">{{ formatCurrency(analytics.totalIncome) }}</strong>
           <span class="stat-label">累计收入</span>
         </div>
       </div>
@@ -20,7 +20,7 @@
       <div class="stat-card">
         <div class="stat-badge expense">支出</div>
         <div class="stat-content">
-          <strong class="stat-value expense">{{ formatCurrency(analytics.totalExpense) }}</strong>
+          <strong class="stat-value expense" style="font-family: 'SF Pro Rounded', ui-monospace, sans-serif;">{{ formatCurrency(analytics.totalExpense) }}</strong>
           <span class="stat-label">累计支出</span>
         </div>
       </div>
@@ -37,7 +37,7 @@
       <div class="stat-card">
         <div class="stat-badge">MAX</div>
         <div class="stat-content">
-          <strong class="stat-value">{{ formatCurrency(analytics.extremes.maxBalance) }}</strong>
+          <strong class="stat-value" style="font-family: 'SF Pro Rounded', ui-monospace, sans-serif;">{{ formatCurrency(analytics.extremes.maxBalance) }}</strong>
           <span class="stat-label">最高余额</span>
           <small class="stat-date">{{ analytics.extremes.maxDate }}</small>
         </div>
@@ -102,21 +102,22 @@ const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { m
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  gap: 20px;
 }
 
 .stat-card {
   background: var(--fm-surface);
   border: 1px solid var(--fm-border-subtle);
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 16px;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: var(--fm-shadow-sm);
   position: relative;
   overflow: hidden;
+  z-index: 1;
 }
 
 .stat-card::before {
@@ -125,14 +126,15 @@ const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { m
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: #e5e7eb;
-  transition: background 0.2s ease;
+  height: 4px;
+  background: transparent;
+  transition: opacity 0.3s ease;
+  z-index: -1;
 }
 
 .stat-card:hover {
-  box-shadow: var(--fm-shadow-md);
-  transform: translateY(-4px);
+  box-shadow: var(--fm-shadow-premium);
+  transform: translateY(-6px) scale(1.02);
 }
 
 .stat-card.clickable {
@@ -140,64 +142,72 @@ const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { m
 }
 
 .stat-card.clickable:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--fm-shadow-premium);
 }
 
 .stat-card.primary {
-  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%);
   color: white;
   border: none;
-  box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 16px 32px -8px rgba(67, 56, 202, 0.4);
 }
 
 .stat-card.primary::before {
-  background: rgba(255, 255, 255, 0.3);
+  background: linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0.4));
 }
 
 .stat-card.primary .stat-label,
 .stat-card.primary .stat-date {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .stat-card.primary .stat-value {
   color: white;
+  font-family: 'SF Pro Rounded', ui-monospace, sans-serif;
 }
 
 .stat-card.primary .stat-badge {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
   color: white;
+  backdrop-filter: blur(8px);
 }
 
 .stat-card.warning {
-  background: #fffbeb;
-  border-color: #fbbf24;
+  background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: rgba(245, 158, 11, 0.2);
 }
 
 .stat-card.warning::before {
-  background: #fbbf24;
+  background: linear-gradient(90deg, #fcd34d, #f59e0b);
 }
 
 .stat-card.safe {
-  background: #ffffff;
-  border-color: rgba(34, 197, 94, 0.3);
+  background: linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: rgba(16, 185, 129, 0.2);
 }
 
 .stat-card.safe::before {
-  background: linear-gradient(90deg, #22c55e, #16a34a);
+  background: linear-gradient(90deg, #34d399, #10b981);
+}
+
+.stat-card:not(.primary):not(.warning):not(.safe) {
+  background: var(--fm-surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .stat-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.7rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: rgba(15, 23, 42, 0.04);
+  color: #475569;
   align-self: flex-start;
 }
 
@@ -232,18 +242,19 @@ const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { m
 }
 
 .stat-label {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: var(--fm-text-secondary);
   order: 2;
 }
 
 .stat-value {
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 700;
   color: var(--fm-text-primary);
-  line-height: 1.2;
+  line-height: 1.1;
   order: 1;
+  letter-spacing: -0.02em;
 }
 
 .stat-value.income {
