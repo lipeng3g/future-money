@@ -11,7 +11,13 @@
         <h2>未来余额走势</h2>
         <p>预测未来现金余额走势，提前发现资金缺口。</p>
       </div>
-      <TimeRangeControl :value="store.viewMonths" @change="store.setViewMonths" />
+      <div class="header-actions">
+        <button class="ai-trigger" @click="handleAiClick" title="AI 财务分析">
+          <AppIcon name="sparkle" :size="18" />
+          <span>AI 分析</span>
+        </button>
+        <TimeRangeControl :value="store.viewMonths" @change="store.setViewMonths" />
+      </div>
     </header>
 
     <!-- 关键指标置顶 -->
@@ -56,6 +62,19 @@
       @cancel="reconcileModalOpen = false"
       @done="handleReconcileDone"
     />
+
+    <!-- AI 配置弹窗（首次使用时弹出） -->
+    <AiConfigModal
+      :open="aiConfigOpen"
+      @cancel="aiConfigOpen = false"
+      @saved="handleConfigSaved"
+    />
+
+    <!-- AI 对话抽屉 -->
+    <AiAnalysisModal
+      :open="aiChatOpen"
+      @close="aiChatOpen = false"
+    />
   </section>
 </template>
 
@@ -69,11 +88,30 @@ import StatisticsPanel from '@/components/charts/StatisticsPanel.vue';
 import UpcomingEvents from '@/components/charts/UpcomingEvents.vue';
 import ReconciliationBanner from '@/components/reconciliation/ReconciliationBanner.vue';
 import ReconciliationModal from '@/components/reconciliation/ReconciliationModal.vue';
+import AiAnalysisModal from '@/components/ai/AiAnalysisModal.vue';
+import AiConfigModal from '@/components/ai/AiConfigModal.vue';
 import { useFinanceStore } from '@/stores/finance';
+import { loadAiConfig } from '@/utils/ai';
 import AppIcon from '@/components/common/AppIcon.vue';
 
 const store = useFinanceStore();
 const reconcileModalOpen = ref(false);
+const aiConfigOpen = ref(false);
+const aiChatOpen = ref(false);
+
+const handleAiClick = () => {
+  const config = loadAiConfig();
+  if (config && config.apiKey) {
+    aiChatOpen.value = true;
+  } else {
+    aiConfigOpen.value = true;
+  }
+};
+
+const handleConfigSaved = () => {
+  aiConfigOpen.value = false;
+  aiChatOpen.value = true;
+};
 
 const handleReconcileDone = () => {
   reconcileModalOpen.value = false;
@@ -104,7 +142,37 @@ const handleReconcileDone = () => {
   color: #6b7280;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
+.ai-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(67, 56, 202, 0.25);
+  white-space: nowrap;
+}
+
+.ai-trigger:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 8px 20px rgba(67, 56, 202, 0.35);
+}
+
+.ai-trigger:active {
+  transform: translateY(0) scale(1);
+}
 
 .main-grid {
   display: grid;
