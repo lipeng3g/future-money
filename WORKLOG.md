@@ -92,3 +92,6 @@
 [2026-03-09 03:44:00] task: 为事件表单补“规则预演”能力，让用户在提交前直接看到最近几次实际发生日期，降低对月末/闰年降级语义的理解成本
 [2026-03-09 03:44:00] deliverables: src/utils/event-form.ts 新增 buildEventSchedulePreview 纯函数，复用 recurrence 规则推导最近发生日；EventFormModal 展示“接下来会这样发生”预演区块；补 event-form 回归测试覆盖 monthly 31 日短月降级、yearly 2/29 平年回退、禁用/非法规则不展示预演
 [2026-03-09 03:44:00] verification: npm run type-check ✅, npm test ✅ (99), npm run build ✅；构建 chunk 告警仍已消除，chart-base ~471.8kB 仍是后续可继续拆分目标
+
+[2026-03-09 03:50:00] task: 修正事件表单“接下来会这样发生”的时间语义，避免编辑旧规则时把历史发生日误当成未来预演
+[2026-03-09 03:50:00] deliverables: buildEventSchedulePreview 新增 anchorDate（组件接入 store.todayStr）；预演从业务今天或开始日期（取较晚者）往后推导；补 event-form 回归测试覆盖未来锚点与开始日前锚点

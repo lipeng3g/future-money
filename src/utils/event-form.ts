@@ -1,4 +1,4 @@
-import { addYears, format, getDaysInMonth, isAfter, parseISO, startOfDay } from 'date-fns';
+import { addYears, format, getDaysInMonth, isAfter, isValid, parseISO, startOfDay } from 'date-fns';
 import type { CashFlowEvent, EventFormValues } from '@/types/event';
 import { isEventActiveOnDate, shouldEventOccurOnDate } from '@/utils/recurrence';
 import { validateCashFlowEvent } from '@/utils/validators';
@@ -194,6 +194,7 @@ const buildPreviewLabel = (event: CashFlowEvent, date: Date): string => {
 export const buildEventSchedulePreview = (
   draft: EventFormDraft,
   count: number = 3,
+  anchorDate?: string,
 ): EventSchedulePreviewItem[] => {
   const normalized = normalizeEventFormPayload(draft);
   const errors = getEventFormValidationErrors(normalized);
@@ -203,10 +204,16 @@ export const buildEventSchedulePreview = (
 
   const event = buildPreviewEvent(normalized);
   const start = startOfDay(parseISO(event.startDate));
-  const hardEnd = event.endDate ? startOfDay(parseISO(event.endDate)) : addYears(start, 5);
+  const anchor = anchorDate ? startOfDay(parseISO(anchorDate)) : startOfDay(new Date());
+  const effectiveStart = isValid(anchor) && isAfter(anchor, start) ? anchor : start;
+  const hardEnd = event.endDate ? startOfDay(parseISO(event.endDate)) : addYears(effectiveStart, 5);
   const results: EventSchedulePreviewItem[] = [];
 
-  for (let cursor = start; !isAfter(cursor, hardEnd) && results.length < count; cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000)) {
+  for (
+    let cursor = effectiveStart;
+    !isAfter(cursor, hardEnd) && results.length < count;
+    cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000)
+  ) {
     if (!isEventActiveOnDate(event, cursor)) continue;
     if (!shouldEventOccurOnDate(event, cursor)) continue;
 

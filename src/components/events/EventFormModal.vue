@@ -106,6 +106,7 @@
 <script setup lang="ts">
 import dayjs, { Dayjs } from 'dayjs';
 import { computed, reactive, watch } from 'vue';
+import { useFinanceStore } from '@/stores/finance';
 import { message } from 'ant-design-vue';
 import type { CashFlowEvent, EventFormValues } from '@/types/event';
 import {
@@ -126,6 +127,7 @@ interface Props {
 
 const props = defineProps<Props>();
 const emit = defineEmits<{ (e: 'submit', payload: EventFormValues): void; (e: 'cancel'): void }>();
+const store = useFinanceStore();
 
 interface FormState {
   name: string;
@@ -199,7 +201,7 @@ const periodicDayLabel = computed(() => {
 
 const monthlyDayHint = computed(() => getMonthlyRuleSemanticHint(formState.monthlyDay));
 const yearlyDayHint = computed(() => getYearlyRuleSemanticHint(formState.yearlyMonth, formState.yearlyDay));
-const schedulePreview = computed(() => buildEventSchedulePreview(formState, 3));
+const schedulePreview = computed(() => buildEventSchedulePreview(formState, 3, store.todayStr));
 
 const fillForm = (source?: CashFlowEvent | null) => {
   if (!source) {

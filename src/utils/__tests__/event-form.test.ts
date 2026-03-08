@@ -101,7 +101,7 @@ describe('event-form helpers', () => {
       endDate: '2026-04-30',
       onceDate: undefined,
       monthlyDay: 31,
-    }), 3)).toEqual([
+    }), 3, '2026-01-30')).toEqual([
       { date: '2026-01-31', label: '每月第 31 天' },
       { date: '2026-02-28', label: '每月第 28 天' },
       { date: '2026-03-31', label: '每月第 31 天' },
@@ -117,11 +117,36 @@ describe('event-form helpers', () => {
       monthlyDay: undefined,
       yearlyMonth: 2,
       yearlyDay: 29,
-    }), 4)).toEqual([
+    }), 4, '2025-01-01')).toEqual([
       { date: '2025-02-28', label: '平年回退到 2 月 28 日' },
       { date: '2026-02-28', label: '平年回退到 2 月 28 日' },
       { date: '2027-02-28', label: '平年回退到 2 月 28 日' },
       { date: '2028-02-29', label: '每年 2 月 29 日' },
+    ]);
+  });
+
+  it('会从业务今天开始预演，而不是把历史发生日混进“接下来”里', () => {
+    expect(buildEventSchedulePreview(createDraft({
+      type: 'monthly',
+      startDate: '2026-01-01',
+      endDate: '2026-06-30',
+      onceDate: undefined,
+      monthlyDay: 15,
+    }), 3, '2026-03-20')).toEqual([
+      { date: '2026-04-15', label: '每月第 15 天' },
+      { date: '2026-05-15', label: '每月第 15 天' },
+      { date: '2026-06-15', label: '每月第 15 天' },
+    ]);
+  });
+
+  it('锚点早于开始日期时，仍会从规则开始日往后预演', () => {
+    expect(buildEventSchedulePreview(createDraft({
+      type: 'once',
+      startDate: '2026-03-10',
+      endDate: '2026-03-20',
+      onceDate: '2026-03-12',
+    }), 3, '2026-03-01')).toEqual([
+      { date: '2026-03-12', label: '一次性发生' },
     ]);
   });
 
