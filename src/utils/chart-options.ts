@@ -4,6 +4,7 @@ import type { DailySnapshot } from '@/types/timeline';
 const DEFAULT_BALANCE_LABEL_TARGET = 10;
 const DEFAULT_MONTHLY_LABEL_TARGET = 6;
 const LONG_TIMELINE_ANIMATION_THRESHOLD = 180;
+const DEFAULT_BALANCE_FOCUS_WINDOW = 60;
 
 export const getAdaptiveAxisLabelInterval = (totalPoints: number, targetLabels: number): number => {
   if (targetLabels <= 1 || totalPoints <= targetLabels) {
@@ -17,6 +18,56 @@ export const shouldDisableChartAnimation = (totalPoints: number): boolean => (
   totalPoints >= LONG_TIMELINE_ANIMATION_THRESHOLD
 );
 
+export const getDefaultBalanceChartFocusDate = (
+  timeline: DailySnapshot[],
+  warningThreshold: number,
+  reconciliationDate?: string,
+): string | undefined => {
+  if (!timeline.length) return undefined;
+
+  const firstWarning = timeline.find((point) => point.balance < warningThreshold)?.date;
+  if (firstWarning) return firstWarning;
+
+  const today = timeline.find((point) => point.isToday)?.date;
+  if (today) return today;
+
+  if (reconciliationDate && timeline.some((point) => point.date === reconciliationDate)) {
+    return reconciliationDate;
+  }
+
+  return timeline.at(-1)?.date;
+};
+
+export const getBalanceChartZoomWindow = (
+  labels: string[],
+  focusDate?: string,
+  preferredWindowSize: number = DEFAULT_BALANCE_FOCUS_WINDOW,
+): { startValue: number; endValue: number } | null => {
+  if (!labels.length) return null;
+
+  const focusIndex = focusDate ? labels.indexOf(focusDate) : labels.length - 1;
+  const resolvedFocusIndex = focusIndex >= 0 ? focusIndex : labels.length - 1;
+  const windowSize = Math.max(7, Math.min(preferredWindowSize, labels.length));
+
+  if (labels.length <= windowSize) {
+    return {
+      startValue: 0,
+      endValue: labels.length - 1,
+    };
+  }
+
+  const leading = Math.floor(windowSize * 0.35);
+  let startValue = Math.max(0, resolvedFocusIndex - leading);
+  let endValue = startValue + windowSize - 1;
+
+  if (endValue >= labels.length) {
+    endValue = labels.length - 1;
+    startValue = Math.max(0, endValue - windowSize + 1);
+  }
+
+  return { startValue, endValue };
+};
+
 export const buildBalanceChartOption = ({
   timeline,
   warningThreshold,
@@ -24,6 +75,7 @@ export const buildBalanceChartOption = ({
   showWeekends = false,
   reconciliationDate,
   reconciliationBalance,
+  focusDate,
 }: {
   timeline: DailySnapshot[];
   warningThreshold: number;
@@ -31,11 +83,13 @@ export const buildBalanceChartOption = ({
   showWeekends?: boolean;
   reconciliationDate?: string;
   reconciliationBalance?: number;
+  focusDate?: string;
 }) => {
   const labels = timeline.map((point) => point.date);
   const useArea = chartType !== 'line';
   const axisLabelInterval = getAdaptiveAxisLabelInterval(labels.length, DEFAULT_BALANCE_LABEL_TARGET);
   const animation = !shouldDisableChartAnimation(labels.length);
+  const zoomWindow = getBalanceChartZoomWindow(labels, focusDate);
 
   const weekendAreas: Array<{ xAxis: string }[]> = [];
   if (showWeekends) {
@@ -170,8 +224,20 @@ export const buildBalanceChartOption = ({
     grid: { left: 50, right: 16, top: 20, bottom: 40 },
     dataZoom: labels.length
       ? [
-          { type: 'inside', filterMode: 'none' },
-          { type: 'slider', height: 20, bottom: 0, filterMode: 'none' },
+          {
+            type: 'inside',
+            filterMode: 'none',
+            startValue: zoomWindow?.startValue ?? 0,
+            endValue: zoomWindow?.endValue ?? Math.max(0, labels.length - 1),
+          },
+          {
+            type: 'slider',
+            height: 20,
+            bottom: 0,
+            filterMode: 'none',
+            startValue: zoomWindow?.startValue ?? 0,
+            endValue: zoomWindow?.endValue ?? Math.max(0, labels.length - 1),
+          },
         ]
       : [],
   };

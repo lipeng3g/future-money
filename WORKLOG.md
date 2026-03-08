@@ -50,3 +50,6 @@
 [2026-03-08 23:50:00] deliverables: PersistedStateEnvelope 新增可选 scope=current|all；导出时写入 scope；导入预览识别 current/all/legacy-unknown；AppHeader 在导入前校验模式匹配并在整库恢复确认框展示文件类型；补 import-preview / finance-import-export 回归测试
 [2026-03-09 00:03:00] task: 打磨图表可维护性与空数据体验，把 ECharts option 构建抽成纯函数并给长时间线补标签稀疏/动画降级策略
 [2026-03-09 00:03:00] deliverables: 新增 src/utils/chart-options.ts；BalanceChart / CashFlowChart 接入共享 option builder；新增空数据态；补 chart-options 单测覆盖空时间线、长时间线、月度序列映射
+[2026-03-09 00:20:00] task: 继续打磨长时间线余额图浏览效率，为图表加入默认聚焦时间窗与快捷定位（最新区间 / 今天 / 首次预警 / 最低点 / 最近对账）
+[2026-03-09 00:20:00] deliverables: chart-options 新增默认 focus date / zoom window 纯函数；BalanceChart 增加快速定位工具条；补回归测试覆盖聚焦优先级与默认时间窗
+[2026-03-09 00:20:00] verification: npm test ✅ (78), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB，后续继续拆包

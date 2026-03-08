@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildBalanceChartOption, buildCashFlowChartOption, getAdaptiveAxisLabelInterval, shouldDisableChartAnimation } from '@/utils/chart-options';
+import {
+  buildBalanceChartOption,
+  buildCashFlowChartOption,
+  getAdaptiveAxisLabelInterval,
+  getBalanceChartZoomWindow,
+  getDefaultBalanceChartFocusDate,
+  shouldDisableChartAnimation,
+} from '@/utils/chart-options';
 import type { DailySnapshot } from '@/types/timeline';
 import type { MonthlySnapshot } from '@/types/analytics';
 
@@ -15,6 +22,11 @@ const createDay = (overrides: Partial<DailySnapshot> & Pick<DailySnapshot, 'date
   snapshotId: overrides.snapshotId,
 });
 
+const createUniqueDate = (index: number) => {
+  const base = new Date(Date.UTC(2025, 0, 1 + index));
+  return base.toISOString().slice(0, 10);
+};
+
 describe('chart-options', () => {
   it('会按点数自适应稀疏 x 轴标签', () => {
     expect(getAdaptiveAxisLabelInterval(5, 10)).toBe(0);
@@ -25,6 +37,39 @@ describe('chart-options', () => {
   it('长时间线会关闭动画，短时间线保持动画', () => {
     expect(shouldDisableChartAnimation(179)).toBe(false);
     expect(shouldDisableChartAnimation(180)).toBe(true);
+  });
+
+  it('余额图优先聚焦首次预警，否则回落到今天或最近对账', () => {
+    const warningTimeline = [
+      createDay({ date: '2025-01-01', balance: 2000, change: 0 }),
+      createDay({ date: '2025-01-02', balance: 900, change: -1100 }),
+      createDay({ date: '2025-01-03', balance: 1200, change: 300, isToday: true }),
+    ];
+    expect(getDefaultBalanceChartFocusDate(warningTimeline, 1000, '2025-01-01')).toBe('2025-01-02');
+
+    const todayTimeline = [
+      createDay({ date: '2025-01-01', balance: 2000, change: 0 }),
+      createDay({ date: '2025-01-02', balance: 1800, change: -200, isToday: true }),
+    ];
+    expect(getDefaultBalanceChartFocusDate(todayTimeline, 1000, '2025-01-01')).toBe('2025-01-02');
+    expect(getDefaultBalanceChartFocusDate([
+      createDay({ date: '2025-01-01', balance: 2000, change: 0 }),
+      createDay({ date: '2025-01-02', balance: 1800, change: -200 }),
+    ], 1000, '2025-01-01')).toBe('2025-01-01');
+  });
+
+  it('会围绕聚焦日期生成默认时间窗，并在尾部自动贴边', () => {
+    const labels = Array.from({ length: 120 }, (_, index) => createUniqueDate(index));
+
+    expect(getBalanceChartZoomWindow(labels, labels[40], 30)).toEqual({
+      startValue: 30,
+      endValue: 59,
+    });
+
+    expect(getBalanceChartZoomWindow(labels, labels.at(-1), 30)).toEqual({
+      startValue: 90,
+      endValue: 119,
+    });
   });
 
   it('余额图在空时间线下不创建 dataZoom，避免无意义控件', () => {
@@ -41,12 +86,13 @@ describe('chart-options', () => {
     expect(option.animation).toBe(true);
   });
 
-  it('余额图在长时间线下会稀疏标签并关闭动画', () => {
+  it('余额图在长时间线下会稀疏标签并围绕聚焦点设置默认时间窗', () => {
     const timeline = Array.from({ length: 200 }, (_, index) =>
       createDay({
-        date: `2025-01-${String((index % 28) + 1).padStart(2, '0')}`,
+        date: createUniqueDate(index),
         balance: index,
         change: 1,
+        isToday: index === 150,
       }),
     );
 
@@ -54,11 +100,14 @@ describe('chart-options', () => {
       timeline,
       warningThreshold: 500,
       chartType: 'line',
+      focusDate: timeline[150].date,
     });
 
     expect(option.animation).toBe(false);
     expect(option.xAxis.axisLabel.interval).toBeGreaterThan(0);
     expect(option.dataZoom).toHaveLength(2);
+    expect(option.dataZoom[0].startValue).toBeGreaterThan(0);
+    expect(option.dataZoom[0].endValue).toBeLessThan(timeline.length);
   });
 
   it('月度收支图会输出正确的数据序列与标签策略', () => {
