@@ -84,8 +84,6 @@
 import { defineAsyncComponent, ref } from 'vue';
 import { message } from 'ant-design-vue';
 import TimeRangeControl from '@/components/charts/TimeRangeControl.vue';
-import BalanceChart from '@/components/charts/BalanceChart.vue';
-import CashFlowChart from '@/components/charts/CashFlowChart.vue';
 import StatisticsPanel from '@/components/charts/StatisticsPanel.vue';
 import UpcomingEvents from '@/components/charts/UpcomingEvents.vue';
 import ReconciliationBanner from '@/components/reconciliation/ReconciliationBanner.vue';
@@ -93,6 +91,8 @@ import ReconciliationModal from '@/components/reconciliation/ReconciliationModal
 import { useFinanceStore } from '@/stores/finance';
 import AppIcon from '@/components/common/AppIcon.vue';
 
+const BalanceChart = defineAsyncComponent(() => import('@/components/charts/BalanceChart.vue'));
+const CashFlowChart = defineAsyncComponent(() => import('@/components/charts/CashFlowChart.vue'));
 const AiAnalysisModal = defineAsyncComponent(() => import('@/components/ai/AiAnalysisModal.vue'));
 const AiConfigModal = defineAsyncComponent(() => import('@/components/ai/AiConfigModal.vue'));
 const loadAiConfig = async () => {

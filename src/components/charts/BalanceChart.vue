@@ -6,6 +6,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import VChart from 'vue-echarts';
+import '@/utils/echarts';
 import type { DailySnapshot } from '@/types/timeline';
 
 interface Props {

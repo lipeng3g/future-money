@@ -23,3 +23,6 @@
 [2026-03-08 21:40:00] deliverables: extracted buildScopedFinancialContext + scoped timeline/analytics recomputation + regression tests for single/multi/missing reconciliation cases
 [2026-03-08 21:47:00] task: reduce initial bundle cost by replacing global Ant Design Vue install with explicit per-component registration in src/main.ts
 [2026-03-08 21:47:00] verification: npm run type-check ✅, npm test ✅ (42), npm run build ✅; vendor-antd chunk ~1403kB -> ~718kB, build time ~16.5s -> ~14.3s
+[2026-03-08 21:55:00] task: defer ECharts runtime out of app entry; move vue-echarts registration into chart components and lazy-load chart panes from ChartArea
+[2026-03-08 21:55:00] expected gain: reduce non-chart route/bootstrap JS, keep analytics cards/upcoming list interactive while chart chunk loads separately
+[2026-03-08 21:57:00] verification: npm run type-check ✅, npm test ✅ (42), npm run build ✅; app entry index js 96.67kB -> 88.34kB, chart panes split into BalanceChart/CashFlowChart async chunks; vendor-charts still ~563kB and remains next splitting target
