@@ -29,3 +29,5 @@
 [2026-03-08 21:58:00] task: lazy-load low-frequency management surfaces from header/drawer instead of eagerly shipping them in the app shell
 [2026-03-08 21:58:00] deliverables: AppHeader management modals async + render-on-open, MainLayout event panel/form async + render-on-open, ChartArea reconcile modal async to avoid static-import chunk pinning
 [2026-03-08 22:00:00] verification: npm run type-check ✅, npm test ✅ (42), npm run build ✅; app entry index js 65.37kB -> 57.04kB, reconciliation/event/account modal code now emitted as separate async chunks
+[2026-03-08 22:08:00] task: upgrade import/export from single-account semantics to explicit current-account vs all-accounts backup/restore, avoiding multi-account data loss during local backup workflows
+[2026-03-08 22:08:00] deliverables: store-level full backup/restore path, account management dual import/export actions, account-specific export filename, regression tests covering current/all modes

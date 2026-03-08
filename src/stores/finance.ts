@@ -34,6 +34,8 @@ const reconciliationEngine = new ReconciliationEngine();
 
 const seedState = storage.loadState();
 
+type ImportExportMode = 'current' | 'all';
+
 export const useFinanceStore = defineStore('finance', () => {
   const account = ref<AccountConfig>({ ...seedState.account });
   const accounts = ref<AccountConfig[]>([...(seedState.accounts ?? [seedState.account])]);
@@ -265,10 +267,24 @@ export const useFinanceStore = defineStore('finance', () => {
     }
   };
 
-  const persist = () => {
-    const payload: AppState = {
+  const buildAppState = (mode: ImportExportMode = 'all'): AppState => {
+    if (mode === 'current') {
+      return {
+        version: APP_VERSION,
+        account: currentAccount.value,
+        accounts: [currentAccount.value],
+        events: events.value.filter((e) => e.accountId === currentAccount.value.id),
+        preferences: preferences.value,
+        snapshots: snapshots.value.filter((s) => s.accountId === currentAccount.value.id),
+        reconciliations: reconciliations.value.filter((r) => r.accountId === currentAccount.value.id),
+        ledgerEntries: ledgerEntries.value.filter((e) => e.accountId === currentAccount.value.id),
+        eventOverrides: eventOverrides.value.filter((o) => o.accountId === currentAccount.value.id),
+      };
+    }
+
+    return {
       version: APP_VERSION,
-      account: account.value,
+      account: currentAccount.value,
       accounts: accounts.value,
       events: events.value,
       preferences: preferences.value,
@@ -277,7 +293,31 @@ export const useFinanceStore = defineStore('finance', () => {
       ledgerEntries: ledgerEntries.value,
       eventOverrides: eventOverrides.value,
     };
-    storage.saveState(payload);
+  };
+
+  const persist = () => {
+    storage.saveState(buildAppState('all'));
+  };
+
+  const applyState = (nextState: AppState, options?: { preferredAccountId?: string }) => {
+    accounts.value = [...nextState.accounts];
+    const preferredId = options?.preferredAccountId;
+    const nextCurrentId = preferredId && nextState.accounts.some((acc) => acc.id === preferredId)
+      ? preferredId
+      : nextState.account.id;
+
+    currentAccountId.value = nextCurrentId;
+    account.value = { ...(nextState.accounts.find((acc) => acc.id === nextCurrentId) ?? nextState.account) };
+    events.value = [...nextState.events];
+    preferences.value = { ...nextState.preferences };
+    viewMonths.value = nextState.preferences.defaultViewMonths || 12;
+    snapshots.value = [...nextState.snapshots];
+    reconciliations.value = [...nextState.reconciliations];
+    ledgerEntries.value = [...nextState.ledgerEntries];
+    eventOverrides.value = [...nextState.eventOverrides];
+    viewMode.value = 'single';
+    multiAccountSelection.value = [];
+    viewSnapshotId.value = null;
   };
 
   const sortEvents = () => {
@@ -634,19 +674,7 @@ export const useFinanceStore = defineStore('finance', () => {
 
   const resetState = () => {
     const defaults = createDefaultState();
-    accounts.value = [...defaults.accounts];
-    currentAccountId.value = defaults.account.id;
-    account.value = defaults.account;
-    events.value = defaults.events;
-    preferences.value = defaults.preferences;
-    viewMonths.value = defaults.preferences.defaultViewMonths;
-    snapshots.value = defaults.snapshots;
-    reconciliations.value = [...defaults.reconciliations];
-    ledgerEntries.value = [...defaults.ledgerEntries];
-    eventOverrides.value = [...defaults.eventOverrides];
-    viewMode.value = 'single';
-    multiAccountSelection.value = [];
-    viewSnapshotId.value = null;
+    applyState(defaults, { preferredAccountId: defaults.account.id });
     persist();
   };
 
@@ -696,7 +724,7 @@ export const useFinanceStore = defineStore('finance', () => {
     persist();
   };
 
-  const importState = (content: string) => {
+  const importCurrentAccountState = (content: string) => {
     const imported = storage.importState(content);
     const sourceId = imported.account.id;
     const targetId = currentAccount.value.id;
@@ -740,18 +768,23 @@ export const useFinanceStore = defineStore('finance', () => {
     persist();
   };
 
-  const exportState = () =>
-    storage.exportState({
-      version: APP_VERSION,
-      account: currentAccount.value,
-      accounts: [currentAccount.value],
-      events: events.value.filter((e) => e.accountId === currentAccount.value.id),
-      preferences: preferences.value,
-      snapshots: snapshots.value.filter((s) => s.accountId === currentAccount.value.id),
-      reconciliations: reconciliations.value.filter((r) => r.accountId === currentAccount.value.id),
-      ledgerEntries: ledgerEntries.value.filter((e) => e.accountId === currentAccount.value.id),
-      eventOverrides: eventOverrides.value.filter((o) => o.accountId === currentAccount.value.id),
-    });
+  const importAllState = (content: string) => {
+    const imported = storage.importState(content);
+    applyState(imported, { preferredAccountId: imported.account.id });
+    sortEvents();
+    persist();
+  };
+
+  const importState = (content: string, mode: ImportExportMode = 'current') => {
+    if (mode === 'all') {
+      importAllState(content);
+      return;
+    }
+    importCurrentAccountState(content);
+  };
+
+  const exportState = (mode: ImportExportMode = 'current') =>
+    storage.exportState(buildAppState(mode));
 
   const clearCurrentAccount = () => {
     const targetId = currentAccount.value.id;
@@ -857,6 +890,8 @@ export const useFinanceStore = defineStore('finance', () => {
     resetState,
     loadSampleData,
     importState,
+    importCurrentAccountState,
+    importAllState,
     exportState,
     clearCurrentAccount,
     deleteAccount,

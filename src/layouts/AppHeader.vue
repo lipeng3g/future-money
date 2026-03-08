@@ -185,6 +185,8 @@ const AccountMultiSelectModal = defineAsyncComponent(() => import('@/components/
 const CreateAccountModal = defineAsyncComponent(() => import('@/components/account/CreateAccountModal.vue'));
 const AccountManageModal = defineAsyncComponent(() => import('@/components/account/AccountManageModal.vue'));
 
+type ImportExportMode = 'current' | 'all';
+
 interface LatestReconciliationBrief {
   date: string;
   balance: number;
@@ -193,6 +195,7 @@ interface LatestReconciliationBrief {
 const store = useFinanceStore();
 const preferencesOpen = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
+const fileActionMode = ref<ImportExportMode>('current');
 const reconciliationHistoryOpen = ref(false);
 const reconcileOpen = ref(false);
 const multiAccountOpen = ref(false);
@@ -268,7 +271,8 @@ const handleReconcileDone = () => {
   message.success('对账完成');
 };
 
-const triggerImport = () => {
+const triggerImport = (mode: ImportExportMode) => {
+  fileActionMode.value = mode;
   fileInput.value?.click();
 };
 
@@ -276,31 +280,36 @@ const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (!file) return;
+  const mode = fileActionMode.value;
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      store.importState(String(reader.result));
-      message.success('已导入当前账户数据');
+      store.importState(String(reader.result), mode);
+      message.success(mode === 'all' ? '已恢复全部账户数据' : '已导入当前账户数据');
     } catch (error) {
       console.error(error);
-      message.error('导入失败，请检查文件内容');
+      message.error(mode === 'all' ? '恢复失败，请检查备份文件内容' : '导入失败，请检查文件内容');
     } finally {
       target.value = '';
+      fileActionMode.value = 'current';
     }
   };
   reader.readAsText(file, 'utf-8');
 };
 
-const exportData = () => {
-  const content = store.exportState();
+const exportData = (mode: ImportExportMode) => {
+  const content = store.exportState(mode);
   const blob = new Blob([content], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
+  const accountSlug = store.currentAccount.name.trim().replace(/\s+/g, '-');
   link.href = url;
-  link.download = `future-money-${formatLocalISODate()}.json`;
+  link.download = mode === 'all'
+    ? `future-money-all-accounts-${formatLocalISODate()}.json`
+    : `future-money-${accountSlug || 'account'}-${formatLocalISODate()}.json`;
   link.click();
   URL.revokeObjectURL(url);
-  message.success('导出成功');
+  message.success(mode === 'all' ? '已导出全部账户数据' : '已导出当前账户数据');
 };
 
 const confirmReset = () => {
@@ -336,14 +345,14 @@ const confirmReset = () => {
   });
 };
 
-const handleManageImport = () => {
+const handleManageImport = (mode: ImportExportMode) => {
   accountManageOpen.value = false;
-  triggerImport();
+  triggerImport(mode);
 };
 
-const handleManageExport = () => {
+const handleManageExport = (mode: ImportExportMode) => {
   accountManageOpen.value = false;
-  exportData();
+  exportData(mode);
 };
 
 const handleManageClear = () => {

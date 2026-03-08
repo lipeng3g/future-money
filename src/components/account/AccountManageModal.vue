@@ -2,7 +2,7 @@
   <a-modal
     :open="open"
     title="账户管理"
-    width="520px"
+    width="560px"
     :footer="null"
     @cancel="$emit('close')"
   >
@@ -23,17 +23,31 @@
         <div class="action-list">
           <div class="action-item">
             <div class="action-desc">
-              <strong>导入数据</strong>
-              <span>从 JSON 文件导入，覆盖当前账户数据</span>
+              <strong>导入当前账户</strong>
+              <span>从 JSON 文件导入，并覆盖当前账户的数据</span>
             </div>
-            <a-button size="small" @click="$emit('import')">导入</a-button>
+            <a-button size="small" @click="$emit('import', 'current')">导入当前账户</a-button>
           </div>
           <div class="action-item">
             <div class="action-desc">
-              <strong>导出数据</strong>
-              <span>将当前账户数据导出为 JSON 文件</span>
+              <strong>恢复全部账户</strong>
+              <span>用整份备份恢复全部账户、事件、对账与偏好设置</span>
             </div>
-            <a-button size="small" @click="$emit('export')">导出</a-button>
+            <a-button size="small" @click="$emit('import', 'all')">恢复全部账户</a-button>
+          </div>
+          <div class="action-item">
+            <div class="action-desc">
+              <strong>导出当前账户</strong>
+              <span>仅导出当前账户的数据，便于单账户迁移或备份</span>
+            </div>
+            <a-button size="small" @click="$emit('export', 'current')">导出当前账户</a-button>
+          </div>
+          <div class="action-item">
+            <div class="action-desc">
+              <strong>导出全部账户</strong>
+              <span>导出整份本地数据，包含所有账户、偏好与历史记录</span>
+            </div>
+            <a-button size="small" @click="$emit('export', 'all')">导出全部账户</a-button>
           </div>
         </div>
       </div>
@@ -74,8 +88,8 @@ import { useFinanceStore } from '@/stores/finance';
 defineProps<{ open: boolean }>();
 defineEmits<{
   (e: 'close'): void;
-  (e: 'import'): void;
-  (e: 'export'): void;
+  (e: 'import', mode: 'current' | 'all'): void;
+  (e: 'export', mode: 'current' | 'all'): void;
   (e: 'clear'): void;
   (e: 'delete'): void;
 }>();
