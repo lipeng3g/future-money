@@ -1,13 +1,25 @@
-import { isValid, parseISO } from 'date-fns';
+import { getDaysInMonth, isValid, parseISO } from 'date-fns';
 import type { CashFlowEvent, RecurrenceType } from '@/types/event';
 
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
 export const isValidISODate = (value?: string | null): boolean => {
-  if (!value) return false;
+  if (!value || !ISO_DATE_PATTERN.test(value)) return false;
   const parsed = parseISO(value);
-  return isValid(parsed) && value.length === 10;
+  return isValid(parsed) && value === value.slice(0, 10);
 };
 
 const isPositive = (value: unknown): boolean => typeof value === 'number' && Number.isFinite(value) && value > 0;
+const isIntegerInRange = (value: unknown, min: number, max: number): boolean =>
+  typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
+const isValidYearlyMonthDay = (month: number, day: number): boolean => {
+  if (month === 2 && day === 29) {
+    return true;
+  }
+
+  const maxDay = getDaysInMonth(new Date(2025, month - 1, 1));
+  return day <= maxDay;
+};
 
 const recurrenceLabels: Record<RecurrenceType, string> = {
   once: '一次性',
@@ -57,16 +69,25 @@ export const validateCashFlowEvent = (event: Partial<CashFlowEvent>): string[] =
     case 'monthly':
     case 'quarterly':
     case 'semi-annual':
-      if (!event.monthlyDay || event.monthlyDay < 1 || event.monthlyDay > 31) {
-        errors.push('需要 1-31 的日期');
+      if (!isIntegerInRange(event.monthlyDay, 1, 31)) {
+        errors.push('需要 1-31 的整数日期');
       }
       break;
     case 'yearly':
-      if (!event.yearlyMonth || event.yearlyMonth < 1 || event.yearlyMonth > 12) {
+      if (!isIntegerInRange(event.yearlyMonth, 1, 12)) {
         errors.push('每年事件需要 1-12 的月份');
       }
-      if (!event.yearlyDay || event.yearlyDay < 1 || event.yearlyDay > 31) {
+      if (!isIntegerInRange(event.yearlyDay, 1, 31)) {
         errors.push('每年事件需要 1-31 的日期');
+      }
+      const hasValidYearlyMonth = isIntegerInRange(event.yearlyMonth, 1, 12);
+      const hasValidYearlyDay = isIntegerInRange(event.yearlyDay, 1, 31);
+      if (
+        hasValidYearlyMonth
+        && hasValidYearlyDay
+        && !isValidYearlyMonthDay(event.yearlyMonth as number, event.yearlyDay as number)
+      ) {
+        errors.push('每年事件的月份和日期组合无效');
       }
       break;
   }
