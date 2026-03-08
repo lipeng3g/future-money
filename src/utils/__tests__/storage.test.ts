@@ -68,7 +68,7 @@ describe('LocalStorageStateRepository', () => {
     expect(saveSpy).toHaveBeenCalled();
   });
 
-  it('导入旧格式数据时会补齐默认字段', () => {
+  it('导入旧格式数据时会补齐默认字段，但不会伪造初始快照/对账', () => {
     const storage = createMemoryStorage();
     const repository = new LocalStorageStateRepository(storage);
     const base = createDefaultState();
@@ -87,9 +87,31 @@ describe('LocalStorageStateRepository', () => {
     );
 
     expect(imported.accounts).toHaveLength(1);
-    expect(imported.snapshots).toHaveLength(1);
+    expect(imported.snapshots).toEqual([]);
+    expect(imported.reconciliations).toEqual([]);
     expect(imported.ledgerEntries).toEqual([]);
     expect(imported.eventOverrides).toEqual([]);
     expect(imported.version).toBe(APP_VERSION);
+  });
+
+  it('旧格式数据若缺少 snapshots 字段，也不会自动补出默认快照', () => {
+    const storage = createMemoryStorage();
+    const repository = new LocalStorageStateRepository(storage);
+    const base = createDefaultState();
+
+    const imported = repository.importState(
+      JSON.stringify({
+        version: '1.0.0',
+        timestamp: '2025-01-01T00:00:00.000Z',
+        state: {
+          account: base.account,
+          events: [],
+          preferences: base.preferences,
+        },
+      }),
+    );
+
+    expect(imported.snapshots).toEqual([]);
+    expect(imported.reconciliations).toEqual([]);
   });
 });

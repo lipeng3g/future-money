@@ -1,4 +1,7 @@
-# future-money 工作日志
+# future-money 工作日志（非权威草稿）
+
+> 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
+
 
 ## 2026-03-08
 - 建立长期工作器方案：不再把 isolated cron 误当成持续开发本体，改为 `tmux` 长期工作器 + 文件化上下文 + 每小时汇报。
@@ -12,3 +15,5 @@
 [2026-03-08 20:30:23] worker start: inspect repo and choose next task
 [2026-03-08 20:30:59] task: inspect tests and add next high-value coverage
 [2026-03-08 20:34:17] validating current recurrence refactor
+[2026-03-08 20:48:17] task: fix storage normalization so legacy/empty imports do not fabricate default snapshots or reconciliations
+[2026-03-08 20:48:17] verification: npm test ✅ (34), npm run type-check ✅, npm run build ✅

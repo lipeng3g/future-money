@@ -1,6 +1,6 @@
 import type { AppState, PersistedStateEnvelope } from '@/types/storage';
 import type { Reconciliation } from '@/types/reconciliation';
-import { APP_VERSION, DEFAULT_ACCOUNT_CONFIG, DEFAULT_PREFERENCES, DEFAULT_SNAPSHOT } from '@/utils/defaults';
+import { APP_VERSION, DEFAULT_ACCOUNT_CONFIG, DEFAULT_PREFERENCES } from '@/utils/defaults';
 import { createId } from '@/utils/id';
 
 const STORAGE_KEY = 'futureMoney.state';
@@ -73,8 +73,8 @@ const normalizeState = (rawState: Partial<AppState>): AppState => {
     state.account = state.accounts[0];
   }
 
-  if (!state.snapshots || state.snapshots.length === 0) {
-    state.snapshots = [DEFAULT_SNAPSHOT(state.account)];
+  if (!state.snapshots) {
+    state.snapshots = [];
   }
 
   if (!state.reconciliations || state.reconciliations.length === 0) {
