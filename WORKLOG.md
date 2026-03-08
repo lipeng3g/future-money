@@ -40,3 +40,6 @@
 [2026-03-08 22:46:00] task: reduce AI analysis drawer markdown re-render cost during streaming output
 [2026-03-08 22:46:00] deliverables: extracted markdown cache/streaming renderer utility, avoid repeated full markdown-it render for unchanged history, throttle streaming markdown flush on tiny token chunks, added renderer unit tests
 [2026-03-08 22:45:00] verification: npm test ✅ (62), npm run type-check ✅, npm run build ✅; AI 抽屉渲染优化已落地，打包体积基本不变，后续继续看 vendor-charts 拆分与 AI 长消息虚拟化
+[2026-03-08 22:55:00] task: 提取多账户时间线聚合器，消除 finance store / AI 上下文重复实现，并把按日期 repeatedly find 的 O(accounts×dates×timeline) 聚合改成预索引查表
+[2026-03-08 22:55:00] deliverables: 新增 src/utils/timeline-aggregate.ts 共享聚合工具；store 与 AI buildScopedFinancialContext 统一复用；补 timeline-aggregate 单测覆盖余额/事件/accountId/空时间线/日期排序
+[2026-03-08 22:55:00] verification: npm run type-check ✅, npm test ✅ (65), npm run build ✅; 功能行为不变，减少多账户视图与 AI 分析上下文构建时的重复扫描成本

@@ -18,7 +18,6 @@ import type {
   UserPreferences,
   BalanceSnapshot,
   DailySnapshot,
-  EventOccurrence,
   Reconciliation,
   LedgerEntry,
   EventOverride,
@@ -26,6 +25,7 @@ import type {
 import { createId } from '@/utils/id';
 import { generateSampleEvents } from '@/utils/sample-data';
 import { formatLocalISODate } from '@/utils/date';
+import { aggregateAccountTimelines } from '@/utils/timeline-aggregate';
 
 const storage = createStateRepository();
 const generator = new TimelineGenerator();
@@ -193,52 +193,9 @@ export const useFinanceStore = defineStore('finance', () => {
     return map;
   });
 
-  const aggregatedTimeline = computed<DailySnapshot[]>(() => {
-    const map = timelinesByAccount.value;
-    const allDates = new Set<string>();
-    Object.values(map).forEach((tl) => tl.forEach((d) => allDates.add(d.date)));
-    const dates = Array.from(allDates).sort();
-
-    return dates.map((date) => {
-      let balance = 0;
-      let change = 0;
-      const eventsAgg: EventOccurrence[] = [];
-      let isWeekend = false;
-      let isToday = false;
-      let zone: 'frozen' | 'projected' = 'projected';
-
-      selectedAccountIds.value.forEach((accId) => {
-        const tl = map[accId];
-        if (!tl) return;
-        const day = tl.find((d) => d.date === date);
-        if (!day) return;
-        balance += day.balance;
-        change += day.change;
-        eventsAgg.push(
-          ...day.events.map(
-            (e) =>
-              ({
-                ...e,
-                accountId: (e as any).accountId ?? accId,
-              } as any),
-          ),
-        );
-        isWeekend ||= day.isWeekend;
-        isToday ||= day.isToday;
-        if (day.zone === 'frozen') zone = 'frozen';
-      });
-
-      return {
-        date,
-        balance,
-        change,
-        events: eventsAgg,
-        isWeekend,
-        isToday,
-        zone,
-      };
-    });
-  });
+  const aggregatedTimeline = computed<DailySnapshot[]>(() =>
+    aggregateAccountTimelines(timelinesByAccount.value, selectedAccountIds.value),
+  );
 
   const timeline = computed<DailySnapshot[]>(() =>
     isMultiAccountView.value ? aggregatedTimeline.value : singleTimeline.value,

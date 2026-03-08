@@ -8,7 +8,6 @@ import type {
     CashFlowEvent,
     AnalyticsSummary,
     DailySnapshot,
-    EventOccurrence,
     Reconciliation,
     LedgerEntry,
     EventOverride,
@@ -16,6 +15,7 @@ import type {
 import { formatLocalISODate } from '@/utils/date';
 import { TimelineGenerator } from '@/utils/timeline';
 import { AnalyticsEngine } from '@/utils/analytics';
+import { aggregateAccountTimelines } from '@/utils/timeline-aggregate';
 
 // ---- 配置管理 ----
 
@@ -220,54 +220,6 @@ export interface FinancialContext {
 const timelineGenerator = new TimelineGenerator();
 const analyticsEngine = new AnalyticsEngine();
 
-const aggregateTimelines = (timelinesByAccount: Record<string, DailySnapshot[]>, selectedAccountIds: string[]): DailySnapshot[] => {
-    const allDates = new Set<string>();
-    Object.values(timelinesByAccount).forEach((timeline) => {
-        timeline.forEach((snapshot) => allDates.add(snapshot.date));
-    });
-
-    return Array.from(allDates)
-        .sort()
-        .map((date) => {
-            let balance = 0;
-            let change = 0;
-            const events: EventOccurrence[] = [];
-            let isWeekend = false;
-            let isToday = false;
-            let zone: 'frozen' | 'projected' = 'projected';
-
-            selectedAccountIds.forEach((accountId) => {
-                const timeline = timelinesByAccount[accountId];
-                const day = timeline?.find((snapshot) => snapshot.date === date);
-                if (!day) return;
-
-                balance += day.balance;
-                change += day.change;
-                events.push(
-                    ...day.events.map((event) => ({
-                        ...event,
-                        accountId: event.accountId ?? accountId,
-                    })),
-                );
-                isWeekend ||= day.isWeekend;
-                isToday ||= day.isToday;
-                if (day.zone === 'frozen') {
-                    zone = 'frozen';
-                }
-            });
-
-            return {
-                date,
-                balance,
-                change,
-                events,
-                isWeekend,
-                isToday,
-                zone,
-            };
-        });
-};
-
 export interface BuildScopedFinancialContextInput {
     accounts: AccountConfig[];
     selectedAccountIds: string[];
@@ -304,7 +256,7 @@ export const buildScopedFinancialContext = (input: BuildScopedFinancialContextIn
     });
 
     const timeline = selectedAccountIds.length > 1
-        ? aggregateTimelines(timelinesByAccount, selectedAccountIds)
+        ? aggregateAccountTimelines(timelinesByAccount, selectedAccountIds)
         : (timelinesByAccount[selectedAccountIds[0]] ?? []);
 
     const warningThreshold = accounts.reduce((sum, account) => sum + (account.warningThreshold ?? 0), 0);
