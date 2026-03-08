@@ -54,18 +54,50 @@ describe('event-focus', () => {
       createEvent({ id: 'evt-salary', accountId: 'acc-bank', name: '工资', amount: 2200, category: 'income', type: 'monthly', startDate: '2025-01-01', enabled: true, createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z', monthlyDay: 10 }),
     ];
 
-    expect(buildEventListFocusState(timeline, events, '2025-01-10')).toEqual({
+    expect(buildEventListFocusState(timeline, events, '2025-01-10', [
+      { id: 'acc-cash', name: '现金', typeLabel: '现金账户', initialBalance: 0, currency: 'CNY', warningThreshold: 1000, createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z' },
+      { id: 'acc-bank', name: '银行卡', typeLabel: '银行账户', initialBalance: 0, currency: 'CNY', warningThreshold: 1000, createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z' },
+    ])).toEqual({
       sourceDate: '2025-01-10',
       eventIds: ['evt-rent', 'evt-salary'],
       accountIds: ['acc-cash', 'acc-bank'],
       title: '2025-01-10 对应规则事件',
       summary: '已定位 2 条规则事件：房租、工资',
+      detail: '涉及账户：现金 2 笔 · 支出 ¥6,000；银行卡 1 笔 · 收入 ¥2,200。当日余额变动 -¥800。',
     });
   });
 
   it('点击无事件日期时返回空，避免误筛选事件列表', () => {
     const timeline = [createDay({ date: '2025-01-11', balance: 3200, change: 0, events: [] })];
     expect(buildEventListFocusState(timeline, [], '2025-01-11')).toBeNull();
+  });
+
+  it('在缺少账户配置时会回退到 accountId，且能汇总同账户收支', () => {
+    const timeline = [
+      createDay({
+        date: '2025-02-01',
+        balance: 1500,
+        change: -500,
+        events: [
+          { id: 'occ-1', eventId: 'evt-rent', name: '房租', amount: 3000, category: 'expense', date: '2025-02-01', accountId: 'acc-cash' },
+          { id: 'occ-2', eventId: 'evt-refund', name: '退款', amount: 500, category: 'income', date: '2025-02-01', accountId: 'acc-cash' },
+        ],
+      }),
+    ];
+
+    const events = [
+      createEvent({ id: 'evt-rent', accountId: 'acc-cash', name: '房租', amount: 3000, category: 'expense', type: 'monthly', startDate: '2025-01-01', enabled: true, createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z', monthlyDay: 1 }),
+      createEvent({ id: 'evt-refund', accountId: 'acc-cash', name: '退款', amount: 500, category: 'income', type: 'once', startDate: '2025-02-01', onceDate: '2025-02-01', enabled: true, createdAt: '2025-02-01T00:00:00.000Z', updatedAt: '2025-02-01T00:00:00.000Z' }),
+    ];
+
+    expect(buildEventListFocusState(timeline, events, '2025-02-01')).toEqual({
+      sourceDate: '2025-02-01',
+      eventIds: ['evt-rent', 'evt-refund'],
+      accountIds: ['acc-cash'],
+      title: '2025-02-01 对应规则事件',
+      summary: '已定位 2 条规则事件：房租、退款',
+      detail: '涉及账户：acc-cash 2 笔 · 收入 ¥500 · 支出 ¥3,000。当日余额变动 -¥500。',
+    });
   });
 
   it('会从事件反向定位到图表中的下一次发生日期，并给出可切换状态', () => {

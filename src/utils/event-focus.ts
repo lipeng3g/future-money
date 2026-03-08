@@ -1,3 +1,4 @@
+import type { AccountConfig } from '@/types/account';
 import type { CashFlowEvent } from '@/types/event';
 import type { DailySnapshot } from '@/types/timeline';
 
@@ -7,6 +8,7 @@ export interface EventListFocusState {
   accountIds: string[];
   title: string;
   summary: string;
+  detail?: string;
 }
 
 export interface EventChartFocusState {
@@ -33,6 +35,7 @@ export const buildEventListFocusState = (
   timeline: DailySnapshot[],
   events: CashFlowEvent[],
   sourceDate: string,
+  accounts: AccountConfig[] = [],
 ): EventListFocusState | null => {
   const day = timeline.find((item) => item.date === sourceDate);
   if (!day?.events.length) return null;
@@ -50,12 +53,35 @@ export const buildEventListFocusState = (
     ? `已定位 ${matchedEvents.length} 条规则事件：${matchedEvents.map((event) => event.name).join('、')}`
     : `已定位 ${uniqueEventIds.length} 条事件发生记录`;
 
+  const accountNameMap = new Map(accounts.map((account) => [account.id, account.name]));
+  const accountSummaries = accountIds.map((accountId) => {
+    const dayEvents = day.events.filter((event) => event.accountId === accountId);
+    const income = dayEvents
+      .filter((event) => event.category === 'income')
+      .reduce((sum, event) => sum + event.amount, 0);
+    const expense = dayEvents
+      .filter((event) => event.category === 'expense')
+      .reduce((sum, event) => sum + event.amount, 0);
+    const accountLabel = accountNameMap.get(accountId) ?? accountId;
+    const parts = [`${accountLabel} ${dayEvents.length} 笔`];
+
+    if (income > 0) parts.push(`收入 ¥${income.toLocaleString('zh-CN')}`);
+    if (expense > 0) parts.push(`支出 ¥${expense.toLocaleString('zh-CN')}`);
+
+    return parts.join(' · ');
+  });
+
+  const detail = accountSummaries.length
+    ? `涉及账户：${accountSummaries.join('；')}。当日余额变动 ${day.change >= 0 ? '+' : '-'}¥${Math.abs(day.change).toLocaleString('zh-CN')}。`
+    : undefined;
+
   return {
     sourceDate,
     eventIds: uniqueEventIds,
     accountIds,
     title,
     summary,
+    detail,
   };
 };
 

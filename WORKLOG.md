@@ -87,3 +87,5 @@
 [2026-03-09 03:18:38] task: 为事件清单补“同一规则多次发生日期前后切换”能力
 [2026-03-09 03:20:21] deliverables: 事件图表定位支持同一规则的前后日期切换；event-focus 纯函数新增 occurrence index / matchedDates / step 导航
 [2026-03-09 03:20:21] verification: npm run type-check ✅, npm test ✅ (95), npm run build ✅
+[2026-03-09 03:28:00] task: 补强“图表点 → 事件抽屉”定位说明，把事件名扩展为账户级收支摘要，减少多账户视图下看不出这一天到底发生了什么的问题
+[2026-03-09 03:28:00] deliverables: buildEventListFocusState 新增 detail 聚合（账户名/笔数/收入/支出/当日余额变动）；MainLayout 透传 accounts；EventPanel 横幅展示 detail；补 event-focus 回归测试覆盖账户映射与缺省 accountId 回退

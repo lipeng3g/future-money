@@ -15,6 +15,7 @@
       <div class="focus-banner-copy">
         <strong>{{ activeFocus.title }}</strong>
         <p>{{ activeFocus.summary }}</p>
+        <p v-if="activeListFocus?.detail && !activeChartFocus" class="focus-detail">{{ activeListFocus.detail }}</p>
       </div>
       <div class="focus-banner-actions">
         <template v-if="activeChartFocus">
@@ -318,6 +319,11 @@ const loadSamples = () => {
   color: var(--fm-text-secondary);
   font-size: 0.82rem;
   line-height: 1.6;
+}
+
+.focus-detail {
+  margin-top: 6px;
+  color: var(--fm-text-primary);
 }
 
 .focus-banner-actions {

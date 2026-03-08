@@ -98,7 +98,7 @@ const handleFocusChartDate = (date: string) => {
 };
 
 const handleFocusEventsByDate = (date: string) => {
-  const focusState = buildEventListFocusState(store.timeline, store.visibleEvents, date);
+  const focusState = buildEventListFocusState(store.timeline, store.visibleEvents, date, store.accounts);
   if (!focusState) {
     message.info('这个日期没有对应的规则事件');
     return;
