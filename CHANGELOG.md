@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-03-09
+- safety(import): “恢复全部账户”确认框新增“按账户的数据变化 + 日期覆盖范围”摘要；除了总量变化外，现在还能直接看出哪几个账户的事件/对账/账本/覆盖记录会增减，以及当前本地与备份文件的时间跨度是否明显错位，进一步降低误恢复旧备份或错备份的风险
+- test(import-preview): 扩展 `src/utils/__tests__/import-preview.test.ts`，新增按账户变化聚合与日期覆盖范围摘要回归，避免确认框提示与真实恢复内容脱节
+- test(import-ui): 扩展 `src/layouts/__tests__/AppHeader.test.ts`，真实覆盖“恢复全部账户”确认框里的按账户变化与日期覆盖范围接线，继续把高风险恢复流的回归从纯函数补到组件层
 - test(chart-ui): 新增 `src/components/charts/__tests__/BalanceChart.test.ts` 组件级回归，真实覆盖余额图空态、快速定位条切换、外部 focusKey / focusDate 联动，以及“只有含事件的数据点才触发 select-date”，避免图表交互继续只靠纯函数测试兜底
 - fix(chart-focus): 修正余额图默认焦点优先级在“今天”和“首次预警”落在同一天时被错误回落到“今天”的问题；现在默认焦点会按 key 优先级稳定命中 warning / today / reconciliation，而不是仅按日期反查第一个按钮
 - test(chart-focus): 扩展 `src/utils/__tests__/chart-options.test.ts`，补“今天与首次预警同日时仍应优先落到 warning”回归，避免默认焦点语义再次漂移

@@ -328,6 +328,10 @@ describe('AppHeader', () => {
     expect(contentText).not.toContain('对账：当前 1 → 备份 1');
     expect(contentText).not.toContain('账本记录：当前 1 → 备份 1');
     expect(contentText).toContain('覆盖记录：当前 0 → 备份 1（增加 +1）');
+    expect(contentText).toContain('按账户的数据变化');
+    expect(contentText).toContain('信用卡：事件 +1');
+    expect(contentText).toContain('当前本地日期覆盖：2026-01-01 → 2026-03-05');
+    expect(contentText).toContain('备份文件日期覆盖：2026-03-01 → 2026-03-09');
   });
 
   it('账户管理里的撤销上次导入会展示回滚摘要并执行真正回退', async () => {

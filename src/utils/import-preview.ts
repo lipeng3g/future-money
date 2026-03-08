@@ -40,6 +40,21 @@ export interface ImportDataDeltaItem {
   delta: number;
 }
 
+export interface ImportAccountDataDeltaItem {
+  accountName: string;
+  eventsDelta: number;
+  reconciliationsDelta: number;
+  ledgerEntriesDelta: number;
+  eventOverridesDelta: number;
+}
+
+export interface ImportDateRangeSummary {
+  currentRangeLabel: string;
+  incomingRangeLabel: string;
+  hasCurrentData: boolean;
+  hasIncomingData: boolean;
+}
+
 const ensureState = (parsed: unknown): AppState => {
   if (!parsed || typeof parsed !== 'object' || !(parsed as PersistedStateEnvelope).state) {
     throw new Error('导入文件格式不正确');
@@ -218,4 +233,95 @@ export const buildImportDataDeltaSummary = (
   ];
 
   return items;
+};
+
+const normalizeAccountName = (name?: string | null) => name?.trim() ?? '';
+
+const buildAccountNameMap = (accounts?: AppState['accounts']) => new Map(
+  (accounts ?? [])
+    .map((account) => [account.id, normalizeAccountName(account.name)] as const)
+    .filter((entry) => !!entry[1]),
+);
+
+const incrementCounter = (counter: Map<string, number>, key: string) => {
+  if (!key) return;
+  counter.set(key, (counter.get(key) ?? 0) + 1);
+};
+
+export const buildImportAccountDataDeltaSummary = (
+  incomingState: Pick<AppState, 'accounts' | 'events' | 'reconciliations' | 'ledgerEntries' | 'eventOverrides'>,
+  currentState?: Pick<AppState, 'accounts' | 'events' | 'reconciliations' | 'ledgerEntries' | 'eventOverrides'>,
+): ImportAccountDataDeltaItem[] => {
+  const currentAccountNames = buildAccountNameMap(currentState?.accounts);
+  const incomingAccountNames = buildAccountNameMap(incomingState.accounts);
+  const allAccountNames = Array.from(new Set([
+    ...currentAccountNames.values(),
+    ...incomingAccountNames.values(),
+  ])).filter(Boolean);
+
+  const buildEventCounter = (items: Array<{ accountId: string }> | undefined, nameMap: Map<string, string>) => {
+    const counter = new Map<string, number>();
+    (items ?? []).forEach((item) => {
+      const accountName = nameMap.get(item.accountId) ?? '';
+      incrementCounter(counter, accountName);
+    });
+    return counter;
+  };
+
+  const currentEvents = buildEventCounter(currentState?.events, currentAccountNames);
+  const incomingEvents = buildEventCounter(incomingState.events, incomingAccountNames);
+  const currentReconciliations = buildEventCounter(currentState?.reconciliations, currentAccountNames);
+  const incomingReconciliations = buildEventCounter(incomingState.reconciliations, incomingAccountNames);
+  const currentLedgerEntries = buildEventCounter(currentState?.ledgerEntries, currentAccountNames);
+  const incomingLedgerEntries = buildEventCounter(incomingState.ledgerEntries, incomingAccountNames);
+  const currentOverrides = buildEventCounter(currentState?.eventOverrides, currentAccountNames);
+  const incomingOverrides = buildEventCounter(incomingState.eventOverrides, incomingAccountNames);
+
+  return allAccountNames
+    .map((accountName) => ({
+      accountName,
+      eventsDelta: (incomingEvents.get(accountName) ?? 0) - (currentEvents.get(accountName) ?? 0),
+      reconciliationsDelta: (incomingReconciliations.get(accountName) ?? 0) - (currentReconciliations.get(accountName) ?? 0),
+      ledgerEntriesDelta: (incomingLedgerEntries.get(accountName) ?? 0) - (currentLedgerEntries.get(accountName) ?? 0),
+      eventOverridesDelta: (incomingOverrides.get(accountName) ?? 0) - (currentOverrides.get(accountName) ?? 0),
+    }))
+    .filter((item) => item.eventsDelta !== 0 || item.reconciliationsDelta !== 0 || item.ledgerEntriesDelta !== 0 || item.eventOverridesDelta !== 0)
+    .sort((a, b) => a.accountName.localeCompare(b.accountName, 'zh-CN'));
+};
+
+const formatRangeBoundary = (value?: string | null) => value?.trim() || '';
+
+export const buildImportDateRangeSummary = (
+  incomingState: Pick<AppState, 'events' | 'reconciliations' | 'ledgerEntries'>,
+  currentState?: Pick<AppState, 'events' | 'reconciliations' | 'ledgerEntries'>,
+): ImportDateRangeSummary => {
+  const collectDates = (state?: Pick<AppState, 'events' | 'reconciliations' | 'ledgerEntries'>) => {
+    const dates = [
+      ...(state?.events ?? []).flatMap((event) => [event.startDate, event.endDate, event.onceDate]),
+      ...(state?.reconciliations ?? []).map((item) => item.date),
+      ...(state?.ledgerEntries ?? []).map((item) => item.date),
+    ]
+      .map((value) => formatRangeBoundary(value))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+
+    return dates.length
+      ? { start: dates[0], end: dates[dates.length - 1] }
+      : null;
+  };
+
+  const currentRange = collectDates(currentState);
+  const incomingRange = collectDates(incomingState);
+  const formatLabel = (range: { start: string; end: string } | null) => {
+    if (!range) return '无日期数据';
+    if (range.start === range.end) return range.start;
+    return `${range.start} → ${range.end}`;
+  };
+
+  return {
+    currentRangeLabel: formatLabel(currentRange),
+    incomingRangeLabel: formatLabel(incomingRange),
+    hasCurrentData: !!currentRange,
+    hasIncomingData: !!incomingRange,
+  };
 };

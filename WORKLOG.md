@@ -118,3 +118,5 @@
 [2026-03-09 05:40:00] task: 给余额图“快速定位条 + 焦点解释卡”补组件级回归，避免图表交互继续只靠纯函数测试兜底
 [2026-03-09 05:40:00] deliverables: 新增 src/components/charts/__tests__/BalanceChart.test.ts，覆盖空态、快速定位切换、外部 focusKey/focusDate 联动、仅含事件点触发 select-date；同时在补测中发现并修复默认焦点优先级 bug：当“今天”和“首次预警”落在同一天时，默认焦点现在按 warning > today > reconciliation 的 key 优先级稳定命中，而不再按日期误落到第一个按钮
 [2026-03-09 05:45:00] verification: npm test ✅ (120), npm run type-check ✅, npm run build ✅；新增图表组件级回归已纳入全量验证，当前主要性能余项仍是 chart-base ~471.84kB
+[2026-03-09 05:55:00] task: 继续降低整库恢复误操作风险，把确认框里的差异从“总量变化”再细化为“按账户的数据变化 + 日期覆盖范围”
+[2026-03-09 06:00:00] deliverables: src/utils/import-preview.ts 新增 buildImportAccountDataDeltaSummary / buildImportDateRangeSummary；AppHeader 的恢复全部账户确认框展示按账户的事件/对账/账本/覆盖变化，以及当前本地 vs 备份文件的日期覆盖范围；补 import-preview / AppHeader 回归测试

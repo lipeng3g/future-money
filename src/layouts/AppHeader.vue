@@ -177,12 +177,15 @@ import { computed, defineAsyncComponent, ref, h } from 'vue';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { Modal, message } from 'ant-design-vue';
+import type { AppState, PersistedStateEnvelope } from '@/types';
 import type { UserPreferences } from '@/types/account';
 import { useFinanceStore } from '@/stores/finance';
 import { formatLocalISODate } from '@/utils/date';
 import {
+  buildImportAccountDataDeltaSummary,
   buildImportAccountDiffSummary,
   buildImportDataDeltaSummary,
+  buildImportDateRangeSummary,
   buildImportRiskSummary,
   buildRollbackPreview,
   parseImportPreview,
@@ -312,21 +315,20 @@ const validateImportMode = (mode: ImportExportMode, content: string) => {
 
 const confirmImportAll = (content: string, fileName: string) => {
   const summary = validateImportMode('all', content);
-  const risk = buildImportRiskSummary(summary, {
+  const parsed = JSON.parse(content) as PersistedStateEnvelope;
+  const incomingState = parsed.state as AppState;
+  const currentState = {
     accounts: store.accounts,
     events: store.events,
     reconciliations: store.reconciliations,
     ledgerEntries: store.ledgerEntries,
     eventOverrides: store.eventOverrides,
-  });
+  };
+  const risk = buildImportRiskSummary(summary, currentState);
   const accountDiff = buildImportAccountDiffSummary(summary, store.accounts);
-  const dataDelta = buildImportDataDeltaSummary(summary, {
-    accounts: store.accounts,
-    events: store.events,
-    reconciliations: store.reconciliations,
-    ledgerEntries: store.ledgerEntries,
-    eventOverrides: store.eventOverrides,
-  });
+  const dataDelta = buildImportDataDeltaSummary(summary, currentState);
+  const accountDataDelta = buildImportAccountDataDeltaSummary(incomingState, currentState);
+  const dateRange = buildImportDateRangeSummary(incomingState, currentState);
   let inputValue = '';
   const confirmText = '恢复全部账户';
   const backupTime = summary.timestamp
@@ -348,6 +350,20 @@ const confirmImportAll = (content: string, fileName: string) => {
       const direction = item.delta > 0 ? '增加' : '减少';
       return `${item.label}：当前 ${item.currentCount} → 备份 ${item.incomingCount}（${direction} ${deltaText}）`;
     });
+  const accountDataDeltaRows = accountDataDelta
+    .map((item) => {
+      const parts = [
+        item.eventsDelta !== 0 ? `事件 ${item.eventsDelta > 0 ? '+' : ''}${item.eventsDelta}` : null,
+        item.reconciliationsDelta !== 0 ? `对账 ${item.reconciliationsDelta > 0 ? '+' : ''}${item.reconciliationsDelta}` : null,
+        item.ledgerEntriesDelta !== 0 ? `账本 ${item.ledgerEntriesDelta > 0 ? '+' : ''}${item.ledgerEntriesDelta}` : null,
+        item.eventOverridesDelta !== 0 ? `覆盖 ${item.eventOverridesDelta > 0 ? '+' : ''}${item.eventOverridesDelta}` : null,
+      ].filter((part): part is string => !!part);
+      return `${item.accountName}：${parts.join('，')}`;
+    });
+  const dateRangeRows = [
+    `当前本地日期覆盖：${dateRange.currentRangeLabel}`,
+    `备份文件日期覆盖：${dateRange.incomingRangeLabel}`,
+  ];
 
   Modal.confirm({
     title: '恢复全部账户并覆盖当前本地数据？',
@@ -379,6 +395,16 @@ const confirmImportAll = (content: string, fileName: string) => {
           ...dataDeltaRows.map((row) => h('div', row)),
         ])
         : null,
+      accountDataDeltaRows.length
+        ? h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
+          h('div', { style: 'font-weight: 600; margin-bottom: 6px; color: #0f172a;' }, '按账户的数据变化'),
+          ...accountDataDeltaRows.map((row) => h('div', row)),
+        ])
+        : null,
+      h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
+        h('div', { style: 'font-weight: 600; margin-bottom: 6px; color: #0f172a;' }, '日期覆盖范围'),
+        ...dateRangeRows.map((row) => h('div', row)),
+      ]),
       h('p', { style: 'margin-bottom: 8px;' }, `请输入“${confirmText}”以继续：`),
       h('input', {
         type: 'text',

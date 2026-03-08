@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildImportAccountDataDeltaSummary,
   buildImportAccountDiffSummary,
   buildImportDataDeltaSummary,
+  buildImportDateRangeSummary,
   buildImportRiskSummary,
   parseImportPreview,
 } from '@/utils/import-preview';
@@ -191,5 +193,93 @@ describe('parseImportPreview', () => {
       { label: '账本记录', currentCount: 4, incomingCount: 12, delta: 8 },
       { label: '覆盖记录', currentCount: 1, incomingCount: 0, delta: -1 },
     ]);
+  });
+
+  it('会给出按账户聚合后的事件/对账/账本/覆盖变化，便于发现具体是哪个账户发生变化', () => {
+    const delta = buildImportAccountDataDeltaSummary({
+      accounts: [
+        { id: 'acc-a', name: '现金账户' },
+        { id: 'acc-b', name: '信用卡' },
+      ],
+      events: [
+        { id: 'evt-1', accountId: 'acc-a' },
+        { id: 'evt-2', accountId: 'acc-b' },
+        { id: 'evt-3', accountId: 'acc-b' },
+      ],
+      reconciliations: [
+        { id: 'rec-1', accountId: 'acc-a' },
+      ],
+      ledgerEntries: [
+        { id: 'led-1', accountId: 'acc-a' },
+        { id: 'led-2', accountId: 'acc-a' },
+      ],
+      eventOverrides: [
+        { id: 'ov-1', accountId: 'acc-b' },
+      ],
+    } as never, {
+      accounts: [
+        { id: 'current-a', name: '现金账户' },
+        { id: 'current-c', name: '旅行基金' },
+      ],
+      events: [
+        { id: 'evt-old-1', accountId: 'current-a' },
+        { id: 'evt-old-2', accountId: 'current-c' },
+      ],
+      reconciliations: [
+        { id: 'rec-old-1', accountId: 'current-c' },
+      ],
+      ledgerEntries: [
+        { id: 'led-old-1', accountId: 'current-c' },
+      ],
+      eventOverrides: [],
+    } as never);
+
+    expect(delta).toEqual([
+      {
+        accountName: '旅行基金',
+        eventsDelta: -1,
+        reconciliationsDelta: -1,
+        ledgerEntriesDelta: -1,
+        eventOverridesDelta: 0,
+      },
+      {
+        accountName: '现金账户',
+        eventsDelta: 0,
+        reconciliationsDelta: 1,
+        ledgerEntriesDelta: 2,
+        eventOverridesDelta: 0,
+      },
+      {
+        accountName: '信用卡',
+        eventsDelta: 2,
+        reconciliationsDelta: 0,
+        ledgerEntriesDelta: 0,
+        eventOverridesDelta: 1,
+      },
+    ]);
+  });
+
+  it('会汇总当前本地与备份文件的日期覆盖范围，便于确认时间跨度是否异常', () => {
+    const range = buildImportDateRangeSummary({
+      events: [
+        { startDate: '2026-01-10', endDate: '2026-12-31' },
+        { startDate: '2026-02-01', onceDate: '2026-02-15' },
+      ],
+      reconciliations: [{ date: '2026-03-01' }],
+      ledgerEntries: [{ date: '2026-03-09' }],
+    } as never, {
+      events: [
+        { startDate: '2025-06-01', endDate: '2025-09-30' },
+      ],
+      reconciliations: [{ date: '2025-06-08' }],
+      ledgerEntries: [{ date: '2025-07-01' }],
+    } as never);
+
+    expect(range).toEqual({
+      currentRangeLabel: '2025-06-01 → 2025-09-30',
+      incomingRangeLabel: '2026-01-10 → 2026-12-31',
+      hasCurrentData: true,
+      hasIncomingData: true,
+    });
   });
 });
