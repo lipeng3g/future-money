@@ -29,6 +29,7 @@
 - perf(build): 继续细化 Vite `manualChunks`，把原先单一的 `vendor-antd` 大包拆成 `vendor-antd-core / vendor-antd-form / vendor-antd-feedback / vendor-antd-icons`，并把 `markdown-it`、日期库单独分仓，降低首屏被低频弹窗 UI 依赖绑住的概率
 - perf(charts): 将共享图表纯函数从单一 `chart-options.ts` 继续拆成 `chart-base.ts + chart-options-cashflow.ts + chart-options.ts(余额图)`，让月度收支图不再跟余额图焦点/tooltip/markLine 逻辑打进同一异步块
 - perf(build): 生产构建告警从旧的 `vendor-antd ~718kB` / `chart-options ~483kB` 收敛为多个更小的按需 chunk；当前构建结果中 `vendor-antd-core ~397.8kB`、`vendor-antd-form ~195.4kB`、`vendor-antd-feedback ~91.2kB`、`vendor-markdown ~91.9kB`、`vendor-date ~43.5kB`、余额图异步块约 `67.5kB`、收支图异步块约 `39.5kB`，已消除默认 500kB 告警
+- perf(charts): 继续细化图表按需加载，Vite 现在会把 `src/utils/echarts-balance.ts` 与 `src/utils/echarts-cashflow.ts` 强制拆成独立 runtime chunk，避免 Rollup 因共享 ECharts 依赖再次把两张图揉回同一个大 `chart-base` 共享块；本轮构建里 `chart-base` 已从约 `471.84kB` 收敛到约 `4.28kB`，余额图 / 收支图依赖链解耦更彻底
 - feat(import): 导入当前账户 / 恢复全部账户前会自动保存一份浏览器内回滚快照，账户管理面板新增“撤销上次导入/恢复”，误恢复后可一键回退到操作前本地状态
 - safety(import): 回滚快照仅在备份文件解析成功后才写入，避免坏文件误覆盖可撤销点；新增存储层与 store 回归测试覆盖回滚保存/撤销链路
 - feat(chart-events): 支持从余额图直接点击含事件的数据点，自动打开事件抽屉并高亮对应规则事件

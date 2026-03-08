@@ -113,6 +113,14 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (id.includes('/src/utils/echarts-balance.ts')) {
+            return 'chart-balance-runtime';
+          }
+
+          if (id.includes('/src/utils/echarts-cashflow.ts')) {
+            return 'chart-cashflow-runtime';
+          }
+
           if (!id.includes('node_modules')) return;
 
           if (id.includes('/vue/') || id.includes('/@vue/') || id.includes('pinia')) {

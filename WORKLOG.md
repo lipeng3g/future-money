@@ -126,3 +126,6 @@
 [2026-03-09 06:32:00] task: 把整库恢复确认信息继续从“数量 diff”推进到“按账户的事件规则名级 diff”，避免用户知道会增减几条事件却仍不清楚具体会替换掉哪些规则
 [2026-03-09 06:32:00] deliverables: src/utils/import-preview.ts 新增 buildImportAccountEventDiffSummary；AppHeader 的恢复全部账户确认框展示“按账户的事件规则变化”；补 import-preview / AppHeader 回归测试覆盖新增事件、移除事件、按账户聚合与去重语义
 [2026-03-09 06:36:00] verification: npm run type-check ✅, npm test ✅ (126), npm run build ✅；当前恢复确认流已具备账户名 / 数据规模 / 日期范围 / 备份新旧 / 事件规则名级 diff 五层提示，下一轮仍可继续攻 chart-base ~471.84kB 性能余项
+[2026-03-09 06:48:00] task: 继续压缩图表共享异步块，避免余额图与收支图因注册入口被 Rollup 再次揉回同一个 chart-base 依赖链
+[2026-03-09 06:48:00] deliverables: vite manualChunks 为 src/utils/echarts-balance.ts 与 src/utils/echarts-cashflow.ts 增加独立 runtime chunk；BalanceChart / CashFlowChart 继续共用轻量 chart-base 工具，但各自图表注册 runtime 改为按需异步装载
+[2026-03-09 06:48:00] verification: npm run test ✅ (126), npm run type-check ✅, npm run build ✅；构建产物已从 chart-base ~471.84kB 收敛为 chart-base ~4.28kB + chart-balance-runtime ~556.26kB + chart-cashflow-runtime 独立小块，显著降低两张图之间的共享耦合；当前仅余额图 runtime 仍触发 >500kB warning，可作为下一轮继续细拆目标
