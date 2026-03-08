@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   clampEventFormDates,
   getEventFormValidationErrors,
+  getMonthlyRuleSemanticHint,
+  getYearlyRuleSemanticHint,
   isEndDateSelectable,
   isOnceDateSelectable,
   isStartDateSelectable,
@@ -69,5 +71,25 @@ describe('event-form helpers', () => {
     expect(isOnceDateSelectable('2026-03-15', '2026-03-10', '2026-03-20')).toBe(true);
     expect(isOnceDateSelectable('2026-03-08', '2026-03-10', '2026-03-20')).toBe(false);
     expect(isOnceDateSelectable('2026-03-21', '2026-03-10', '2026-03-20')).toBe(false);
+  });
+
+  it('会提前提示每月高日期在短月自动落月末', () => {
+    expect(getMonthlyRuleSemanticHint(31)).toMatchObject({
+      level: 'info',
+      message: '遇到没有 31 日的月份时，会自动落在当月最后一天。',
+    });
+    expect(getMonthlyRuleSemanticHint(15)).toBeNull();
+  });
+
+  it('会提前提示每年 2/29 的平年降级与无效月日组合', () => {
+    expect(getYearlyRuleSemanticHint(2, 29)).toMatchObject({
+      level: 'info',
+      message: '闰年按 2 月 29 日执行；平年会自动按 2 月 28 日执行。',
+    });
+
+    expect(getYearlyRuleSemanticHint(4, 31)).toMatchObject({
+      level: 'error',
+      message: '4 月没有 31 日，请调整为该月存在的日期。',
+    });
   });
 });

@@ -80,3 +80,6 @@
 [2026-03-09 02:50:00] task: 修复 Vite 配置漂移并继续拆图表 option 共享块，避免“vite.config.ts 已优化但 build 仍命中旧 vite.config.js”的回退问题
 [2026-03-09 02:50:00] deliverables: 删除历史编译产物 vite.config.js；新增 src/utils/chart-base.ts 与 src/utils/chart-options-cashflow.ts；收口 src/utils/chart-options.ts 为余额图专属逻辑；CashFlowChart 与图表测试改为按新模块引用
 [2026-03-09 02:54:00] verification: npm test ✅ (92), npm run build ✅；构建已按 vite.config.ts 生效，默认 500kB 告警消失，主要 chunk 为 vendor-antd-core ~397.8kB / vendor-antd-form ~195.4kB / vendor-antd-feedback ~91.2kB / vendor-markdown ~91.9kB / vendor-date ~43.5kB / BalanceChart ~67.5kB / CashFlowChart ~39.5kB
+[2026-03-09 03:00:00] task: 将事件表单中的 yearly/monthly 重复日期语义前移为即时字段提示，减少用户提交后才发现规则含义或非法月日组合的成本
+[2026-03-09 03:00:00] deliverables: src/utils/event-form.ts 新增 monthly/yearly semantic hint 纯函数；EventFormModal 接入 help / validate-status；补 event-form 回归测试覆盖 31 日月末降级、2/29 平年降级、4/31 即时错误
+[2026-03-09 03:03:00] verification: npm test ✅ (94), npm run type-check ✅, npm run build ✅；当前构建无默认 chunk 告警，残余较大共享异步块为 chart-base ~471.8kB，可作为下一轮继续拆分目标

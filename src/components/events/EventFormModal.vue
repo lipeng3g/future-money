@@ -45,7 +45,12 @@
       </template>
 
       <template v-else-if="formState.type === 'monthly' || formState.type === 'quarterly' || formState.type === 'semi-annual'">
-        <a-form-item :label="periodicDayLabel" required>
+        <a-form-item
+          :label="periodicDayLabel"
+          required
+          :validate-status="monthlyDayHint?.level === 'error' ? 'error' : undefined"
+          :help="monthlyDayHint?.message"
+        >
           <a-input-number v-model:value="formState.monthlyDay" :min="1" :max="31" />
         </a-form-item>
       </template>
@@ -59,7 +64,12 @@
               </a-select-option>
             </a-select>
           </a-form-item>
-          <a-form-item label="日期" required>
+          <a-form-item
+            label="日期"
+            required
+            :validate-status="yearlyDayHint?.level === 'error' ? 'error' : undefined"
+            :help="yearlyDayHint?.message"
+          >
             <a-input-number v-model:value="formState.yearlyDay" :min="1" :max="31" />
           </a-form-item>
         </div>
@@ -87,6 +97,8 @@ import { message } from 'ant-design-vue';
 import type { CashFlowEvent, EventFormValues } from '@/types/event';
 import {
   getEventFormValidationErrors,
+  getMonthlyRuleSemanticHint,
+  getYearlyRuleSemanticHint,
   isEndDateSelectable,
   isOnceDateSelectable,
   isStartDateSelectable,
@@ -170,6 +182,9 @@ const periodicDayLabel = computed(() => {
   };
   return labels[formState.type] ?? '日期 (1-31)';
 });
+
+const monthlyDayHint = computed(() => getMonthlyRuleSemanticHint(formState.monthlyDay));
+const yearlyDayHint = computed(() => getYearlyRuleSemanticHint(formState.yearlyMonth, formState.yearlyDay));
 
 const fillForm = (source?: CashFlowEvent | null) => {
   if (!source) {
