@@ -19,3 +19,5 @@
 [2026-03-08 20:48:17] verification: npm test ✅ (34), npm run type-check ✅, npm run build ✅
 [2026-03-08 21:32:00] task: scope AI chat history by selected account set, avoid cross-account context contamination in analysis drawer
 [2026-03-08 21:32:00] deliverables: scoped localStorage keys + legacy fallback + scoped export filename + regression tests
+[2026-03-08 21:40:00] task: fix AI analysis context source so drawer follows selected account scope instead of accidentally reusing current store timeline/analytics
+[2026-03-08 21:40:00] deliverables: extracted buildScopedFinancialContext + scoped timeline/analytics recomputation + regression tests for single/multi/missing reconciliation cases

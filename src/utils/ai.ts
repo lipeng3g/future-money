@@ -3,8 +3,19 @@
  * 纯前端直连 OpenAI 兼容 API，支持流式输出 + 思考过程
  */
 
-import type { AccountConfig, CashFlowEvent, AnalyticsSummary, DailySnapshot } from '@/types';
+import type {
+    AccountConfig,
+    CashFlowEvent,
+    AnalyticsSummary,
+    DailySnapshot,
+    EventOccurrence,
+    Reconciliation,
+    LedgerEntry,
+    EventOverride,
+} from '@/types';
 import { formatLocalISODate } from '@/utils/date';
+import { TimelineGenerator } from '@/utils/timeline';
+import { AnalyticsEngine } from '@/utils/analytics';
 
 // ---- 配置管理 ----
 
@@ -111,6 +122,108 @@ export interface FinancialContext {
     today: string;
     isMultiAccount: boolean;
 }
+
+const timelineGenerator = new TimelineGenerator();
+const analyticsEngine = new AnalyticsEngine();
+
+const aggregateTimelines = (timelinesByAccount: Record<string, DailySnapshot[]>, selectedAccountIds: string[]): DailySnapshot[] => {
+    const allDates = new Set<string>();
+    Object.values(timelinesByAccount).forEach((timeline) => {
+        timeline.forEach((snapshot) => allDates.add(snapshot.date));
+    });
+
+    return Array.from(allDates)
+        .sort()
+        .map((date) => {
+            let balance = 0;
+            let change = 0;
+            const events: EventOccurrence[] = [];
+            let isWeekend = false;
+            let isToday = false;
+            let zone: 'frozen' | 'projected' = 'projected';
+
+            selectedAccountIds.forEach((accountId) => {
+                const timeline = timelinesByAccount[accountId];
+                const day = timeline?.find((snapshot) => snapshot.date === date);
+                if (!day) return;
+
+                balance += day.balance;
+                change += day.change;
+                events.push(
+                    ...day.events.map((event) => ({
+                        ...event,
+                        accountId: event.accountId ?? accountId,
+                    })),
+                );
+                isWeekend ||= day.isWeekend;
+                isToday ||= day.isToday;
+                if (day.zone === 'frozen') {
+                    zone = 'frozen';
+                }
+            });
+
+            return {
+                date,
+                balance,
+                change,
+                events,
+                isWeekend,
+                isToday,
+                zone,
+            };
+        });
+};
+
+export interface BuildScopedFinancialContextInput {
+    accounts: AccountConfig[];
+    selectedAccountIds: string[];
+    events: CashFlowEvent[];
+    reconciliations: Reconciliation[];
+    ledgerEntries: LedgerEntry[];
+    eventOverrides: EventOverride[];
+    viewMonths: number;
+    today: string;
+}
+
+export const buildScopedFinancialContext = (input: BuildScopedFinancialContextInput): FinancialContext => {
+    const selectedAccountIds = normalizeScopeAccountIds(input.selectedAccountIds);
+    const accounts = input.accounts.filter((account) => selectedAccountIds.includes(account.id));
+    const selectedEvents = input.events.filter((event) => selectedAccountIds.includes(event.accountId));
+
+    const timelinesByAccount: Record<string, DailySnapshot[]> = {};
+
+    selectedAccountIds.forEach((accountId) => {
+        const reconciliations = input.reconciliations
+            .filter((record) => record.accountId === accountId)
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+        if (!reconciliations.length) return;
+
+        timelinesByAccount[accountId] = timelineGenerator.generate({
+            events: input.events.filter((event) => event.accountId === accountId),
+            reconciliations,
+            ledgerEntries: input.ledgerEntries.filter((entry) => entry.accountId === accountId),
+            eventOverrides: input.eventOverrides.filter((override) => override.accountId === accountId),
+            months: input.viewMonths,
+            today: input.today,
+        });
+    });
+
+    const timeline = selectedAccountIds.length > 1
+        ? aggregateTimelines(timelinesByAccount, selectedAccountIds)
+        : (timelinesByAccount[selectedAccountIds[0]] ?? []);
+
+    const warningThreshold = accounts.reduce((sum, account) => sum + (account.warningThreshold ?? 0), 0);
+
+    return {
+        accounts,
+        events: selectedEvents,
+        analytics: analyticsEngine.generate(timeline, warningThreshold),
+        timeline,
+        today: input.today,
+        isMultiAccount: selectedAccountIds.length > 1,
+    };
+};
 
 export const buildFinancialSummary = (ctx: FinancialContext): string => {
     const accountNames = ctx.accounts.map((a) => a.name).join('、');

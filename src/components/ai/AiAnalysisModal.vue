@@ -132,6 +132,7 @@ import {
   loadAiConfig,
   streamChat,
   buildFinancialSummary,
+  buildScopedFinancialContext,
   createAnalysisMessages,
   loadChatHistory,
   saveChatHistory,
@@ -139,7 +140,6 @@ import {
   exportChatHistory,
   type ChatMessage,
   type ChatRecord,
-  type FinancialContext,
 } from '@/utils/ai';
 
 defineProps<{ open: boolean }>();
@@ -208,17 +208,17 @@ const scrollToBottom = () => {
 
 const renderMd = (text: string): string => mdRenderer.value(text);
 
-const getFinancialContext = (): FinancialContext => {
-  const selectedAccounts = store.accounts.filter((a) => selectedAccountIds.value.includes(a.id));
-  const selectedEvents = store.events.filter((e) => selectedAccountIds.value.includes(e.accountId));
-  return {
-    accounts: selectedAccounts,
-    events: selectedEvents,
-    analytics: store.analytics,
-    timeline: store.timeline,
+const getFinancialContext = () => {
+  return buildScopedFinancialContext({
+    accounts: store.accounts,
+    selectedAccountIds: selectedAccountIds.value,
+    events: store.events,
+    reconciliations: store.reconciliations,
+    ledgerEntries: store.ledgerEntries,
+    eventOverrides: store.eventOverrides,
+    viewMonths: store.viewMonths,
     today: store.todayStr,
-    isMultiAccount: selectedAccountIds.value.length > 1,
-  };
+  });
 };
 
 const sendToAi = async (question?: string) => {
