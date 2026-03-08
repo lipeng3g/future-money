@@ -180,7 +180,7 @@ import { Modal, message } from 'ant-design-vue';
 import type { UserPreferences } from '@/types/account';
 import { useFinanceStore } from '@/stores/finance';
 import { formatLocalISODate } from '@/utils/date';
-import { buildRollbackPreview, parseImportPreview } from '@/utils/import-preview';
+import { buildImportRiskSummary, buildRollbackPreview, parseImportPreview } from '@/utils/import-preview';
 import type { ImportExportMode } from '@/types/storage';
 
 const PreferencesModal = defineAsyncComponent(() => import('@/components/common/PreferencesModal.vue'));
@@ -306,25 +306,39 @@ const validateImportMode = (mode: ImportExportMode, content: string) => {
 
 const confirmImportAll = (content: string, fileName: string) => {
   const summary = validateImportMode('all', content);
+  const risk = buildImportRiskSummary(summary, {
+    accounts: store.accounts,
+    events: store.events,
+    reconciliations: store.reconciliations,
+    ledgerEntries: store.ledgerEntries,
+    eventOverrides: store.eventOverrides,
+  });
   let inputValue = '';
   const confirmText = '恢复全部账户';
   const backupTime = summary.timestamp
     ? new Date(summary.timestamp).toLocaleString('zh-CN', { hour12: false })
     : '未知';
   const accountNames = summary.accountNames.length ? summary.accountNames.join('、') : '未识别账户名';
+  const riskColor = risk.level === 'high' ? '#b91c1c' : '#b45309';
+  const riskBackground = risk.level === 'high' ? '#fef2f2' : '#fff7ed';
+  const riskBorder = risk.level === 'high' ? '#fecaca' : '#fdba74';
 
   Modal.confirm({
     title: '恢复全部账户并覆盖当前本地数据？',
     width: 560,
     content: h('div', [
-      h('p', { style: 'color: #ef4444; margin-bottom: 12px; font-weight: 600;' }, '此操作会整体替换当前浏览器中的全部账户、事件、对账和偏好设置，无法撤销。'),
+      h('div', { style: `background: ${riskBackground}; border: 1px solid ${riskBorder}; border-radius: 10px; padding: 12px; margin-bottom: 12px;` }, [
+        h('p', { style: `color: ${riskColor}; margin-bottom: 8px; font-weight: 700;` }, risk.title),
+        h('p', { style: 'margin-bottom: 6px; line-height: 1.7;' }, risk.consequence),
+        h('p', { style: 'margin: 0; line-height: 1.7; color: #475569;' }, risk.replacementScope),
+      ]),
       h('div', { style: 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
         h('div', `备份文件：${fileName}`),
         h('div', `文件类型：${getScopeLabel(summary.scope)}`),
         h('div', `备份时间：${backupTime}`),
-        h('div', `账户数：${summary.accountsCount}（${accountNames}）`),
-        h('div', `事件 / 对账 / 账本：${summary.eventsCount} / ${summary.reconciliationsCount} / ${summary.ledgerEntriesCount}`),
-        h('div', `覆盖记录：${summary.eventOverridesCount}`),
+        h('div', `备份内账户：${summary.accountsCount}（${accountNames}）`),
+        h('div', `备份内事件 / 对账 / 账本：${summary.eventsCount} / ${summary.reconciliationsCount} / ${summary.ledgerEntriesCount}`),
+        h('div', `备份内覆盖记录：${summary.eventOverridesCount}`),
         h('div', `备份版本：${summary.stateVersion}`),
       ]),
       h('p', { style: 'margin-bottom: 8px;' }, `请输入“${confirmText}”以继续：`),

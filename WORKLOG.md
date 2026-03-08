@@ -95,3 +95,5 @@
 
 [2026-03-09 03:50:00] task: 修正事件表单“接下来会这样发生”的时间语义，避免编辑旧规则时把历史发生日误当成未来预演
 [2026-03-09 03:50:00] deliverables: buildEventSchedulePreview 新增 anchorDate（组件接入 store.todayStr）；预演从业务今天或开始日期（取较晚者）往后推导；补 event-form 回归测试覆盖未来锚点与开始日前锚点
+[2026-03-09 04:05:00] task: 继续降低本地整库恢复误操作风险，把确认框从“文件摘要”升级为“风险分级 + 当前本地将被替换的后果说明”
+[2026-03-09 04:05:00] deliverables: import-preview 新增 buildImportRiskSummary；AppHeader 的“恢复全部账户”确认框展示高/中风险提示、当前本地替换范围与作用域说明；补 import-preview 回归测试覆盖整库恢复与 legacy 未标记备份
