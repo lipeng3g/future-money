@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-03-09
+- perf(build): 继续细化 Vite `manualChunks`，把原先单一的 `vendor-antd` 大包拆成 `vendor-antd-core / vendor-antd-form / vendor-antd-feedback / vendor-antd-icons`，并把 `markdown-it`、日期库单独分仓，降低首屏被低频弹窗 UI 依赖绑住的概率
+- perf(build): 生产构建告警从 `vendor-antd ~718kB` 收敛为多个 35–398kB 的按需 chunk；当前剩余最大块为 `chart-options ~483kB`，已低于默认 500kB 告警阈值，后续重点可转向图表 option 继续拆分或按功能延迟加载
 - feat(import): 导入当前账户 / 恢复全部账户前会自动保存一份浏览器内回滚快照，账户管理面板新增“撤销上次导入/恢复”，误恢复后可一键回退到操作前本地状态
 - safety(import): 回滚快照仅在备份文件解析成功后才写入，避免坏文件误覆盖可撤销点；新增存储层与 store 回归测试覆盖回滚保存/撤销链路
 - feat(chart-events): 支持从余额图直接点击含事件的数据点，自动打开事件抽屉并高亮对应规则事件

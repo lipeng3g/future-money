@@ -74,3 +74,6 @@
 [2026-03-09 02:35:00] task: 继续压缩图表大包，撤销把全部 ECharts/vue-echarts/zrender 强绑进单一 vendor-charts 的策略，改为按余额图/收支图分模块注册
 [2026-03-09 02:35:00] deliverables: 新增 src/utils/echarts-balance.ts 与 src/utils/echarts-cashflow.ts；BalanceChart / CashFlowChart 分别按需注册图表能力；vite manualChunks 不再把所有图表依赖合并进 vendor-charts，恢复 Rollup 对异步图表 chunk 的自然拆分
 [2026-03-09 02:40:00] verification: npm run type-check ✅, npm test ✅ (92), npm run build ✅；图表大包已从单一 vendor-charts ~563kB 拆为 BalanceChart ~59.6kB + CashFlowChart ~35.8kB + chart-options ~483.2kB，当前仅剩 vendor-antd ~718kB 为构建告警
+[2026-03-09 02:43:00] task: 继续压缩应用壳第三方依赖，撤销把全部 Ant Design Vue 强绑进单一 vendor-antd 的策略，改为按基础组件 / 表单组件 / 反馈浮层 / 图标依赖拆分
+[2026-03-09 02:43:00] deliverables: vite manualChunks 细分为 vendor-antd-core / vendor-antd-form / vendor-antd-feedback / vendor-antd-icons，并把 markdown-it、日期库单独拆仓，降低低频弹窗与主壳共享大包耦合
+[2026-03-09 02:45:00] verification: npm run type-check ✅, npm test ✅ (92), npm run build ✅；构建告警中的 vendor-antd ~718kB 已消除，当前主要 chunk 为 vendor-antd-core ~397.8kB、vendor-antd-form ~195.4kB、vendor-antd-feedback ~91.2kB、vendor-markdown ~91.9kB、vendor-date ~43.5kB、chart-options ~483.2kB，全部低于默认 500kB 告警阈值
