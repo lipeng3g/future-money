@@ -11,9 +11,18 @@
       </div>
     </header>
 
+    <div v-if="activeFocus" class="focus-banner">
+      <div>
+        <strong>{{ activeFocus.title }}</strong>
+        <p>{{ activeFocus.summary }}</p>
+      </div>
+      <a-button size="small" type="text" @click="clearFocus">清除定位</a-button>
+    </div>
+
     <EventList
-      :events="events"
+      :events="displayEvents"
       :readonly="isReadOnly"
+      :highlighted-event-ids="highlightedEventIds"
       @edit="openEditor"
       @delete="confirmDelete"
       @toggle="handleToggle"
@@ -29,18 +38,49 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, h } from 'vue';
+import { computed, nextTick, ref, watch, h } from 'vue';
 import { Modal, message } from 'ant-design-vue';
 import EventList from '@/components/events/EventList.vue';
 import EventFormModal from '@/components/events/EventFormModal.vue';
 import type { CashFlowEvent, EventFormValues, NewCashFlowEvent } from '@/types/event';
+import type { EventListFocusState } from '@/utils/event-focus';
 import { useFinanceStore } from '@/stores/finance';
+
+const props = defineProps<{
+  focusState?: EventListFocusState | null;
+}>();
+
+const emit = defineEmits<{
+  (e: 'clear-focus'): void;
+}>();
 
 const store = useFinanceStore();
 const modalOpen = ref(false);
 const editingEvent = ref<CashFlowEvent | null>(null);
-const events = computed(() => store.visibleEvents);
+const activeFocus = computed(() => props.focusState ?? null);
 const isReadOnly = computed(() => store.isReadOnly);
+const events = computed(() => store.visibleEvents);
+const highlightedEventIds = computed(() => activeFocus.value?.eventIds ?? []);
+const displayEvents = computed(() => {
+  if (!activeFocus.value?.eventIds.length) {
+    return events.value;
+  }
+
+  const focusedIds = new Set(activeFocus.value.eventIds);
+  const focused = events.value.filter((event) => focusedIds.has(event.id));
+  const rest = events.value.filter((event) => !focusedIds.has(event.id));
+  return [...focused, ...rest];
+});
+
+watch(
+  highlightedEventIds,
+  async (ids) => {
+    if (!ids.length) return;
+    await nextTick();
+    document.getElementById(`event-card-${ids[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  },
+  { immediate: true },
+);
 
 const mapValuesToPayload = (values: EventFormValues): NewCashFlowEvent => ({
   accountId: store.account.id,
@@ -73,6 +113,8 @@ const closeModal = () => {
   modalOpen.value = false;
 };
 
+const clearFocus = () => emit('clear-focus');
+
 const handleSubmit = (values: EventFormValues) => {
   if (editingEvent.value) {
     const result = store.updateEvent(editingEvent.value.id, mapValuesToPayload(values));
@@ -103,6 +145,9 @@ const confirmDelete = (event: CashFlowEvent) => {
     onOk: () => {
       store.deleteEvent(event.id);
       message.success('已删除事件');
+      if (activeFocus.value?.eventIds.includes(event.id)) {
+        clearFocus();
+      }
     },
   });
 };
@@ -135,6 +180,7 @@ const loadSamples = () => {
       if (inputValue.trim() === '载入示例') {
         store.loadSampleData();
         message.success('已载入示例数据');
+        clearFocus();
       } else {
         message.error('输入的文字不正确，操作已取消');
         return Promise.reject();
@@ -178,5 +224,28 @@ const loadSamples = () => {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+}
+
+.focus-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(67, 56, 202, 0.16);
+  background: rgba(67, 56, 202, 0.06);
+}
+
+.focus-banner strong {
+  color: var(--fm-text-primary);
+  font-size: 0.9rem;
+}
+
+.focus-banner p {
+  margin: 4px 0 0;
+  color: var(--fm-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.6;
 }
 </style>

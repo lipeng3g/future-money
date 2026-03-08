@@ -15,7 +15,10 @@
 
     <!-- 主内容区 -->
     <div class="main-content">
-      <ChartArea @openDrawer="drawerVisible = true" />
+      <ChartArea
+        @openDrawer="drawerVisible = true"
+        @focus-events-by-date="handleFocusEventsByDate"
+      />
     </div>
 
     <!-- 右侧抽屉 -->
@@ -25,8 +28,13 @@
       placement="right"
       width="480"
       :bodyStyle="{ padding: '24px' }"
+      @close="clearEventFocus"
     >
-      <EventPanel v-if="drawerVisible" />
+      <EventPanel
+        v-if="drawerVisible"
+        :focus-state="eventFocusState"
+        @clear-focus="clearEventFocus"
+      />
     </a-drawer>
 
     <!-- 快速添加表单 -->
@@ -46,6 +54,8 @@ import { message } from 'ant-design-vue';
 import { useFinanceStore } from '@/stores/finance';
 import ChartArea from '@/components/charts/ChartArea.vue';
 import type { EventFormValues, NewCashFlowEvent } from '@/types/event';
+import type { EventListFocusState } from '@/utils/event-focus';
+import { buildEventListFocusState } from '@/utils/event-focus';
 import AppIcon from '@/components/common/AppIcon.vue';
 
 const EventPanel = defineAsyncComponent(() => import('@/components/events/EventPanel.vue'));
@@ -54,6 +64,7 @@ const EventFormModal = defineAsyncComponent(() => import('@/components/events/Ev
 const store = useFinanceStore();
 const drawerVisible = ref(false);
 const modalOpen = ref(false);
+const eventFocusState = ref<EventListFocusState | null>(null);
 
 const mapValuesToPayload = (values: EventFormValues): NewCashFlowEvent => ({
   accountId: store.account.id,
@@ -71,6 +82,20 @@ const mapValuesToPayload = (values: EventFormValues): NewCashFlowEvent => ({
   color: values.color,
   enabled: values.enabled,
 });
+
+const clearEventFocus = () => {
+  eventFocusState.value = null;
+};
+
+const handleFocusEventsByDate = (date: string) => {
+  const focusState = buildEventListFocusState(store.timeline, store.visibleEvents, date);
+  if (!focusState) {
+    message.info('这个日期没有对应的规则事件');
+    return;
+  }
+  eventFocusState.value = focusState;
+  drawerVisible.value = true;
+};
 
 const handleSubmit = (values: EventFormValues) => {
   const result = store.addEvent(mapValuesToPayload(values));

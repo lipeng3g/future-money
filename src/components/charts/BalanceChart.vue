@@ -37,13 +37,14 @@
         <small v-if="activeInsight.eventSummary" class="event-summary">{{ activeInsight.eventSummary }}</small>
       </div>
 
-      <VChart :option="chartOption" autoresize class="chart" />
+      <VChart :option="chartOption" autoresize class="chart" @click="handleChartClick" />
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { ECElementEvent } from 'echarts/core';
 import VChart from 'vue-echarts';
 import '@/utils/echarts';
 import type { DailySnapshot } from '@/types/timeline';
@@ -69,6 +70,10 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const emit = defineEmits<{
+  (e: 'select-date', date: string): void;
+}>();
 
 const focusButtons = computed(() => buildBalanceChartFocusTargets(
   props.timeline,
@@ -138,6 +143,13 @@ const chartOption = computed(() => buildBalanceChartOption({
 }));
 
 const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
+
+const handleChartClick = (params: ECElementEvent) => {
+  const index = typeof params.dataIndex === 'number' ? params.dataIndex : -1;
+  const point = index >= 0 ? props.timeline[index] : null;
+  if (!point?.events.length) return;
+  emit('select-date', point.date);
+};
 </script>
 
 <style scoped>

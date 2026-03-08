@@ -62,3 +62,6 @@
 [2026-03-09 01:00:00] task: 收紧事件/账户创建表单的前置校验与日期约束，减少无效本地配置进入 store 后才报错的情况
 [2026-03-09 01:00:00] deliverables: 新增 src/utils/event-form.ts 提取表单归一化/日期约束/前置校验；EventFormModal 增加起止/一次性日期 selectable 限制与提交时错误提示；CreateAccountModal 补账户名必填提示与 trim；新增 event-form 单测覆盖日期夹取、trim、年份非法组合与可选范围
 [2026-03-09 01:02:00] verification: npm test ✅ (85), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB
+[2026-03-09 01:10:00] task: 打通“余额图点击日期点 → 打开事件抽屉 → 高亮对应规则事件”链路，减少用户在图表与事件清单之间手动查找的成本
+[2026-03-09 01:10:00] deliverables: 新增 src/utils/event-focus.ts 提取图表日期到事件列表焦点的纯函数；BalanceChart 支持点击含事件的数据点；MainLayout / EventPanel 接入焦点状态、自动开抽屉、横幅说明、滚动到首条高亮事件；EventCard/EventList 增加高亮样式；补 event-focus 单测
+[2026-03-09 01:18:00] verification: npm test ✅ (87), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB

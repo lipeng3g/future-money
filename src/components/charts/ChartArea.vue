@@ -3,7 +3,7 @@
     <!-- 引导/对账横幅 -->
     <ReconciliationBanner
       @reconcile="reconcileModalOpen = true"
-      @open-drawer="$emit('openDrawer')"
+      @open-drawer="emit('openDrawer')"
     />
 
     <header class="panel-header">
@@ -37,6 +37,7 @@
             :reconciliation-date="store.latestReconciliation?.date"
             :reconciliation-balance="store.latestReconciliation?.balance"
             :focus-key="balanceChartFocusKey"
+            @select-date="handleChartDateSelect"
           />
         </div>
         <div id="cashflow-chart-card">
@@ -44,7 +45,7 @@
         </div>
       </div>
       <div class="side-column">
-        <button class="events-trigger" @click="$emit('openDrawer')" title="打开现金流事件管理">
+        <button class="events-trigger" @click="emit('openDrawer')" title="打开现金流事件管理">
           <span class="trigger-icon">
             <AppIcon name="clipboard" :size="22" />
           </span>
@@ -103,6 +104,11 @@ const loadAiConfig = async () => {
   return mod.loadAiConfig();
 };
 
+const emit = defineEmits<{
+  (e: 'openDrawer'): void;
+  (e: 'focusEventsByDate', date: string): void;
+}>();
+
 const store = useFinanceStore();
 const reconcileModalOpen = ref(false);
 const aiConfigOpen = ref(false);
@@ -130,6 +136,10 @@ const handleReconcileDone = () => {
 
 const handleStatsFocusChart = (key: BalanceChartFocusKey) => {
   balanceChartFocusKey.value = key;
+};
+
+const handleChartDateSelect = (date: string) => {
+  emit('focusEventsByDate', date);
 };
 </script>
 

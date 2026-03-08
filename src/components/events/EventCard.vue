@@ -1,5 +1,5 @@
 <template>
-  <article class="event-card" :class="event.category">
+  <article class="event-card" :class="[event.category, { highlighted }]">
     <div class="card-indicator" :class="event.category"></div>
     <div class="event-content">
       <div class="event-main">
@@ -38,7 +38,7 @@ import type { CashFlowEvent } from '@/types/event';
 import AppIcon from '@/components/common/AppIcon.vue';
 import { useFinanceStore } from '@/stores/finance';
 
-const props = defineProps<{ event: CashFlowEvent; readonly?: boolean }>();
+const props = defineProps<{ event: CashFlowEvent; readonly?: boolean; highlighted?: boolean }>();
 const emit = defineEmits<{
   (e: 'toggle', payload: { id: string; enabled: boolean }): void;
   (e: 'edit', event: CashFlowEvent): void;
@@ -91,6 +91,12 @@ const handleToggle = (checked: boolean) => {
   overflow: hidden;
   display: flex;
   align-items: stretch;
+}
+
+.event-card.highlighted {
+  border-color: rgba(67, 56, 202, 0.42);
+  box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.12), var(--fm-shadow-md);
+  background: linear-gradient(180deg, rgba(67, 56, 202, 0.04), rgba(67, 56, 202, 0.01));
 }
 
 .event-card:hover {

@@ -4,8 +4,10 @@
       <EventCard
         v-for="event in events"
         :key="event.id"
+        :id="`event-card-${event.id}`"
         :event="event"
         :readonly="readonly"
+        :highlighted="highlightedEventIds.includes(event.id)"
         @edit="$emit('edit', event)"
         @delete="$emit('delete', event)"
         @toggle="(payload) => $emit('toggle', payload)"
@@ -29,8 +31,9 @@ import type { CashFlowEvent } from '@/types/event';
 import EventCard from './EventCard.vue';
 import AppIcon from '@/components/common/AppIcon.vue';
 
-const props = defineProps<{ events: CashFlowEvent[]; readonly?: boolean }>();
+const props = defineProps<{ events: CashFlowEvent[]; readonly?: boolean; highlightedEventIds?: string[] }>();
 const readonly = props.readonly ?? false;
+const highlightedEventIds = props.highlightedEventIds ?? [];
 defineEmits<{
   (e: 'edit', event: CashFlowEvent): void;
   (e: 'delete', event: CashFlowEvent): void;
