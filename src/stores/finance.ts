@@ -3,7 +3,7 @@ import { defineStore } from 'pinia';
 import { TimelineGenerator } from '@/utils/timeline';
 import { AnalyticsEngine } from '@/utils/analytics';
 import { ReconciliationEngine } from '@/utils/reconciliation';
-import { StorageManager, createDefaultState } from '@/utils/storage';
+import { createStateRepository, createDefaultState } from '@/utils/storage';
 import { validateCashFlowEvent } from '@/utils/validators';
 import { APP_VERSION, DEFAULT_PREFERENCES, ACCOUNT_COLORS, ACCOUNT_ICONS } from '@/utils/defaults';
 import type {
@@ -26,7 +26,7 @@ import type {
 import { createId } from '@/utils/id';
 import { generateSampleEvents } from '@/utils/sample-data';
 
-const storage = new StorageManager();
+const storage = createStateRepository();
 const generator = new TimelineGenerator();
 const analyticsEngine = new AnalyticsEngine();
 const reconciliationEngine = new ReconciliationEngine();

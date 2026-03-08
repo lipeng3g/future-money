@@ -7,6 +7,14 @@ const STORAGE_KEY = 'futureMoney.state';
 
 const isStorageAvailable = (): boolean => typeof window !== 'undefined' && !!window.localStorage;
 
+export interface StateRepository {
+  loadState(): AppState;
+  saveState(state: AppState): void;
+  clear(): void;
+  exportState(state: AppState): string;
+  importState(content: string): AppState;
+}
+
 export const createDefaultState = (): AppState => {
   const account = DEFAULT_ACCOUNT_CONFIG();
   return {
@@ -49,11 +57,50 @@ const migrateV1ToV2 = (state: AppState): AppState => {
   };
 };
 
-export class StorageManager {
+const normalizeState = (rawState: Partial<AppState>): AppState => {
+  const base = createDefaultState();
+  const state: AppState = {
+    ...base,
+    ...rawState,
+    version: APP_VERSION,
+  };
+
+  if (!state.accounts || state.accounts.length === 0) {
+    state.accounts = [state.account];
+  }
+
+  if (state.accounts[0]) {
+    state.account = state.accounts[0];
+  }
+
+  if (!state.snapshots || state.snapshots.length === 0) {
+    state.snapshots = [DEFAULT_SNAPSHOT(state.account)];
+  }
+
+  if (!state.reconciliations || state.reconciliations.length === 0) {
+    const migrated = migrateV1ToV2(state);
+    state.reconciliations = migrated.reconciliations;
+    state.ledgerEntries = migrated.ledgerEntries;
+    state.eventOverrides = migrated.eventOverrides;
+  }
+
+  if (!state.ledgerEntries) state.ledgerEntries = [];
+  if (!state.eventOverrides) state.eventOverrides = [];
+
+  return state;
+};
+
+const createEnvelope = (state: AppState): PersistedStateEnvelope => ({
+  version: APP_VERSION,
+  timestamp: new Date().toISOString(),
+  state,
+});
+
+export class LocalStorageStateRepository implements StateRepository {
   private storage: Storage | null;
 
-  constructor() {
-    this.storage = isStorageAvailable() ? window.localStorage : null;
+  constructor(storage: Storage | null = isStorageAvailable() ? window.localStorage : null) {
+    this.storage = storage;
   }
 
   loadState(): AppState {
@@ -63,38 +110,18 @@ export class StorageManager {
       if (!raw) return createDefaultState();
       const parsed = JSON.parse(raw) as PersistedStateEnvelope;
       if (!parsed.state) throw new Error('invalid state payload');
-      const base = createDefaultState();
-      const state: AppState = {
-        ...base,
-        ...parsed.state,
-        version: APP_VERSION,
-      };
-      // 兼容旧数据：如果没有 accounts，则基于 account 构造列表
-      if (!state.accounts || state.accounts.length === 0) {
-        state.accounts = [state.account];
-      }
-      // 同步 account 字段为第一个账户，作为当前账户镜像
-      if (state.accounts[0]) {
-        state.account = state.accounts[0];
-      }
-      // 兼容旧数据：如果没有 snapshots，则基于账户配置生成一条初始快照
-      if (!state.snapshots || state.snapshots.length === 0) {
-        state.snapshots = [DEFAULT_SNAPSHOT(state.account)];
-      }
+      const state = normalizeState(parsed.state);
 
-      // v1 → v2 迁移：如果没有 reconciliations，从 snapshots 迁移
-      if (!state.reconciliations || state.reconciliations.length === 0) {
-        const migrated = migrateV1ToV2(state);
-        state.reconciliations = migrated.reconciliations;
-        state.ledgerEntries = migrated.ledgerEntries;
-        state.eventOverrides = migrated.eventOverrides;
-        // 保存迁移后的状态
+      const shouldPersistMigration = parsed.version !== APP_VERSION
+        || !parsed.state.reconciliations
+        || !parsed.state.ledgerEntries
+        || !parsed.state.eventOverrides
+        || !parsed.state.accounts?.length
+        || !parsed.state.snapshots?.length;
+
+      if (shouldPersistMigration) {
         this.saveState(state);
       }
-
-      // 确保新字段有默认值
-      if (!state.ledgerEntries) state.ledgerEntries = [];
-      if (!state.eventOverrides) state.eventOverrides = [];
 
       return state;
     } catch (error) {
@@ -105,13 +132,8 @@ export class StorageManager {
 
   saveState(state: AppState): void {
     if (!this.storage) return;
-    const envelope: PersistedStateEnvelope = {
-      version: APP_VERSION,
-      timestamp: new Date().toISOString(),
-      state,
-    };
     try {
-      this.storage.setItem(STORAGE_KEY, JSON.stringify(envelope));
+      this.storage.setItem(STORAGE_KEY, JSON.stringify(createEnvelope(state)));
     } catch (error) {
       console.warn('存储数据失败', error);
     }
@@ -123,12 +145,7 @@ export class StorageManager {
   }
 
   exportState(state: AppState): string {
-    const payload: PersistedStateEnvelope = {
-      version: APP_VERSION,
-      timestamp: new Date().toISOString(),
-      state,
-    };
-    return JSON.stringify(payload, null, 2);
+    return JSON.stringify(createEnvelope(state), null, 2);
   }
 
   importState(content: string): AppState {
@@ -136,30 +153,8 @@ export class StorageManager {
     if (!parsed || !parsed.state) {
       throw new Error('导入文件格式不正确');
     }
-    const base = createDefaultState();
-    const state: AppState = {
-      ...base,
-      ...parsed.state,
-      version: APP_VERSION,
-    };
-    if (!state.accounts || state.accounts.length === 0) {
-      state.accounts = [state.account];
-    }
-    if (state.accounts[0]) {
-      state.account = state.accounts[0];
-    }
-    if (!state.snapshots || state.snapshots.length === 0) {
-      state.snapshots = [DEFAULT_SNAPSHOT(state.account)];
-    }
-    // 迁移 v1 数据
-    if (!state.reconciliations || state.reconciliations.length === 0) {
-      const migrated = migrateV1ToV2(state);
-      state.reconciliations = migrated.reconciliations;
-      state.ledgerEntries = migrated.ledgerEntries;
-      state.eventOverrides = migrated.eventOverrides;
-    }
-    if (!state.ledgerEntries) state.ledgerEntries = [];
-    if (!state.eventOverrides) state.eventOverrides = [];
-    return state;
+    return normalizeState(parsed.state);
   }
 }
+
+export const createStateRepository = (): StateRepository => new LocalStorageStateRepository();
