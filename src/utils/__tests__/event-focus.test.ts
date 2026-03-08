@@ -145,6 +145,7 @@ describe('event-focus', () => {
       matchedDates: ['2025-01-10', '2025-02-10', '2025-03-10'],
       title: '已定位到「房租」',
       summary: '图表已跳到 2025-02-10（第 2 / 3 次发生，可继续切换查看前后日期）。',
+      detail: '当前时间窗内发生日：2025-01-10、当前：2025-02-10、2025-03-10',
       canFocusPrev: true,
       canFocusNext: true,
     });
@@ -199,6 +200,7 @@ describe('event-focus', () => {
       matchedDates: ['2025-01-10', '2025-02-10', '2025-03-10'],
       title: '已定位到「房租」',
       summary: '图表已跳到 2025-03-10（第 3 / 3 次发生，可继续切换查看前后日期）。',
+      detail: '当前时间窗内发生日：2025-01-10、2025-02-10、当前：2025-03-10',
       canFocusPrev: true,
       canFocusNext: false,
     });

@@ -19,6 +19,7 @@ export interface EventChartFocusState {
   matchedDates: string[];
   title: string;
   summary: string;
+  detail?: string;
   canFocusPrev: boolean;
   canFocusNext: boolean;
 }
@@ -29,6 +30,16 @@ const buildEventChartFocusSummary = (date: string, occurrenceIndex: number, occu
   }
 
   return `图表已跳到 ${date}（第 ${occurrenceIndex + 1} / ${occurrenceCount} 次发生，可继续切换查看前后日期）。`;
+};
+
+const buildEventChartFocusDetail = (matchedDates: string[], occurrenceIndex: number): string | undefined => {
+  if (!matchedDates.length) return undefined;
+
+  const labels = matchedDates.map((date, index) => (
+    index === occurrenceIndex ? `当前：${date}` : date
+  ));
+
+  return `当前时间窗内发生日：${labels.join('、')}`;
 };
 
 export const buildEventListFocusState = (
@@ -125,6 +136,7 @@ export const buildEventChartFocusState = (
     matchedDates,
     title,
     summary: buildEventChartFocusSummary(date, occurrenceIndex, occurrenceCount),
+    detail: buildEventChartFocusDetail(matchedDates, occurrenceIndex),
     canFocusPrev: occurrenceIndex > 0,
     canFocusNext: occurrenceIndex < occurrenceCount - 1,
   };

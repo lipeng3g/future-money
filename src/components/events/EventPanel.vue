@@ -15,10 +15,23 @@
       <div class="focus-banner-copy">
         <strong>{{ activeFocus.title }}</strong>
         <p>{{ activeFocus.summary }}</p>
-        <p v-if="activeListFocus?.detail && !activeChartFocus" class="focus-detail">{{ activeListFocus.detail }}</p>
+        <p v-if="activeChartFocus?.detail" class="focus-detail">{{ activeChartFocus.detail }}</p>
+        <p v-else-if="activeListFocus?.detail" class="focus-detail">{{ activeListFocus.detail }}</p>
       </div>
       <div class="focus-banner-actions">
         <template v-if="activeChartFocus">
+          <div v-if="activeChartFocus.matchedDates.length > 1" class="focus-date-list" aria-label="当前时间窗内发生日列表">
+            <button
+              v-for="(matchedDate, index) in activeChartFocus.matchedDates"
+              :key="matchedDate"
+              type="button"
+              class="focus-date-chip"
+              :class="{ active: index === activeChartFocus.occurrenceIndex }"
+              @click="focusChartOccurrence(index)"
+            >
+              {{ matchedDate }}
+            </button>
+          </div>
           <a-button size="small" @click="stepChartFocus(-1)" :disabled="!activeChartFocus.canFocusPrev">上一个日期</a-button>
           <a-button size="small" @click="stepChartFocus(1)" :disabled="!activeChartFocus.canFocusNext">下一个日期</a-button>
         </template>
@@ -159,6 +172,25 @@ const handleFocusChart = (event: CashFlowEvent) => {
 
   chartFocusState.value = focus;
   emit('focus-chart-date', focus.date);
+};
+
+const focusChartOccurrence = (occurrenceIndex: number) => {
+  if (!chartFocusState.value) return;
+
+  const targetDate = chartFocusState.value.matchedDates[occurrenceIndex];
+  if (!targetDate || targetDate === chartFocusState.value.date) return;
+
+  const event = events.value.find((item) => item.id === chartFocusState.value?.eventId);
+  if (!event) {
+    clearFocus();
+    return;
+  }
+
+  const nextFocus = buildEventChartFocusState(store.timeline, event, targetDate);
+  if (!nextFocus) return;
+
+  chartFocusState.value = nextFocus;
+  emit('focus-chart-date', nextFocus.date);
 };
 
 const stepChartFocus = (direction: -1 | 1) => {
@@ -332,5 +364,37 @@ const loadSamples = () => {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.focus-date-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: min(100%, 360px);
+  justify-content: flex-end;
+}
+
+.focus-date-chip {
+  border: 1px solid rgba(14, 165, 233, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+  color: #0369a1;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.focus-date-chip:hover {
+  border-color: rgba(14, 165, 233, 0.34);
+  color: #0c4a6e;
+}
+
+.focus-date-chip.active {
+  background: rgba(14, 165, 233, 0.14);
+  color: #0c4a6e;
+  box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.1);
 }
 </style>

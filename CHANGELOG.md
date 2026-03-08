@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-03-09
+- feat(event-navigation): 事件抽屉里的图表定位横幅新增“当前时间窗内发生日”总览；当某条规则在当前时间窗出现多次时，现在会直接列出所有发生日期，并允许点击任意日期跳图，不再只能靠“上一个 / 下一个日期”来回试探
+- test(event-navigation): 新增 `src/components/events/__tests__/EventPanel.test.ts` 组件级回归，覆盖事件定位横幅里的发生日列表渲染、激活态切换与点击跳图，避免这条浏览链路只剩纯函数测试兜底
+- test(event-focus): 扩展 `src/utils/__tests__/event-focus.test.ts`，补图表定位状态中的发生日总览文案断言，避免多次发生日期的说明与组件展示再次漂移
 - safety(import): “恢复全部账户”确认框新增“按账户的事件规则变化”摘要；现在除了账户名、总量变化和日期覆盖范围外，还会直接提示每个账户有哪些事件规则会新增/移除，减少用户在恢复前自己脑补“这份备份到底会把哪些业务规则换掉”的成本
 - test(import-preview): 扩展 `src/utils/__tests__/import-preview.test.ts`，补按账户事件名增删聚合回归，避免事件规则 diff 在账户迁移、重名事件或脏数据下再次漂移
 - test(import-ui): 扩展 `src/layouts/__tests__/AppHeader.test.ts`，真实覆盖整库恢复确认框里的“按账户的事件规则变化”接线，继续把高风险恢复流的提示从纯函数补到组件层

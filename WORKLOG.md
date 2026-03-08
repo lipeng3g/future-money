@@ -129,3 +129,5 @@
 [2026-03-09 06:48:00] task: 继续压缩图表共享异步块，避免余额图与收支图因注册入口被 Rollup 再次揉回同一个 chart-base 依赖链
 [2026-03-09 06:48:00] deliverables: vite manualChunks 为 src/utils/echarts-balance.ts 与 src/utils/echarts-cashflow.ts 增加独立 runtime chunk；BalanceChart / CashFlowChart 继续共用轻量 chart-base 工具，但各自图表注册 runtime 改为按需异步装载
 [2026-03-09 06:48:00] verification: npm run test ✅ (126), npm run type-check ✅, npm run build ✅；构建产物已从 chart-base ~471.84kB 收敛为 chart-base ~4.28kB + chart-balance-runtime ~556.26kB + chart-cashflow-runtime 独立小块，显著降低两张图之间的共享耦合；当前仅余额图 runtime 仍触发 >500kB warning，可作为下一轮继续细拆目标
+[2026-03-09 06:58:00] task: 把“事件清单 → 图表日期”定位继续从顺序切换推进到“全部发生日总览”，减少高频规则只能上一个/下一个来回试探的成本
+[2026-03-09 06:58:00] deliverables: buildEventChartFocusState 新增发生日总览 detail；EventPanel 定位横幅展示全部发生日 chip 并支持点击任意日期跳图；新增 EventPanel 组件级回归并扩展 event-focus 纯函数测试
