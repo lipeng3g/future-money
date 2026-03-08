@@ -1,25 +1,9 @@
-import { addDays, addMonths, differenceInCalendarMonths, formatISO, isAfter, isBefore, isSameDay, isWeekend, parseISO, startOfDay } from 'date-fns';
+import { addDays, addMonths, formatISO, isAfter, isSameDay, isWeekend, parseISO, startOfDay } from 'date-fns';
 import type { CashFlowEvent } from '@/types/event';
 import type { DailySnapshot, EventOccurrence, TimelineInput } from '@/types/timeline';
 import type { Reconciliation, LedgerEntry, EventOverride } from '@/types/reconciliation';
 import { computePeriodKey } from '@/utils/reconciliation';
-
-const clampMonthlyExecutionDate = (target: Date, day: number): number => {
-  const endOfMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
-  return Math.min(day, endOfMonth);
-};
-
-const isLeapYearDate = (date: Date): boolean => {
-  const year = date.getFullYear();
-  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
-};
-
-const normalizeYearlyDay = (date: Date, month: number, day: number): { month: number; day: number } => {
-  if (month === 2 && day === 29 && !isLeapYearDate(date)) {
-    return { month, day: 28 };
-  }
-  return { month, day };
-};
+import { isEventActiveOnDate, shouldEventOccurOnDate } from '@/utils/recurrence';
 
 export class TimelineGenerator {
   generate(input: TimelineInput): DailySnapshot[] {
@@ -211,8 +195,8 @@ export class TimelineGenerator {
 
     for (const event of events) {
       if (event.enabled === false) continue;
-      if (!this.isEventActiveOnDate(event, date)) continue;
-      if (!this.shouldEventOccur(event, date)) continue;
+      if (!isEventActiveOnDate(event, date)) continue;
+      if (!shouldEventOccurOnDate(event, date)) continue;
 
       const dateStr = formatISO(date, { representation: 'date' });
       const periodKey = computePeriodKey(event, dateStr);
@@ -256,62 +240,4 @@ export class TimelineGenerator {
     return result;
   }
 
-  private isEventActiveOnDate(event: CashFlowEvent, date: Date): boolean {
-    const start = startOfDay(parseISO(event.startDate));
-    if (isBefore(date, start)) {
-      return false;
-    }
-    if (event.endDate) {
-      const end = startOfDay(parseISO(event.endDate));
-      if (isAfter(date, end)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private shouldEventOccur(event: CashFlowEvent, date: Date): boolean {
-    switch (event.type) {
-      case 'once':
-        return this.matchOnceEvent(event, date);
-      case 'monthly':
-        return this.matchMonthlyEvent(event, date);
-      case 'quarterly':
-        return this.matchPeriodicEvent(event, date, 3);
-      case 'semi-annual':
-        return this.matchPeriodicEvent(event, date, 6);
-      case 'yearly':
-        return this.matchYearlyEvent(event, date);
-      default:
-        return false;
-    }
-  }
-
-  private matchOnceEvent(event: CashFlowEvent, date: Date): boolean {
-    const target = event.onceDate ? startOfDay(parseISO(event.onceDate)) : startOfDay(parseISO(event.startDate));
-    return isSameDay(date, target);
-  }
-
-  private matchMonthlyEvent(event: CashFlowEvent, date: Date): boolean {
-    if (!event.monthlyDay) return false;
-    if (differenceInCalendarMonths(date, startOfDay(parseISO(event.startDate))) < 0) {
-      return false;
-    }
-    const targetDay = clampMonthlyExecutionDate(date, event.monthlyDay);
-    return date.getDate() === targetDay;
-  }
-
-  private matchPeriodicEvent(event: CashFlowEvent, date: Date, interval: number): boolean {
-    if (!event.monthlyDay) return false;
-    const diff = differenceInCalendarMonths(date, startOfDay(parseISO(event.startDate)));
-    if (diff < 0 || diff % interval !== 0) return false;
-    const targetDay = clampMonthlyExecutionDate(date, event.monthlyDay);
-    return date.getDate() === targetDay;
-  }
-
-  private matchYearlyEvent(event: CashFlowEvent, date: Date): boolean {
-    if (!event.yearlyMonth || !event.yearlyDay) return false;
-    const normalized = normalizeYearlyDay(date, event.yearlyMonth, event.yearlyDay);
-    return date.getMonth() + 1 === normalized.month && date.getDate() === normalized.day;
-  }
 }

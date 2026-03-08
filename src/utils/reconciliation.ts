@@ -1,7 +1,8 @@
-import { addDays, differenceInCalendarMonths, formatISO, isAfter, isBefore, isSameDay, parseISO, startOfDay } from 'date-fns';
+import { addDays, formatISO, isAfter, parseISO, startOfDay } from 'date-fns';
 import type { CashFlowEvent } from '@/types/event';
 import type { Reconciliation, LedgerEntry } from '@/types/reconciliation';
 import { createId } from '@/utils/id';
+import { isEventActiveOnDate, shouldEventOccurOnDate } from '@/utils/recurrence';
 
 /** 待确认的账本条目（对账审核时使用） */
 export interface PendingEntry {
@@ -12,20 +13,6 @@ export interface PendingEntry {
   date: string;
   source: 'rule';
 }
-
-const clampMonthlyExecutionDate = (target: Date, day: number): number => {
-  const endOfMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
-  return Math.min(day, endOfMonth);
-};
-
-const normalizeYearlyDay = (date: Date, month: number, day: number): { month: number; day: number } => {
-  const year = date.getFullYear();
-  const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
-  if (month === 2 && day === 29 && !isLeap) {
-    return { month, day: 28 };
-  }
-  return { month, day };
-};
 
 /** 计算事件规则在某个日期的周期标识，用于 Override 去重 */
 export const computePeriodKey = (rule: CashFlowEvent, date: string): string => {
@@ -65,7 +52,7 @@ export class ReconciliationEngine {
 
     while (!isAfter(cursor, endDate)) {
       for (const rule of enabledRules) {
-        if (this.isEventActiveOnDate(rule, cursor) && this.shouldEventOccur(rule, cursor)) {
+        if (isEventActiveOnDate(rule, cursor) && shouldEventOccurOnDate(rule, cursor)) {
           entries.push({
             ruleId: rule.id,
             name: rule.name,
@@ -182,49 +169,4 @@ export class ReconciliationEngine {
     return result;
   }
 
-  private isEventActiveOnDate(event: CashFlowEvent, date: Date): boolean {
-    const start = startOfDay(parseISO(event.startDate));
-    if (isBefore(date, start)) return false;
-    if (event.endDate) {
-      const end = startOfDay(parseISO(event.endDate));
-      if (isAfter(date, end)) return false;
-    }
-    return true;
-  }
-
-  private shouldEventOccur(event: CashFlowEvent, date: Date): boolean {
-    switch (event.type) {
-      case 'once': {
-        const target = event.onceDate ? startOfDay(parseISO(event.onceDate)) : startOfDay(parseISO(event.startDate));
-        return isSameDay(date, target);
-      }
-      case 'monthly': {
-        if (!event.monthlyDay) return false;
-        if (differenceInCalendarMonths(date, startOfDay(parseISO(event.startDate))) < 0) return false;
-        const targetDay = clampMonthlyExecutionDate(date, event.monthlyDay);
-        return date.getDate() === targetDay;
-      }
-      case 'quarterly': {
-        if (!event.monthlyDay) return false;
-        const qDiff = differenceInCalendarMonths(date, startOfDay(parseISO(event.startDate)));
-        if (qDiff < 0 || qDiff % 3 !== 0) return false;
-        const qDay = clampMonthlyExecutionDate(date, event.monthlyDay);
-        return date.getDate() === qDay;
-      }
-      case 'semi-annual': {
-        if (!event.monthlyDay) return false;
-        const sDiff = differenceInCalendarMonths(date, startOfDay(parseISO(event.startDate)));
-        if (sDiff < 0 || sDiff % 6 !== 0) return false;
-        const sDay = clampMonthlyExecutionDate(date, event.monthlyDay);
-        return date.getDate() === sDay;
-      }
-      case 'yearly': {
-        if (!event.yearlyMonth || !event.yearlyDay) return false;
-        const normalized = normalizeYearlyDay(date, event.yearlyMonth, event.yearlyDay);
-        return date.getMonth() + 1 === normalized.month && date.getDate() === normalized.day;
-      }
-      default:
-        return false;
-    }
-  }
 }

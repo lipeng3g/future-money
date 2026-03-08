@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TimelineGenerator } from '@/utils/timeline';
 import { ReconciliationEngine, computePeriodKey } from '@/utils/reconciliation';
+import { isEventActiveOnDate, shouldEventOccurOnDate } from '@/utils/recurrence';
 import type { CashFlowEvent } from '@/types/event';
 import type { Reconciliation } from '@/types/reconciliation';
 import { AnalyticsEngine } from '@/utils/analytics';
@@ -261,6 +262,30 @@ describe('computePeriodKey', () => {
   it('once 返回 YYYY-MM-DD', () => {
     const event = createEvent({ type: 'once' });
     expect(computePeriodKey(event, '2025-02-08')).toBe('2025-02-08');
+  });
+});
+
+describe('recurrence helpers', () => {
+  it('尊重 endDate，超出结束日期后不再生效', () => {
+    const event = createEvent({ endDate: '2025-01-31' });
+    expect(isEventActiveOnDate(event, new Date('2025-01-31T00:00:00'))).toBe(true);
+    expect(isEventActiveOnDate(event, new Date('2025-02-01T00:00:00'))).toBe(false);
+  });
+
+  it('季度和半年事件只在对应间隔月触发', () => {
+    const quarterly = createEvent({ type: 'quarterly', monthlyDay: 10, startDate: '2025-01-01' });
+    const semiAnnual = createEvent({ type: 'semi-annual', monthlyDay: 10, startDate: '2025-01-01' });
+
+    expect(shouldEventOccurOnDate(quarterly, new Date('2025-04-10T00:00:00'))).toBe(true);
+    expect(shouldEventOccurOnDate(quarterly, new Date('2025-05-10T00:00:00'))).toBe(false);
+    expect(shouldEventOccurOnDate(semiAnnual, new Date('2025-07-10T00:00:00'))).toBe(true);
+    expect(shouldEventOccurOnDate(semiAnnual, new Date('2025-04-10T00:00:00'))).toBe(false);
+  });
+
+  it('年度 2/29 在平年自动落到 2/28', () => {
+    const yearlyLeap = createEvent({ type: 'yearly', yearlyMonth: 2, yearlyDay: 29 });
+    expect(shouldEventOccurOnDate(yearlyLeap, new Date('2025-02-28T00:00:00'))).toBe(true);
+    expect(shouldEventOccurOnDate(yearlyLeap, new Date('2024-02-29T00:00:00'))).toBe(true);
   });
 });
 
