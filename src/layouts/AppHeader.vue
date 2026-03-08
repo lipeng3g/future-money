@@ -180,7 +180,13 @@ import { Modal, message } from 'ant-design-vue';
 import type { UserPreferences } from '@/types/account';
 import { useFinanceStore } from '@/stores/finance';
 import { formatLocalISODate } from '@/utils/date';
-import { buildImportAccountDiffSummary, buildImportRiskSummary, buildRollbackPreview, parseImportPreview } from '@/utils/import-preview';
+import {
+  buildImportAccountDiffSummary,
+  buildImportDataDeltaSummary,
+  buildImportRiskSummary,
+  buildRollbackPreview,
+  parseImportPreview,
+} from '@/utils/import-preview';
 import type { ImportExportMode } from '@/types/storage';
 
 const PreferencesModal = defineAsyncComponent(() => import('@/components/common/PreferencesModal.vue'));
@@ -314,6 +320,13 @@ const confirmImportAll = (content: string, fileName: string) => {
     eventOverrides: store.eventOverrides,
   });
   const accountDiff = buildImportAccountDiffSummary(summary, store.accounts);
+  const dataDelta = buildImportDataDeltaSummary(summary, {
+    accounts: store.accounts,
+    events: store.events,
+    reconciliations: store.reconciliations,
+    ledgerEntries: store.ledgerEntries,
+    eventOverrides: store.eventOverrides,
+  });
   let inputValue = '';
   const confirmText = '恢复全部账户';
   const backupTime = summary.timestamp
@@ -328,6 +341,13 @@ const confirmImportAll = (content: string, fileName: string) => {
     accountDiff.removedNames.length ? `恢复后会移除：${accountDiff.removedNames.join('、')}` : null,
     accountDiff.keptNames.length ? `两边都存在：${accountDiff.keptNames.join('、')}` : null,
   ].filter((row): row is string => !!row);
+  const dataDeltaRows = dataDelta
+    .filter((item) => item.delta !== 0)
+    .map((item) => {
+      const deltaText = item.delta > 0 ? `+${item.delta}` : `${item.delta}`;
+      const direction = item.delta > 0 ? '增加' : '减少';
+      return `${item.label}：当前 ${item.currentCount} → 备份 ${item.incomingCount}（${direction} ${deltaText}）`;
+    });
 
   Modal.confirm({
     title: '恢复全部账户并覆盖当前本地数据？',
@@ -351,6 +371,12 @@ const confirmImportAll = (content: string, fileName: string) => {
         ? h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
           h('div', { style: 'font-weight: 600; margin-bottom: 6px; color: #0f172a;' }, '账户差异速览'),
           ...accountDiffRows.map((row) => h('div', row)),
+        ])
+        : null,
+      dataDeltaRows.length
+        ? h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
+          h('div', { style: 'font-weight: 600; margin-bottom: 6px; color: #0f172a;' }, '数据规模变化'),
+          ...dataDeltaRows.map((row) => h('div', row)),
         ])
         : null,
       h('p', { style: 'margin-bottom: 8px;' }, `请输入“${confirmText}”以继续：`),

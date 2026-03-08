@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildImportAccountDiffSummary, buildImportRiskSummary, parseImportPreview } from '@/utils/import-preview';
+import {
+  buildImportAccountDiffSummary,
+  buildImportDataDeltaSummary,
+  buildImportRiskSummary,
+  parseImportPreview,
+} from '@/utils/import-preview';
 
 describe('parseImportPreview', () => {
   it('从多账户备份中提取摘要信息', () => {
@@ -162,5 +167,29 @@ describe('parseImportPreview', () => {
       removedNames: [],
       keptNames: ['现金账户'],
     });
+  });
+
+  it('会生成恢复前后数据规模的净变化摘要，便于确认是否明显增减', () => {
+    const delta = buildImportDataDeltaSummary({
+      accountsCount: 2,
+      eventsCount: 8,
+      reconciliationsCount: 1,
+      ledgerEntriesCount: 12,
+      eventOverridesCount: 0,
+    }, {
+      accounts: [{ id: 'a' }, { id: 'b' }, { id: 'c' }],
+      events: [{ id: 'e1' }, { id: 'e2' }, { id: 'e3' }],
+      reconciliations: [{ id: 'r1' }, { id: 'r2' }],
+      ledgerEntries: [{ id: 'l1' }, { id: 'l2' }, { id: 'l3' }, { id: 'l4' }],
+      eventOverrides: [{ id: 'o1' }],
+    } as never);
+
+    expect(delta).toEqual([
+      { label: '账户', currentCount: 3, incomingCount: 2, delta: -1 },
+      { label: '事件', currentCount: 3, incomingCount: 8, delta: 5 },
+      { label: '对账', currentCount: 2, incomingCount: 1, delta: -1 },
+      { label: '账本记录', currentCount: 4, incomingCount: 12, delta: 8 },
+      { label: '覆盖记录', currentCount: 1, incomingCount: 0, delta: -1 },
+    ]);
   });
 });

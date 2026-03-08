@@ -33,6 +33,13 @@ export interface ImportAccountDiffSummary {
   keptNames: string[];
 }
 
+export interface ImportDataDeltaItem {
+  label: string;
+  currentCount: number;
+  incomingCount: number;
+  delta: number;
+}
+
 const ensureState = (parsed: unknown): AppState => {
   if (!parsed || typeof parsed !== 'object' || !(parsed as PersistedStateEnvelope).state) {
     throw new Error('导入文件格式不正确');
@@ -168,4 +175,47 @@ export const buildImportAccountDiffSummary = (
     removedNames: currentNames.filter((name) => !incomingSet.has(name)),
     keptNames: incomingNames.filter((name) => currentSet.has(name)),
   };
+};
+
+export const buildImportDataDeltaSummary = (
+  summary: Pick<
+    ImportPreviewSummary,
+    'accountsCount' | 'eventsCount' | 'reconciliationsCount' | 'ledgerEntriesCount' | 'eventOverridesCount'
+  >,
+  currentState?: Pick<AppState, 'accounts' | 'events' | 'reconciliations' | 'ledgerEntries' | 'eventOverrides'>,
+): ImportDataDeltaItem[] => {
+  const items: Array<ImportDataDeltaItem> = [
+    {
+      label: '账户',
+      currentCount: currentState?.accounts?.length ?? 0,
+      incomingCount: summary.accountsCount,
+      delta: summary.accountsCount - (currentState?.accounts?.length ?? 0),
+    },
+    {
+      label: '事件',
+      currentCount: currentState?.events?.length ?? 0,
+      incomingCount: summary.eventsCount,
+      delta: summary.eventsCount - (currentState?.events?.length ?? 0),
+    },
+    {
+      label: '对账',
+      currentCount: currentState?.reconciliations?.length ?? 0,
+      incomingCount: summary.reconciliationsCount,
+      delta: summary.reconciliationsCount - (currentState?.reconciliations?.length ?? 0),
+    },
+    {
+      label: '账本记录',
+      currentCount: currentState?.ledgerEntries?.length ?? 0,
+      incomingCount: summary.ledgerEntriesCount,
+      delta: summary.ledgerEntriesCount - (currentState?.ledgerEntries?.length ?? 0),
+    },
+    {
+      label: '覆盖记录',
+      currentCount: currentState?.eventOverrides?.length ?? 0,
+      incomingCount: summary.eventOverridesCount,
+      delta: summary.eventOverridesCount - (currentState?.eventOverrides?.length ?? 0),
+    },
+  ];
+
+  return items;
 };

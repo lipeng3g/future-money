@@ -109,3 +109,6 @@
 [2026-03-09 04:49:00] verification: npm test ✅ (110), npm run type-check ✅, npm run build ✅；组件级测试已打通，chart-base ~471.8kB 仍是下一轮主要本地优化目标
 [2026-03-09 05:05:00] task: 继续降低整库恢复误操作风险，把确认框里的“当前本地 vs 备份文件”差异从抽象风险说明升级为账户名级新增/移除/保留摘要
 [2026-03-09 05:05:00] deliverables: src/utils/import-preview.ts 新增 buildImportAccountDiffSummary；AppHeader 的恢复全部账户确认框展示账户差异速览；补 import-preview 回归测试覆盖新增/移除/保留与脏数据去噪
+[2026-03-09 05:20:00] task: 继续降低整库恢复误操作风险，把确认框里的“当前本地 vs 备份文件”差异从账户名级扩展到数据规模净增减摘要
+[2026-03-09 05:20:00] deliverables: src/utils/import-preview.ts 新增 buildImportDataDeltaSummary；AppHeader 的恢复全部账户确认框展示账户 / 事件 / 对账 / 账本 / 覆盖记录的恢复前后净变化；补 import-preview 回归测试覆盖净增减计算；同步更新 CHANGELOG / NEXT_TASK
+[2026-03-09 05:20:00] verification: npm test ✅ (113), npm run type-check ✅, npm run build ✅；构建默认 chunk 告警仍已消除，chart-base ~471.84kB 仍是下一轮可继续优化目标
