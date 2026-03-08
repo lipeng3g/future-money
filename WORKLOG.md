@@ -56,3 +56,6 @@
 [2026-03-09 00:28:00] task: 打通“统计卡片 → 余额图快速定位”联动，减少长时间线下在卡片和图表之间来回找位置的成本
 [2026-03-09 00:28:00] deliverables: 抽出 buildBalanceChartFocusTargets 作为共享聚焦目标源；StatisticsPanel 可点击跳转到 latest / warning / min / max；ChartArea 与 BalanceChart 通过 focusKey 单向联动；补 chart-options 回归测试覆盖 max/共享目标列表
 [2026-03-09 00:29:00] verification: npm test ✅ (79), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB
+[2026-03-09 00:41:48] task: 为余额图快速定位增加焦点解释卡，直接说明最低点/首次预警/最近对账为何重要
+[2026-03-09 00:41:48] deliverables: 新增 buildBalanceChartFocusInsight 纯函数；BalanceChart 展示焦点解释卡与当日事件摘要；补 chart-options 回归测试覆盖 warning/max/reconciliation 解释
+[2026-03-09 00:41:48] verification: npm test ✅ (81), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB

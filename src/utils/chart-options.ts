@@ -1,5 +1,5 @@
 import type { MonthlySnapshot } from '@/types/analytics';
-import type { DailySnapshot } from '@/types/timeline';
+import type { DailySnapshot, EventOccurrence } from '@/types/timeline';
 
 const DEFAULT_BALANCE_LABEL_TARGET = 10;
 const DEFAULT_MONTHLY_LABEL_TARGET = 6;
@@ -12,6 +12,17 @@ export interface BalanceChartFocusTarget {
   key: BalanceChartFocusKey;
   label: string;
   date: string;
+}
+
+export interface BalanceChartFocusInsight {
+  key: BalanceChartFocusKey;
+  label: string;
+  date: string;
+  balance: number;
+  summary: string;
+  detail: string;
+  tone: 'info' | 'warning' | 'success';
+  eventSummary?: string;
 }
 
 export const getAdaptiveAxisLabelInterval = (totalPoints: number, targetLabels: number): number => {
@@ -103,6 +114,144 @@ export const getBalanceChartZoomWindow = (
   }
 
   return { startValue, endValue };
+};
+
+const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN')}`;
+
+const formatDelta = (value: number) => {
+  if (value === 0) return '较前一日持平';
+  const prefix = value > 0 ? '较前一日增加' : '较前一日减少';
+  return `${prefix}${formatCurrency(Math.abs(value))}`;
+};
+
+const buildEventSummary = (events: EventOccurrence[]) => {
+  if (!events.length) return undefined;
+
+  const topEvents = events.slice(0, 3).map((event) => {
+    const sign = event.category === 'income' ? '+' : '-';
+    return `${event.name} ${sign}${formatCurrency(event.amount)}`;
+  });
+
+  if (events.length > 3) {
+    topEvents.push(`另有 ${events.length - 3} 笔事件`);
+  }
+
+  return `当日事件：${topEvents.join('；')}`;
+};
+
+export const buildBalanceChartFocusInsight = ({
+  timeline,
+  warningThreshold,
+  focusKey,
+  reconciliationDate,
+  reconciliationBalance,
+}: {
+  timeline: DailySnapshot[];
+  warningThreshold: number;
+  focusKey: BalanceChartFocusKey;
+  reconciliationDate?: string;
+  reconciliationBalance?: number;
+}): BalanceChartFocusInsight | null => {
+  const target = buildBalanceChartFocusTargets(timeline, warningThreshold, reconciliationDate)
+    .find((item) => item.key === focusKey);
+
+  if (!target) return null;
+
+  const pointIndex = timeline.findIndex((item) => item.date === target.date);
+  const point = pointIndex >= 0 ? timeline[pointIndex] : undefined;
+  if (!point) return null;
+
+  const previousBalance = pointIndex > 0 ? timeline[pointIndex - 1]?.balance : undefined;
+  const delta = previousBalance != null ? point.balance - previousBalance : point.change;
+  const eventSummary = buildEventSummary(point.events);
+
+  switch (focusKey) {
+    case 'warning': {
+      const deficit = Math.max(0, warningThreshold - point.balance);
+      return {
+        key: focusKey,
+        label: target.label,
+        date: target.date,
+        balance: point.balance,
+        tone: 'warning',
+        summary: `${target.date} 首次跌破预警线，余额降到 ${formatCurrency(point.balance)}。`,
+        detail: deficit > 0
+          ? `比你的安全线少 ${formatCurrency(deficit)}，${formatDelta(delta)}。`
+          : formatDelta(delta),
+        eventSummary,
+      };
+    }
+    case 'min': {
+      const distance = point.balance - warningThreshold;
+      return {
+        key: focusKey,
+        label: target.label,
+        date: target.date,
+        balance: point.balance,
+        tone: distance < 0 ? 'warning' : 'info',
+        summary: `${target.date} 是当前视图的最低余额点：${formatCurrency(point.balance)}。`,
+        detail: distance < 0
+          ? `低于预警线 ${formatCurrency(Math.abs(distance))}，${formatDelta(delta)}。`
+          : `仍高于预警线 ${formatCurrency(distance)}，${formatDelta(delta)}。`,
+        eventSummary,
+      };
+    }
+    case 'max': {
+      return {
+        key: focusKey,
+        label: target.label,
+        date: target.date,
+        balance: point.balance,
+        tone: 'success',
+        summary: `${target.date} 达到当前视图最高余额 ${formatCurrency(point.balance)}。`,
+        detail: `${formatDelta(delta)}，适合回看是哪几笔收入把余额抬上来。`,
+        eventSummary,
+      };
+    }
+    case 'reconciliation': {
+      return {
+        key: focusKey,
+        label: target.label,
+        date: target.date,
+        balance: point.balance,
+        tone: 'info',
+        summary: `${target.date} 是最近一次对账锚点，图表从这里衔接真实余额与后续预测。`,
+        detail: reconciliationBalance != null
+          ? `对账余额记录为 ${formatCurrency(reconciliationBalance)}。`
+          : `当前图上余额为 ${formatCurrency(point.balance)}。`,
+        eventSummary,
+      };
+    }
+    case 'today': {
+      return {
+        key: focusKey,
+        label: target.label,
+        date: target.date,
+        balance: point.balance,
+        tone: point.balance < warningThreshold ? 'warning' : 'info',
+        summary: `${target.date} 是今天所在位置，当前余额为 ${formatCurrency(point.balance)}。`,
+        detail: point.balance < warningThreshold
+          ? `已经低于预警线 ${formatCurrency(warningThreshold - point.balance)}，建议优先看接下来几笔支出。`
+          : `${formatDelta(delta)}。`,
+        eventSummary,
+      };
+    }
+    case 'latest':
+    default: {
+      return {
+        key: focusKey,
+        label: target.label,
+        date: target.date,
+        balance: point.balance,
+        tone: point.balance < warningThreshold ? 'warning' : 'info',
+        summary: `${target.date} 是当前预测区间终点，期末余额预计为 ${formatCurrency(point.balance)}。`,
+        detail: point.balance < warningThreshold
+          ? `低于预警线 ${formatCurrency(warningThreshold - point.balance)}，需要提前准备补位资金。`
+          : `${formatDelta(delta)}。`,
+        eventSummary,
+      };
+    }
+  }
 };
 
 export const buildBalanceChartOption = ({

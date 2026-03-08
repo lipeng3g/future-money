@@ -23,6 +23,20 @@
           </button>
         </div>
       </div>
+
+      <div v-if="activeInsight" class="focus-insight" :class="activeInsight.tone">
+        <div class="focus-insight-header">
+          <div>
+            <strong>{{ activeInsight.label }}</strong>
+            <span>{{ activeInsight.date }}</span>
+          </div>
+          <b>{{ formatCurrency(activeInsight.balance) }}</b>
+        </div>
+        <p>{{ activeInsight.summary }}</p>
+        <small>{{ activeInsight.detail }}</small>
+        <small v-if="activeInsight.eventSummary" class="event-summary">{{ activeInsight.eventSummary }}</small>
+      </div>
+
       <VChart :option="chartOption" autoresize class="chart" />
     </template>
   </div>
@@ -34,6 +48,7 @@ import VChart from 'vue-echarts';
 import '@/utils/echarts';
 import type { DailySnapshot } from '@/types/timeline';
 import {
+  buildBalanceChartFocusInsight,
   buildBalanceChartFocusTargets,
   buildBalanceChartOption,
   getDefaultBalanceChartFocusDate,
@@ -101,6 +116,17 @@ const activeFocusLabel = computed(() => {
   return `${activeFocus.value.label} · ${activeFocus.value.date}`;
 });
 
+const activeInsight = computed(() => {
+  if (!activeFocus.value) return null;
+  return buildBalanceChartFocusInsight({
+    timeline: props.timeline,
+    warningThreshold: props.warningThreshold,
+    focusKey: activeFocus.value.key,
+    reconciliationDate: props.reconciliationDate,
+    reconciliationBalance: props.reconciliationBalance,
+  });
+});
+
 const chartOption = computed(() => buildBalanceChartOption({
   timeline: props.timeline,
   warningThreshold: props.warningThreshold,
@@ -110,6 +136,8 @@ const chartOption = computed(() => buildBalanceChartOption({
   reconciliationBalance: props.reconciliationBalance,
   focusDate: activeFocus.value?.date,
 }));
+
+const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
 </script>
 
 <style scoped>
@@ -184,6 +212,73 @@ const chartOption = computed(() => buildBalanceChartOption({
   color: var(--fm-primary);
   border-color: rgba(67, 56, 202, 0.18);
   box-shadow: inset 0 0 0 1px rgba(67, 56, 202, 0.08);
+}
+
+.focus-insight {
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid transparent;
+}
+
+.focus-insight.info {
+  background: rgba(79, 70, 229, 0.06);
+  border-color: rgba(79, 70, 229, 0.12);
+}
+
+.focus-insight.warning {
+  background: rgba(245, 158, 11, 0.09);
+  border-color: rgba(245, 158, 11, 0.18);
+}
+
+.focus-insight.success {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.18);
+}
+
+.focus-insight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.focus-insight-header div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.focus-insight-header strong {
+  color: var(--fm-text-primary);
+  font-size: 0.9rem;
+}
+
+.focus-insight-header span,
+.focus-insight small {
+  color: var(--fm-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.focus-insight-header b {
+  color: var(--fm-text-primary);
+  font-family: 'SF Pro Rounded', ui-monospace, sans-serif;
+  font-size: 1rem;
+}
+
+.focus-insight p {
+  margin: 0;
+  color: var(--fm-text-primary);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.focus-insight .event-summary {
+  color: var(--fm-text-primary);
 }
 
 .chart-empty-state {

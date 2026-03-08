@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildBalanceChartFocusInsight,
   buildBalanceChartFocusTargets,
   buildBalanceChartOption,
   buildCashFlowChartOption,
@@ -74,6 +75,71 @@ describe('chart-options', () => {
       { key: 'max', label: '最高点', date: '2025-01-03' },
       { key: 'reconciliation', label: '最近对账', date: '2025-01-01' },
     ]);
+  });
+
+  it('会为首次预警生成可读解释，包含阈值缺口与事件摘要', () => {
+    const timeline = [
+      createDay({ date: '2025-01-01', balance: 2200, change: 0 }),
+      createDay({
+        date: '2025-01-02',
+        balance: 900,
+        change: -1300,
+        events: [
+          {
+            id: 'occ-1',
+            eventId: 'rule-1',
+            name: '房租',
+            category: 'expense',
+            amount: 1300,
+            date: '2025-01-02',
+          },
+        ],
+      }),
+    ];
+
+    const insight = buildBalanceChartFocusInsight({
+      timeline,
+      warningThreshold: 1000,
+      focusKey: 'warning',
+    });
+
+    expect(insight).toMatchObject({
+      key: 'warning',
+      tone: 'warning',
+      date: '2025-01-02',
+      balance: 900,
+    });
+    expect(insight?.summary).toContain('首次跌破预警线');
+    expect(insight?.detail).toContain('比你的安全线少');
+    expect(insight?.eventSummary).toContain('房租');
+  });
+
+  it('会为最高点和最近对账生成不同语气的解释', () => {
+    const timeline = [
+      createDay({ date: '2025-01-01', balance: 1800, change: 0, zone: 'frozen' }),
+      createDay({ date: '2025-01-02', balance: 2600, change: 800 }),
+    ];
+
+    const maxInsight = buildBalanceChartFocusInsight({
+      timeline,
+      warningThreshold: 1000,
+      focusKey: 'max',
+      reconciliationDate: '2025-01-01',
+      reconciliationBalance: 1800,
+    });
+    const reconciliationInsight = buildBalanceChartFocusInsight({
+      timeline,
+      warningThreshold: 1000,
+      focusKey: 'reconciliation',
+      reconciliationDate: '2025-01-01',
+      reconciliationBalance: 1800,
+    });
+
+    expect(maxInsight?.tone).toBe('success');
+    expect(maxInsight?.summary).toContain('最高余额');
+    expect(reconciliationInsight?.tone).toBe('info');
+    expect(reconciliationInsight?.summary).toContain('对账锚点');
+    expect(reconciliationInsight?.detail).toContain('¥1,800');
   });
 
   it('会围绕聚焦日期生成默认时间窗，并在尾部自动贴边', () => {
