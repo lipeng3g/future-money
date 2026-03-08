@@ -1,5 +1,5 @@
 <template>
-  <article class="event-card" :class="[event.category, { highlighted }]">
+  <article class="event-card" :class="[event.category, { highlighted, 'chart-focused': chartFocused }]">
     <div class="card-indicator" :class="event.category"></div>
     <div class="event-content">
       <div class="event-main">
@@ -13,6 +13,14 @@
             {{ accountLabel }}
           </span>
           <span class="recurrence">{{ recurrenceLabel }}</span>
+          <button
+            v-if="chartFocusable"
+            type="button"
+            class="chart-focus-link"
+            @click="$emit('focus-chart', event)"
+          >
+            查看图上日期
+          </button>
         </div>
       </div>
       
@@ -38,11 +46,12 @@ import type { CashFlowEvent } from '@/types/event';
 import AppIcon from '@/components/common/AppIcon.vue';
 import { useFinanceStore } from '@/stores/finance';
 
-const props = defineProps<{ event: CashFlowEvent; readonly?: boolean; highlighted?: boolean }>();
+const props = defineProps<{ event: CashFlowEvent; readonly?: boolean; highlighted?: boolean; chartFocusable?: boolean; chartFocused?: boolean }>();
 const emit = defineEmits<{
   (e: 'toggle', payload: { id: string; enabled: boolean }): void;
   (e: 'edit', event: CashFlowEvent): void;
   (e: 'delete', event: CashFlowEvent): void;
+  (e: 'focus-chart', event: CashFlowEvent): void;
 }>();
 
 const store = useFinanceStore();
@@ -97,6 +106,11 @@ const handleToggle = (checked: boolean) => {
   border-color: rgba(67, 56, 202, 0.42);
   box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.12), var(--fm-shadow-md);
   background: linear-gradient(180deg, rgba(67, 56, 202, 0.04), rgba(67, 56, 202, 0.01));
+}
+
+.event-card.chart-focused {
+  border-color: rgba(14, 165, 233, 0.36);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1), var(--fm-shadow-md);
 }
 
 .event-card:hover {
@@ -162,6 +176,7 @@ const handleToggle = (checked: boolean) => {
   gap: 8px;
   font-size: 0.85rem;
   color: var(--fm-text-secondary);
+  flex-wrap: wrap;
 }
 
 .account-tag {
@@ -178,6 +193,21 @@ const handleToggle = (checked: boolean) => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+}
+
+.chart-focus-link {
+  border: none;
+  background: transparent;
+  color: #0284c7;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+}
+
+.chart-focus-link:hover {
+  color: #0369a1;
+  text-decoration: underline;
 }
 
 .event-right {

@@ -67,6 +67,8 @@ interface Props {
   reconciliationBalance?: number;
   /** 外部联动指定图表焦点 */
   focusKey?: BalanceChartFocusKey;
+  /** 外部联动指定图表日期 */
+  focusDate?: string;
 }
 
 const props = defineProps<Props>();
@@ -84,9 +86,13 @@ const focusButtons = computed(() => buildBalanceChartFocusTargets(
 const activeFocusKey = ref<BalanceChartFocusKey>('latest');
 
 watch(
-  [focusButtons, () => props.focusKey] as const,
-  ([buttons, requestedFocusKey]) => {
+  [focusButtons, () => props.focusKey, () => props.focusDate] as const,
+  ([buttons, requestedFocusKey, requestedFocusDate]) => {
     const availableKeys = new Set(buttons.map((button) => button.key));
+
+    if (requestedFocusDate && props.timeline.some((point) => point.date === requestedFocusDate)) {
+      return;
+    }
 
     if (requestedFocusKey && availableKeys.has(requestedFocusKey)) {
       activeFocusKey.value = requestedFocusKey;
@@ -112,9 +118,20 @@ watch(
   { immediate: true },
 );
 
-const activeFocus = computed(() => (
-  focusButtons.value.find((button) => button.key === activeFocusKey.value) ?? focusButtons.value[0]
-));
+const activeFocus = computed(() => {
+  if (props.focusDate) {
+    const matchedPoint = props.timeline.find((point) => point.date === props.focusDate);
+    if (matchedPoint) {
+      return {
+        key: activeFocusKey.value,
+        label: '定位日期',
+        date: matchedPoint.date,
+      };
+    }
+  }
+
+  return focusButtons.value.find((button) => button.key === activeFocusKey.value) ?? focusButtons.value[0];
+});
 
 const activeFocusLabel = computed(() => {
   if (!activeFocus.value) return '拖动下方时间窗查看不同阶段';
@@ -123,6 +140,27 @@ const activeFocusLabel = computed(() => {
 
 const activeInsight = computed(() => {
   if (!activeFocus.value) return null;
+
+  if (props.focusDate) {
+    const pointIndex = props.timeline.findIndex((item) => item.date === props.focusDate);
+    const point = pointIndex >= 0 ? props.timeline[pointIndex] : null;
+    if (!point) return null;
+    return {
+      key: activeFocusKey.value,
+      label: '定位日期',
+      date: point.date,
+      balance: point.balance,
+      tone: point.balance < props.warningThreshold ? 'warning' : 'info',
+      summary: `${point.date} 是当前选中事件在图表中的发生日期。`,
+      detail: point.events.length
+        ? `当天共有 ${point.events.length} 笔事件，余额变化 ${formatCurrency(point.change)}。`
+        : `当天没有匹配到事件明细。`,
+      eventSummary: point.events.length
+        ? `当日事件：${point.events.slice(0, 3).map((event) => `${event.name} ${event.category === 'income' ? '+' : '-'}${formatCurrency(event.amount)}`).join('；')}${point.events.length > 3 ? `；另有 ${point.events.length - 3} 笔事件` : ''}`
+        : undefined,
+    };
+  }
+
   return buildBalanceChartFocusInsight({
     timeline: props.timeline,
     warningThreshold: props.warningThreshold,

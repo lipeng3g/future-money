@@ -16,6 +16,8 @@
     <!-- 主内容区 -->
     <div class="main-content">
       <ChartArea
+        :focus-date="balanceChartFocusDate"
+        :focus-nonce="balanceChartFocusNonce"
         @openDrawer="drawerVisible = true"
         @focus-events-by-date="handleFocusEventsByDate"
       />
@@ -34,6 +36,7 @@
         v-if="drawerVisible"
         :focus-state="eventFocusState"
         @clear-focus="clearEventFocus"
+        @focus-chart-date="handleFocusChartDate"
       />
     </a-drawer>
 
@@ -65,6 +68,8 @@ const store = useFinanceStore();
 const drawerVisible = ref(false);
 const modalOpen = ref(false);
 const eventFocusState = ref<EventListFocusState | null>(null);
+const balanceChartFocusDate = ref<string | null>(null);
+const balanceChartFocusNonce = ref(0);
 
 const mapValuesToPayload = (values: EventFormValues): NewCashFlowEvent => ({
   accountId: store.account.id,
@@ -85,6 +90,11 @@ const mapValuesToPayload = (values: EventFormValues): NewCashFlowEvent => ({
 
 const clearEventFocus = () => {
   eventFocusState.value = null;
+};
+
+const handleFocusChartDate = (date: string) => {
+  balanceChartFocusDate.value = date;
+  balanceChartFocusNonce.value += 1;
 };
 
 const handleFocusEventsByDate = (date: string) => {

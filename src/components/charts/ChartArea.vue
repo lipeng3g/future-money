@@ -37,6 +37,7 @@
             :reconciliation-date="store.latestReconciliation?.date"
             :reconciliation-balance="store.latestReconciliation?.balance"
             :focus-key="balanceChartFocusKey"
+            :focus-date="balanceChartFocusDate"
             @select-date="handleChartDateSelect"
           />
         </div>
@@ -84,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, ref } from 'vue';
+import { defineAsyncComponent, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import type { BalanceChartFocusKey } from '@/utils/chart-options';
 import TimeRangeControl from '@/components/charts/TimeRangeControl.vue';
@@ -104,6 +105,14 @@ const loadAiConfig = async () => {
   return mod.loadAiConfig();
 };
 
+const props = withDefaults(defineProps<{
+  focusDate?: string | null;
+  focusNonce?: number;
+}>(), {
+  focusDate: null,
+  focusNonce: 0,
+});
+
 const emit = defineEmits<{
   (e: 'openDrawer'): void;
   (e: 'focusEventsByDate', date: string): void;
@@ -114,6 +123,7 @@ const reconcileModalOpen = ref(false);
 const aiConfigOpen = ref(false);
 const aiChatOpen = ref(false);
 const balanceChartFocusKey = ref<BalanceChartFocusKey>('latest');
+const balanceChartFocusDate = ref<string | undefined>(undefined);
 
 const handleAiClick = async () => {
   const config = await loadAiConfig();
@@ -134,8 +144,18 @@ const handleReconcileDone = () => {
   message.success('对账完成');
 };
 
+watch(
+  () => [props.focusDate, props.focusNonce] as const,
+  ([focusDate]) => {
+    if (!focusDate) return;
+    balanceChartFocusDate.value = focusDate;
+    balanceChartFocusKey.value = 'latest';
+  },
+);
+
 const handleStatsFocusChart = (key: BalanceChartFocusKey) => {
   balanceChartFocusKey.value = key;
+  balanceChartFocusDate.value = undefined;
 };
 
 const handleChartDateSelect = (date: string) => {

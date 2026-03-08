@@ -65,3 +65,6 @@
 [2026-03-09 01:10:00] task: 打通“余额图点击日期点 → 打开事件抽屉 → 高亮对应规则事件”链路，减少用户在图表与事件清单之间手动查找的成本
 [2026-03-09 01:10:00] deliverables: 新增 src/utils/event-focus.ts 提取图表日期到事件列表焦点的纯函数；BalanceChart 支持点击含事件的数据点；MainLayout / EventPanel 接入焦点状态、自动开抽屉、横幅说明、滚动到首条高亮事件；EventCard/EventList 增加高亮样式；补 event-focus 单测
 [2026-03-09 01:18:00] verification: npm test ✅ (87), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB
+[2026-03-09 01:57:00] task: 打通“事件清单 → 图表日期”反向定位链路，补齐与“图表点 → 事件清单”相反方向的浏览闭环
+[2026-03-09 01:57:00] deliverables: 新增 buildEventChartFocusState；事件卡增加“查看图上日期”；事件抽屉支持高亮当前定位事件、给出发生次数说明，并驱动余额图跳到对应日期；补 event-focus / chart-options 回归测试
+[2026-03-09 02:02:00] verification: npm test ✅ (90), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB

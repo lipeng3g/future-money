@@ -194,6 +194,26 @@ describe('chart-options', () => {
     expect(option.dataZoom[0].endValue).toBeLessThan(timeline.length);
   });
 
+  it('余额图会优先围绕外部指定日期聚焦，而不是默认最新区间', () => {
+    const timeline = Array.from({ length: 120 }, (_, index) =>
+      createDay({
+        date: createUniqueDate(index),
+        balance: 5000 - index * 10,
+        change: -10,
+      }),
+    );
+
+    const targetDate = timeline[20].date;
+    const option = buildBalanceChartOption({
+      timeline,
+      warningThreshold: 1000,
+      focusDate: targetDate,
+    });
+
+    expect(option.dataZoom[0].startValue).toBeLessThanOrEqual(20);
+    expect(option.dataZoom[0].endValue).toBeGreaterThanOrEqual(20);
+  });
+
   it('月度收支图会输出正确的数据序列与标签策略', () => {
     const months: MonthlySnapshot[] = [
       { monthLabel: '2025-01', income: 1000, expense: 800, net: 200 },

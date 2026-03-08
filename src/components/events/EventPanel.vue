@@ -11,7 +11,7 @@
       </div>
     </header>
 
-    <div v-if="activeFocus" class="focus-banner">
+    <div v-if="activeFocus" class="focus-banner" :class="{ 'focus-banner--chart': activeChartFocus }">
       <div>
         <strong>{{ activeFocus.title }}</strong>
         <p>{{ activeFocus.summary }}</p>
@@ -23,9 +23,12 @@
       :events="displayEvents"
       :readonly="isReadOnly"
       :highlighted-event-ids="highlightedEventIds"
+      :chart-focusable="true"
+      :chart-focused-event-id="activeChartFocus?.eventId ?? null"
       @edit="openEditor"
       @delete="confirmDelete"
       @toggle="handleToggle"
+      @focus-chart="handleFocusChart"
     />
 
     <EventFormModal
@@ -43,7 +46,8 @@ import { Modal, message } from 'ant-design-vue';
 import EventList from '@/components/events/EventList.vue';
 import EventFormModal from '@/components/events/EventFormModal.vue';
 import type { CashFlowEvent, EventFormValues, NewCashFlowEvent } from '@/types/event';
-import type { EventListFocusState } from '@/utils/event-focus';
+import type { EventListFocusState, EventChartFocusState } from '@/utils/event-focus';
+import { buildEventChartFocusState } from '@/utils/event-focus';
 import { useFinanceStore } from '@/stores/finance';
 
 const props = defineProps<{
@@ -52,25 +56,46 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'clear-focus'): void;
+  (e: 'focus-chart-date', date: string): void;
 }>();
 
 const store = useFinanceStore();
 const modalOpen = ref(false);
 const editingEvent = ref<CashFlowEvent | null>(null);
-const activeFocus = computed(() => props.focusState ?? null);
+const chartFocusState = ref<EventChartFocusState | null>(null);
+const activeChartFocus = computed(() => chartFocusState.value);
+const activeListFocus = computed(() => props.focusState ?? null);
+const activeFocus = computed(() => activeChartFocus.value ?? activeListFocus.value ?? null);
 const isReadOnly = computed(() => store.isReadOnly);
 const events = computed(() => store.visibleEvents);
-const highlightedEventIds = computed(() => activeFocus.value?.eventIds ?? []);
+const highlightedEventIds = computed(() => {
+  if (activeChartFocus.value) return [activeChartFocus.value.eventId];
+  return activeListFocus.value?.eventIds ?? [];
+});
 const displayEvents = computed(() => {
-  if (!activeFocus.value?.eventIds.length) {
+  if (activeChartFocus.value) {
+    const focusedIds = new Set([activeChartFocus.value.eventId]);
+    const focused = events.value.filter((event) => focusedIds.has(event.id));
+    const rest = events.value.filter((event) => !focusedIds.has(event.id));
+    return [...focused, ...rest];
+  }
+
+  if (!activeListFocus.value?.eventIds.length) {
     return events.value;
   }
 
-  const focusedIds = new Set(activeFocus.value.eventIds);
+  const focusedIds = new Set(activeListFocus.value.eventIds);
   const focused = events.value.filter((event) => focusedIds.has(event.id));
   const rest = events.value.filter((event) => !focusedIds.has(event.id));
   return [...focused, ...rest];
 });
+
+watch(
+  () => props.focusState,
+  () => {
+    chartFocusState.value = null;
+  },
+);
 
 watch(
   highlightedEventIds,
@@ -113,7 +138,21 @@ const closeModal = () => {
   modalOpen.value = false;
 };
 
-const clearFocus = () => emit('clear-focus');
+const clearFocus = () => {
+  chartFocusState.value = null;
+  emit('clear-focus');
+};
+
+const handleFocusChart = (event: CashFlowEvent) => {
+  const focus = buildEventChartFocusState(store.timeline, event);
+  if (!focus) {
+    message.info('当前时间窗内还没有这个事件对应的图表日期');
+    return;
+  }
+
+  chartFocusState.value = focus;
+  emit('focus-chart-date', focus.date);
+};
 
 const handleSubmit = (values: EventFormValues) => {
   if (editingEvent.value) {
@@ -145,7 +184,7 @@ const confirmDelete = (event: CashFlowEvent) => {
     onOk: () => {
       store.deleteEvent(event.id);
       message.success('已删除事件');
-      if (activeFocus.value?.eventIds.includes(event.id)) {
+      if ((activeChartFocus.value && activeChartFocus.value.eventId === event.id) || activeListFocus.value?.eventIds.includes(event.id)) {
         clearFocus();
       }
     },
@@ -235,6 +274,11 @@ const loadSamples = () => {
   border-radius: 12px;
   border: 1px solid rgba(67, 56, 202, 0.16);
   background: rgba(67, 56, 202, 0.06);
+}
+
+.focus-banner--chart {
+  border-color: rgba(14, 165, 233, 0.18);
+  background: rgba(14, 165, 233, 0.07);
 }
 
 .focus-banner strong {
