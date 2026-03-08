@@ -65,6 +65,12 @@ export const validateCashFlowEvent = (event: Partial<CashFlowEvent>): string[] =
       if (!isValidISODate(event.onceDate)) {
         errors.push('一次性事件需要有效日期');
       }
+      if (event.onceDate && event.startDate && event.onceDate < event.startDate) {
+        errors.push('一次性事件日期不得早于起始日期');
+      }
+      if (event.onceDate && event.endDate && event.onceDate > event.endDate) {
+        errors.push('一次性事件日期不得晚于结束日期');
+      }
       break;
     case 'monthly':
     case 'quarterly':

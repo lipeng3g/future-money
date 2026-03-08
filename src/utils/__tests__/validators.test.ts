@@ -74,4 +74,27 @@ describe('validateCashFlowEvent', () => {
 
     expect(errors).toContain('结束日期不得早于起始日期');
   });
+
+  it('拒绝一次性事件日期早于起始日期', () => {
+    const errors = validateCashFlowEvent(
+      createEvent({
+        type: 'once',
+        onceDate: '2024-12-31',
+      }),
+    );
+
+    expect(errors).toContain('一次性事件日期不得早于起始日期');
+  });
+
+  it('拒绝一次性事件日期晚于结束日期', () => {
+    const errors = validateCashFlowEvent(
+      createEvent({
+        type: 'once',
+        endDate: '2025-01-15',
+        onceDate: '2025-01-20',
+      }),
+    );
+
+    expect(errors).toContain('一次性事件日期不得晚于结束日期');
+  });
 });
