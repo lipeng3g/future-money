@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildImportRiskSummary, parseImportPreview } from '@/utils/import-preview';
+import { buildImportAccountDiffSummary, buildImportRiskSummary, parseImportPreview } from '@/utils/import-preview';
 
 describe('parseImportPreview', () => {
   it('从多账户备份中提取摘要信息', () => {
@@ -131,5 +131,36 @@ describe('parseImportPreview', () => {
     expect(risk.level).toBe('medium');
     expect(risk.title).toMatch(/未标记/);
     expect(risk.consequence).toMatch(/旧版或未标记/);
+  });
+
+  it('会给出当前本地账户与备份账户的增删交集摘要', () => {
+    const diff = buildImportAccountDiffSummary({
+      accountNames: ['现金账户', '旅行基金', '信用卡'],
+    }, [
+      { id: 'acc-1', name: '现金账户' },
+      { id: 'acc-2', name: '房贷账户' },
+      { id: 'acc-3', name: '信用卡' },
+    ] as never);
+
+    expect(diff).toEqual({
+      addedNames: ['旅行基金'],
+      removedNames: ['房贷账户'],
+      keptNames: ['现金账户', '信用卡'],
+    });
+  });
+
+  it('会自动去重并忽略空账户名，避免差异提示被脏数据污染', () => {
+    const diff = buildImportAccountDiffSummary({
+      accountNames: [' 现金账户 ', '', '现金账户', '备用金'],
+    }, [
+      { id: 'acc-1', name: '现金账户' },
+      { id: 'acc-2', name: ' ' },
+    ] as never);
+
+    expect(diff).toEqual({
+      addedNames: ['备用金'],
+      removedNames: [],
+      keptNames: ['现金账户'],
+    });
   });
 });

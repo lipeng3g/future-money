@@ -27,6 +27,12 @@ export interface ImportRiskSummary {
   replacementScope: string;
 }
 
+export interface ImportAccountDiffSummary {
+  addedNames: string[];
+  removedNames: string[];
+  keptNames: string[];
+}
+
 const ensureState = (parsed: unknown): AppState => {
   if (!parsed || typeof parsed !== 'object' || !(parsed as PersistedStateEnvelope).state) {
     throw new Error('导入文件格式不正确');
@@ -140,5 +146,26 @@ export const buildImportRiskSummary = (
     title: '中风险：备份来源未标记为单账户或整库',
     consequence: '这是旧版或未标记作用域的备份文件。系统会按“恢复全部账户”处理，因此仍可能整体替换当前本地数据。',
     replacementScope: '建议先核对账户数量、账户名和备份时间，再决定是否继续恢复。',
+  };
+};
+
+export const buildImportAccountDiffSummary = (
+  summary: Pick<ImportPreviewSummary, 'accountNames'>,
+  currentAccounts?: Pick<AppState, 'accounts'>['accounts'],
+): ImportAccountDiffSummary => {
+  const normalize = (name: string) => name.trim();
+  const currentNames = Array.from(new Set((currentAccounts ?? [])
+    .map((account) => account?.name?.trim())
+    .filter((name): name is string => !!name)
+    .map(normalize)));
+  const incomingNames = Array.from(new Set(summary.accountNames.map(normalize).filter(Boolean)));
+
+  const currentSet = new Set(currentNames);
+  const incomingSet = new Set(incomingNames);
+
+  return {
+    addedNames: incomingNames.filter((name) => !currentSet.has(name)),
+    removedNames: currentNames.filter((name) => !incomingSet.has(name)),
+    keptNames: incomingNames.filter((name) => currentSet.has(name)),
   };
 };

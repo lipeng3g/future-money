@@ -180,7 +180,7 @@ import { Modal, message } from 'ant-design-vue';
 import type { UserPreferences } from '@/types/account';
 import { useFinanceStore } from '@/stores/finance';
 import { formatLocalISODate } from '@/utils/date';
-import { buildImportRiskSummary, buildRollbackPreview, parseImportPreview } from '@/utils/import-preview';
+import { buildImportAccountDiffSummary, buildImportRiskSummary, buildRollbackPreview, parseImportPreview } from '@/utils/import-preview';
 import type { ImportExportMode } from '@/types/storage';
 
 const PreferencesModal = defineAsyncComponent(() => import('@/components/common/PreferencesModal.vue'));
@@ -313,6 +313,7 @@ const confirmImportAll = (content: string, fileName: string) => {
     ledgerEntries: store.ledgerEntries,
     eventOverrides: store.eventOverrides,
   });
+  const accountDiff = buildImportAccountDiffSummary(summary, store.accounts);
   let inputValue = '';
   const confirmText = '恢复全部账户';
   const backupTime = summary.timestamp
@@ -322,6 +323,11 @@ const confirmImportAll = (content: string, fileName: string) => {
   const riskColor = risk.level === 'high' ? '#b91c1c' : '#b45309';
   const riskBackground = risk.level === 'high' ? '#fef2f2' : '#fff7ed';
   const riskBorder = risk.level === 'high' ? '#fecaca' : '#fdba74';
+  const accountDiffRows = [
+    accountDiff.addedNames.length ? `恢复后会新增：${accountDiff.addedNames.join('、')}` : null,
+    accountDiff.removedNames.length ? `恢复后会移除：${accountDiff.removedNames.join('、')}` : null,
+    accountDiff.keptNames.length ? `两边都存在：${accountDiff.keptNames.join('、')}` : null,
+  ].filter((row): row is string => !!row);
 
   Modal.confirm({
     title: '恢复全部账户并覆盖当前本地数据？',
@@ -341,6 +347,12 @@ const confirmImportAll = (content: string, fileName: string) => {
         h('div', `备份内覆盖记录：${summary.eventOverridesCount}`),
         h('div', `备份版本：${summary.stateVersion}`),
       ]),
+      accountDiffRows.length
+        ? h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
+          h('div', { style: 'font-weight: 600; margin-bottom: 6px; color: #0f172a;' }, '账户差异速览'),
+          ...accountDiffRows.map((row) => h('div', row)),
+        ])
+        : null,
       h('p', { style: 'margin-bottom: 8px;' }, `请输入“${confirmText}”以继续：`),
       h('input', {
         type: 'text',

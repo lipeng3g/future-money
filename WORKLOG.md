@@ -107,3 +107,5 @@
 [2026-03-09 04:47:00] task: 修正事件表单默认日期的时间语义漂移，统一使用业务 today 而不是系统当前时间
 [2026-03-09 04:47:00] deliverables: EventFormModal 的默认 startDate/onceDate、频率切换补默认值、提交兜底日期全部改为复用 store.todayStr，保证模拟日期 / 预演锚点 / 表单默认值一致
 [2026-03-09 04:49:00] verification: npm test ✅ (110), npm run type-check ✅, npm run build ✅；组件级测试已打通，chart-base ~471.8kB 仍是下一轮主要本地优化目标
+[2026-03-09 05:05:00] task: 继续降低整库恢复误操作风险，把确认框里的“当前本地 vs 备份文件”差异从抽象风险说明升级为账户名级新增/移除/保留摘要
+[2026-03-09 05:05:00] deliverables: src/utils/import-preview.ts 新增 buildImportAccountDiffSummary；AppHeader 的恢复全部账户确认框展示账户差异速览；补 import-preview 回归测试覆盖新增/移除/保留与脏数据去噪
