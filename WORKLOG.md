@@ -77,3 +77,6 @@
 [2026-03-09 02:43:00] task: 继续压缩应用壳第三方依赖，撤销把全部 Ant Design Vue 强绑进单一 vendor-antd 的策略，改为按基础组件 / 表单组件 / 反馈浮层 / 图标依赖拆分
 [2026-03-09 02:43:00] deliverables: vite manualChunks 细分为 vendor-antd-core / vendor-antd-form / vendor-antd-feedback / vendor-antd-icons，并把 markdown-it、日期库单独拆仓，降低低频弹窗与主壳共享大包耦合
 [2026-03-09 02:45:00] verification: npm run type-check ✅, npm test ✅ (92), npm run build ✅；构建告警中的 vendor-antd ~718kB 已消除，当前主要 chunk 为 vendor-antd-core ~397.8kB、vendor-antd-form ~195.4kB、vendor-antd-feedback ~91.2kB、vendor-markdown ~91.9kB、vendor-date ~43.5kB、chart-options ~483.2kB，全部低于默认 500kB 告警阈值
+[2026-03-09 02:50:00] task: 修复 Vite 配置漂移并继续拆图表 option 共享块，避免“vite.config.ts 已优化但 build 仍命中旧 vite.config.js”的回退问题
+[2026-03-09 02:50:00] deliverables: 删除历史编译产物 vite.config.js；新增 src/utils/chart-base.ts 与 src/utils/chart-options-cashflow.ts；收口 src/utils/chart-options.ts 为余额图专属逻辑；CashFlowChart 与图表测试改为按新模块引用
+[2026-03-09 02:54:00] verification: npm test ✅ (92), npm run build ✅；构建已按 vite.config.ts 生效，默认 500kB 告警消失，主要 chunk 为 vendor-antd-core ~397.8kB / vendor-antd-form ~195.4kB / vendor-antd-feedback ~91.2kB / vendor-markdown ~91.9kB / vendor-date ~43.5kB / BalanceChart ~67.5kB / CashFlowChart ~39.5kB

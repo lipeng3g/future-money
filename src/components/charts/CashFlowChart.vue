@@ -14,7 +14,7 @@ import { computed } from 'vue';
 import VChart from 'vue-echarts';
 import '@/utils/echarts-cashflow';
 import type { MonthlySnapshot } from '@/types/analytics';
-import { buildCashFlowChartOption } from '@/utils/chart-options';
+import { buildCashFlowChartOption } from '@/utils/chart-options-cashflow';
 
 const props = defineProps<{ months: MonthlySnapshot[] }>();
 

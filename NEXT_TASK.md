@@ -9,7 +9,7 @@
   - 已补回归测试
 
 ## 下一轮优先级
-1. **继续压包**：`vendor-charts` 与 `vendor-antd` 两个历史大包都已拆掉，下一步重点观察 `chart-options` 是否还能继续按余额图/收支图 option builder 或 tooltip/insight 逻辑再拆一层，避免图表抽屉一开就把全部 option/交互解释逻辑一次性拉满
+1. **继续压包**：`vendor-charts`、`vendor-antd` 与 `chart-options` 的历史单体块都已收口，下一步重点检查残余的图表共享 chunk（当前由余额图 option/tooltip/焦点解释主导）是否还能按 tooltip 渲染、focus insight、markLine/markArea builder 再拆一层，继续降低 BalanceChart 异步块体积
 2. **图表体验继续深化**：统计卡联动跳图、“图表点 → 事件清单高亮”、以及“事件清单 → 图表日期”闭环已落地，下一步可考虑补“图上多事件日期的账户分组说明”或“事件定位后继续一键筛出该事件的全部发生日”
 3. **导入恢复防误操作**：继续打磨 `scope=current|all|legacy-unknown` 的恢复提示，考虑在确认框中增加更显眼的风险分级文案
 4. **AI 体验**：继续检查分析抽屉的流式渲染/大段 markdown 性能，必要时做消息虚拟化或渲染节流

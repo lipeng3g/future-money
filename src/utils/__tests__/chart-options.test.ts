@@ -3,12 +3,14 @@ import {
   buildBalanceChartFocusInsight,
   buildBalanceChartFocusTargets,
   buildBalanceChartOption,
-  buildCashFlowChartOption,
-  getAdaptiveAxisLabelInterval,
   getBalanceChartZoomWindow,
   getDefaultBalanceChartFocusDate,
-  shouldDisableChartAnimation,
 } from '@/utils/chart-options';
+import {
+  buildCashFlowChartOption,
+  getAdaptiveAxisLabelInterval,
+  shouldDisableChartAnimation,
+} from '@/utils/chart-options-cashflow';
 import type { DailySnapshot } from '@/types/timeline';
 import type { MonthlySnapshot } from '@/types/analytics';
 
