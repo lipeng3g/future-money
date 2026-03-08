@@ -4,6 +4,7 @@ import {
   buildImportAccountDiffSummary,
   buildImportDataDeltaSummary,
   buildImportDateRangeSummary,
+  buildImportFreshnessSummary,
   buildImportRiskSummary,
   parseImportPreview,
 } from '@/utils/import-preview';
@@ -280,6 +281,48 @@ describe('parseImportPreview', () => {
       incomingRangeLabel: '2026-01-10 → 2026-12-31',
       hasCurrentData: true,
       hasIncomingData: true,
+    });
+  });
+
+  it('会在备份最新日期明显早于当前本地时给出旧备份预警', () => {
+    const freshness = buildImportFreshnessSummary({
+      events: [{ startDate: '2026-01-10', endDate: '2026-02-01' }],
+      reconciliations: [{ date: '2026-02-10' }],
+      ledgerEntries: [{ date: '2026-02-15' }],
+    } as never, {
+      events: [{ startDate: '2026-01-01', endDate: '2026-03-31' }],
+      reconciliations: [{ date: '2026-03-18' }],
+      ledgerEntries: [{ date: '2026-03-20' }],
+    } as never);
+
+    expect(freshness).toEqual({
+      level: 'warning',
+      title: '注意：这份备份可能比当前本地更旧',
+      detail: '备份文件的最新日期比当前本地早约 44 天，像是一份明显偏旧的备份，恢复后可能回退最近一段时间的数据。',
+      currentLatestDate: '2026-03-31',
+      incomingLatestDate: '2026-02-15',
+      lagDays: 44,
+    });
+  });
+
+  it('会在备份日期不早于当前本地时返回正常提示', () => {
+    const freshness = buildImportFreshnessSummary({
+      events: [{ startDate: '2026-01-10', endDate: '2026-04-05' }],
+      reconciliations: [{ date: '2026-04-01' }],
+      ledgerEntries: [{ date: '2026-04-09' }],
+    } as never, {
+      events: [{ startDate: '2026-01-01', endDate: '2026-03-31' }],
+      reconciliations: [{ date: '2026-03-18' }],
+      ledgerEntries: [{ date: '2026-03-20' }],
+    } as never);
+
+    expect(freshness).toEqual({
+      level: 'info',
+      title: '备份时间新旧正常',
+      detail: '备份文件覆盖到了不早于当前本地的最新日期，可继续结合账户差异确认是否恢复。',
+      currentLatestDate: '2026-03-31',
+      incomingLatestDate: '2026-04-09',
+      lagDays: 0,
     });
   });
 });

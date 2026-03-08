@@ -186,6 +186,7 @@ import {
   buildImportAccountDiffSummary,
   buildImportDataDeltaSummary,
   buildImportDateRangeSummary,
+  buildImportFreshnessSummary,
   buildImportRiskSummary,
   buildRollbackPreview,
   parseImportPreview,
@@ -329,6 +330,7 @@ const confirmImportAll = (content: string, fileName: string) => {
   const dataDelta = buildImportDataDeltaSummary(summary, currentState);
   const accountDataDelta = buildImportAccountDataDeltaSummary(incomingState, currentState);
   const dateRange = buildImportDateRangeSummary(incomingState, currentState);
+  const freshness = buildImportFreshnessSummary(incomingState, currentState);
   let inputValue = '';
   const confirmText = '恢复全部账户';
   const backupTime = summary.timestamp
@@ -399,6 +401,18 @@ const confirmImportAll = (content: string, fileName: string) => {
         ? h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
           h('div', { style: 'font-weight: 600; margin-bottom: 6px; color: #0f172a;' }, '按账户的数据变化'),
           ...accountDataDeltaRows.map((row) => h('div', row)),
+        ])
+        : null,
+      freshness
+        ? h('div', {
+          style: `background: ${freshness.level === 'warning' ? '#fff7ed' : '#eff6ff'}; border: 1px solid ${freshness.level === 'warning' ? '#fdba74' : '#bfdbfe'}; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;`,
+        }, [
+          h('div', {
+            style: `font-weight: 600; margin-bottom: 6px; color: ${freshness.level === 'warning' ? '#9a3412' : '#1d4ed8'};`,
+          }, freshness.title),
+          h('div', { style: 'margin-bottom: 6px;' }, freshness.detail),
+          h('div', `当前本地最新日期：${freshness.currentLatestDate}`),
+          h('div', `备份文件最新日期：${freshness.incomingLatestDate}`),
         ])
         : null,
       h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [

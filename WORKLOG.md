@@ -120,3 +120,6 @@
 [2026-03-09 05:45:00] verification: npm test ✅ (120), npm run type-check ✅, npm run build ✅；新增图表组件级回归已纳入全量验证，当前主要性能余项仍是 chart-base ~471.84kB
 [2026-03-09 05:55:00] task: 继续降低整库恢复误操作风险，把确认框里的差异从“总量变化”再细化为“按账户的数据变化 + 日期覆盖范围”
 [2026-03-09 06:00:00] deliverables: src/utils/import-preview.ts 新增 buildImportAccountDataDeltaSummary / buildImportDateRangeSummary；AppHeader 的恢复全部账户确认框展示按账户的事件/对账/账本/覆盖变化，以及当前本地 vs 备份文件的日期覆盖范围；补 import-preview / AppHeader 回归测试
+[2026-03-09 06:18:00] task: 继续降低整库恢复误操作风险，补“备份是否明显比当前本地旧”的直接预警，减少用户只看日期范围却没快速意识到是旧备份的情况
+[2026-03-09 06:18:00] deliverables: src/utils/import-preview.ts 新增 buildImportFreshnessSummary；AppHeader 的恢复全部账户确认框展示“备份时间新旧正常 / 旧备份预警”与最新业务日期对比；补 import-preview / AppHeader 回归测试
+[2026-03-09 06:20:00] verification: npm run type-check ✅, npm test ✅ (125), npm run build ✅；构建默认 chunk 告警仍已消除，chart-base ~471.84kB 仍是下一轮主要性能优化点

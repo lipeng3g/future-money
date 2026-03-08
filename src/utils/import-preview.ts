@@ -55,6 +55,15 @@ export interface ImportDateRangeSummary {
   hasIncomingData: boolean;
 }
 
+export interface ImportFreshnessSummary {
+  level: 'info' | 'warning';
+  title: string;
+  detail: string;
+  currentLatestDate: string | null;
+  incomingLatestDate: string | null;
+  lagDays: number | null;
+}
+
 const ensureState = (parsed: unknown): AppState => {
   if (!parsed || typeof parsed !== 'object' || !(parsed as PersistedStateEnvelope).state) {
     throw new Error('导入文件格式不正确');
@@ -291,27 +300,32 @@ export const buildImportAccountDataDeltaSummary = (
 
 const formatRangeBoundary = (value?: string | null) => value?.trim() || '';
 
+const collectDateRange = (state?: Pick<AppState, 'events' | 'reconciliations' | 'ledgerEntries'>) => {
+  const dates = [
+    ...(state?.events ?? []).flatMap((event) => [event.startDate, event.endDate, event.onceDate]),
+    ...(state?.reconciliations ?? []).map((item) => item.date),
+    ...(state?.ledgerEntries ?? []).map((item) => item.date),
+  ]
+    .map((value) => formatRangeBoundary(value))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+
+  return dates.length
+    ? { start: dates[0], end: dates[dates.length - 1] }
+    : null;
+};
+
+const parseDateToMs = (value: string) => {
+  const timestamp = Date.parse(`${value}T00:00:00Z`);
+  return Number.isNaN(timestamp) ? null : timestamp;
+};
+
 export const buildImportDateRangeSummary = (
   incomingState: Pick<AppState, 'events' | 'reconciliations' | 'ledgerEntries'>,
   currentState?: Pick<AppState, 'events' | 'reconciliations' | 'ledgerEntries'>,
 ): ImportDateRangeSummary => {
-  const collectDates = (state?: Pick<AppState, 'events' | 'reconciliations' | 'ledgerEntries'>) => {
-    const dates = [
-      ...(state?.events ?? []).flatMap((event) => [event.startDate, event.endDate, event.onceDate]),
-      ...(state?.reconciliations ?? []).map((item) => item.date),
-      ...(state?.ledgerEntries ?? []).map((item) => item.date),
-    ]
-      .map((value) => formatRangeBoundary(value))
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b));
-
-    return dates.length
-      ? { start: dates[0], end: dates[dates.length - 1] }
-      : null;
-  };
-
-  const currentRange = collectDates(currentState);
-  const incomingRange = collectDates(incomingState);
+  const currentRange = collectDateRange(currentState);
+  const incomingRange = collectDateRange(incomingState);
   const formatLabel = (range: { start: string; end: string } | null) => {
     if (!range) return '无日期数据';
     if (range.start === range.end) return range.start;
@@ -323,5 +337,52 @@ export const buildImportDateRangeSummary = (
     incomingRangeLabel: formatLabel(incomingRange),
     hasCurrentData: !!currentRange,
     hasIncomingData: !!incomingRange,
+  };
+};
+
+export const buildImportFreshnessSummary = (
+  incomingState: Pick<AppState, 'events' | 'reconciliations' | 'ledgerEntries'>,
+  currentState?: Pick<AppState, 'events' | 'reconciliations' | 'ledgerEntries'>,
+): ImportFreshnessSummary | null => {
+  const currentRange = collectDateRange(currentState);
+  const incomingRange = collectDateRange(incomingState);
+
+  if (!currentRange || !incomingRange) {
+    return null;
+  }
+
+  const currentLatestMs = parseDateToMs(currentRange.end);
+  const incomingLatestMs = parseDateToMs(incomingRange.end);
+
+  if (currentLatestMs == null || incomingLatestMs == null) {
+    return null;
+  }
+
+  const lagDays = Math.round((currentLatestMs - incomingLatestMs) / 86400000);
+
+  if (lagDays <= 0) {
+    return {
+      level: 'info',
+      title: '备份时间新旧正常',
+      detail: incomingLatestMs === currentLatestMs
+        ? '备份文件覆盖到了与你当前本地相同的最新日期。'
+        : '备份文件覆盖到了不早于当前本地的最新日期，可继续结合账户差异确认是否恢复。',
+      currentLatestDate: currentRange.end,
+      incomingLatestDate: incomingRange.end,
+      lagDays: lagDays < 0 ? 0 : lagDays,
+    };
+  }
+
+  const detail = lagDays >= 30
+    ? `备份文件的最新日期比当前本地早约 ${lagDays} 天，像是一份明显偏旧的备份，恢复后可能回退最近一段时间的数据。`
+    : `备份文件的最新日期比当前本地早约 ${lagDays} 天，建议确认这是否就是你想恢复的时间点。`;
+
+  return {
+    level: 'warning',
+    title: '注意：这份备份可能比当前本地更旧',
+    detail,
+    currentLatestDate: currentRange.end,
+    incomingLatestDate: incomingRange.end,
+    lagDays,
   };
 };

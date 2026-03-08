@@ -332,6 +332,126 @@ describe('AppHeader', () => {
     expect(contentText).toContain('信用卡：事件 +1');
     expect(contentText).toContain('当前本地日期覆盖：2026-01-01 → 2026-03-05');
     expect(contentText).toContain('备份文件日期覆盖：2026-03-01 → 2026-03-09');
+    expect(contentText).toContain('备份时间新旧正常');
+    expect(contentText).toContain('当前本地最新日期：2026-03-05');
+    expect(contentText).toContain('备份文件最新日期：2026-03-09');
+  });
+
+  it('整库恢复确认框会在备份明显更旧时给出旧备份预警', async () => {
+    const store = useFinanceStore();
+
+    store.addEvent({
+      name: '三月工资',
+      amount: 5000,
+      category: 'income',
+      type: 'monthly',
+      startDate: '2026-01-01',
+      monthlyDay: 10,
+      enabled: true,
+    });
+    store.reconcile('2026-03-20', 6800, [], '当前对账');
+
+    const wrapper = mountHeader();
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+
+    await wrapper.find('button.trigger-import-all').trigger('click');
+
+    const staleBackup = {
+      version: '2.0.0',
+      timestamp: '2026-02-16T01:00:00.000Z',
+      scope: 'all',
+      state: {
+        version: '2.0.0',
+        account: {
+          id: 'cash',
+          name: '主账户',
+          typeLabel: '现金',
+          initialBalance: 3000,
+          currency: '¥',
+          warningThreshold: 800,
+          color: '#3b82f6',
+          iconKey: 'wallet',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
+        accounts: [
+          {
+            id: 'cash',
+            name: '主账户',
+            typeLabel: '现金',
+            initialBalance: 3000,
+            currency: '¥',
+            warningThreshold: 800,
+            color: '#3b82f6',
+            iconKey: 'wallet',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        events: [
+          {
+            id: 'evt-1',
+            accountId: 'cash',
+            name: '旧工资',
+            amount: 8000,
+            category: 'income',
+            type: 'monthly',
+            startDate: '2026-01-01',
+            endDate: '2026-02-15',
+            monthlyDay: 8,
+            enabled: true,
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-02-15T00:00:00.000Z',
+          },
+        ],
+        preferences: store.preferences,
+        snapshots: [],
+        reconciliations: [
+          {
+            id: 'recon-1',
+            accountId: 'cash',
+            date: '2026-02-10',
+            balance: 3000,
+            note: '旧对账',
+            createdAt: '2026-02-10T00:00:00.000Z',
+          },
+        ],
+        ledgerEntries: [
+          {
+            id: 'ledger-1',
+            accountId: 'cash',
+            reconciliationId: 'recon-1',
+            ruleId: 'evt-1',
+            name: '旧工资',
+            amount: 8000,
+            category: 'income',
+            date: '2026-02-15',
+            source: 'rule',
+            createdAt: '2026-02-15T00:00:00.000Z',
+            updatedAt: '2026-02-15T00:00:00.000Z',
+          },
+        ],
+        eventOverrides: [],
+      },
+    };
+
+    const fileInput = wrapper.find('input.file-input').element as HTMLInputElement;
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [{ name: 'stale-restore-all.json', __text: JSON.stringify(staleBackup) }],
+    });
+    await wrapper.find('input.file-input').trigger('change');
+    await flushPromises();
+
+    expect(modalConfirm).toHaveBeenCalledTimes(1);
+    const config = modalConfirm.mock.calls[0][0];
+    const contentText = extractText(config.content);
+
+    expect(contentText).toContain('注意：这份备份可能比当前本地更旧');
+    expect(contentText).toContain('备份文件的最新日期比当前本地早约 33 天');
+    expect(contentText).toContain('当前本地最新日期：2026-03-20');
+    expect(contentText).toContain('备份文件最新日期：2026-02-15');
   });
 
   it('账户管理里的撤销上次导入会展示回滚摘要并执行真正回退', async () => {
