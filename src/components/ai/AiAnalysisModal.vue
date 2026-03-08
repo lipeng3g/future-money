@@ -78,9 +78,9 @@
         <div class="msg-bubble">
           <details v-if="thinkingBuffer" class="thinking-block" open>
             <summary>思考中...</summary>
-            <div class="thinking-content" v-html="renderMd(thinkingBuffer)"></div>
+            <div class="thinking-content" v-html="renderStreamingThinkingMd(thinkingBuffer)"></div>
           </details>
-          <div v-if="contentBuffer" class="msg-content" v-html="renderMd(contentBuffer)"></div>
+          <div v-if="contentBuffer" class="msg-content" v-html="renderStreamingContentMd(contentBuffer)"></div>
           <div v-if="!contentBuffer && !thinkingBuffer" class="msg-content loading-text">正在分析...</div>
         </div>
       </div>
@@ -141,12 +141,20 @@ import {
   type ChatMessage,
   type ChatRecord,
 } from '@/utils/ai';
+import {
+  createCachedMarkdownRenderer,
+  createStreamingMarkdownRenderer,
+} from '@/utils/markdown';
 
 defineProps<{ open: boolean }>();
 defineEmits(['close']);
 
 const store = useFinanceStore();
-const mdRenderer = ref<(text: string) => string>((text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>'));
+const fallbackMdRenderer = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+const cachedMdRenderer = createCachedMarkdownRenderer(fallbackMdRenderer);
+const streamingContentRenderer = createStreamingMarkdownRenderer(fallbackMdRenderer);
+const streamingThinkingRenderer = createStreamingMarkdownRenderer(fallbackMdRenderer);
+const mdRenderer = ref<(text: string) => string>(fallbackMdRenderer);
 
 const configOpen = ref(false);
 const allAccounts = computed(() => store.accounts);
@@ -195,7 +203,11 @@ onMounted(async () => {
   loadScopedChatHistory();
   const { default: MarkdownIt } = await import('markdown-it');
   const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
-  mdRenderer.value = (text: string) => md.render(text);
+  const renderer = (text: string) => md.render(text);
+  mdRenderer.value = renderer;
+  cachedMdRenderer.setRenderer(renderer);
+  streamingContentRenderer.setRenderer(renderer);
+  streamingThinkingRenderer.setRenderer(renderer);
 });
 
 const scrollToBottom = () => {
@@ -206,7 +218,9 @@ const scrollToBottom = () => {
   });
 };
 
-const renderMd = (text: string): string => mdRenderer.value(text);
+const renderMd = (text: string): string => cachedMdRenderer.render(text);
+const renderStreamingContentMd = (text: string): string => streamingContentRenderer.render(text);
+const renderStreamingThinkingMd = (text: string): string => streamingThinkingRenderer.render(text);
 
 const getFinancialContext = () => {
   return buildScopedFinancialContext({
@@ -255,6 +269,8 @@ const sendToAi = async (question?: string) => {
   streaming.value = true;
   contentBuffer.value = '';
   thinkingBuffer.value = '';
+  streamingContentRenderer.reset();
+  streamingThinkingRenderer.reset();
 
   try {
     for await (const chunk of streamChat(config, fullMessages)) {
@@ -282,6 +298,8 @@ const sendToAi = async (question?: string) => {
     streaming.value = false;
     contentBuffer.value = '';
     thinkingBuffer.value = '';
+    streamingContentRenderer.reset();
+    streamingThinkingRenderer.reset();
     scrollToBottom();
   }
 };

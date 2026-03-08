@@ -37,3 +37,6 @@
 [2026-03-08 22:34:00] task: harden full-backup restore UX with import preview + typed confirmation before replacing all local accounts/data
 [2026-03-08 22:34:00] deliverables: import-preview parser utility, restore-all modal summary (accounts/events/reconciliations/ledger/timestamp), warning styling, Cloudflare ai-proxy function-level tests
 [2026-03-08 22:35:00] verification: npm test ✅ (57), npm run type-check ✅, npm run build ✅; build warning unchanged: vendor-charts ~563kB, vendor-antd ~718kB
+[2026-03-08 22:46:00] task: reduce AI analysis drawer markdown re-render cost during streaming output
+[2026-03-08 22:46:00] deliverables: extracted markdown cache/streaming renderer utility, avoid repeated full markdown-it render for unchanged history, throttle streaming markdown flush on tiny token chunks, added renderer unit tests
+[2026-03-08 22:45:00] verification: npm test ✅ (62), npm run type-check ✅, npm run build ✅; AI 抽屉渲染优化已落地，打包体积基本不变，后续继续看 vendor-charts 拆分与 AI 长消息虚拟化

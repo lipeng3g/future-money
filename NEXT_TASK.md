@@ -12,4 +12,4 @@
 1. **继续压包**：`vendor-charts` 仍约 563kB，重点看 ECharts 是否还能按图表/组件进一步细拆，或替换未必要的 runtime 依赖
 2. **导入恢复防误操作**：为“恢复全部账户”增加更强的 UI 二次确认与元数据提示（例如 scope=current|all）
 3. **AI 体验**：继续检查分析抽屉的流式渲染/大段 markdown 性能，必要时做消息虚拟化或渲染节流
-4. **测试补洞**：给 Cloudflare `functions/api/ai-proxy.ts` 单独补函数级测试，覆盖 header 缺失与 unsafe target 拒绝
+4. **继续打磨 AI 抽屉**：若真实长回答仍卡顿，继续看消息虚拟化、分块渲染或滚动节流；当前已先解决 markdown 流式阶段的重复全量渲染
