@@ -131,3 +131,5 @@
 [2026-03-09 06:48:00] verification: npm run test ✅ (126), npm run type-check ✅, npm run build ✅；构建产物已从 chart-base ~471.84kB 收敛为 chart-base ~4.28kB + chart-balance-runtime ~556.26kB + chart-cashflow-runtime 独立小块，显著降低两张图之间的共享耦合；当前仅余额图 runtime 仍触发 >500kB warning，可作为下一轮继续细拆目标
 [2026-03-09 06:58:00] task: 把“事件清单 → 图表日期”定位继续从顺序切换推进到“全部发生日总览”，减少高频规则只能上一个/下一个来回试探的成本
 [2026-03-09 06:58:00] deliverables: buildEventChartFocusState 新增发生日总览 detail；EventPanel 定位横幅展示全部发生日 chip 并支持点击任意日期跳图；新增 EventPanel 组件级回归并扩展 event-focus 纯函数测试
+[2026-03-09 07:29:00] task: 给图表容器层补组件级联动回归，验证“统计卡片 → 余额图”和“外部日期定位 → 余额图”真实接线
+[2026-03-09 07:29:00] deliverables: 新增 src/components/charts/__tests__/ChartArea.test.ts；覆盖 stats focusKey、focusDate/focusNonce、select-date 回传与 TimeRangeControl 接线；补测中发现并修复 ChartArea 对外部 focusDate 监听未 immediate 的问题，首次挂载时现在会立刻把日期传给余额图

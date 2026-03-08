@@ -151,6 +151,7 @@ watch(
     balanceChartFocusDate.value = focusDate;
     balanceChartFocusKey.value = 'latest';
   },
+  { immediate: true },
 );
 
 const handleStatsFocusChart = (key: BalanceChartFocusKey) => {

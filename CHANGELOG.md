@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-03-09
+- fix(chart-focus): `ChartArea` 现在会在首次挂载时立刻把外部传入的 `focusDate` 同步给余额图，不再需要等第二次 prop 变化；修复了“事件清单首次打开就要求跳图，但余额图初始仍停在默认焦点”的接线缺口
+- test(chart-ui): 新增 `src/components/charts/__tests__/ChartArea.test.ts` 组件级回归，真实覆盖“统计卡片 → 余额图 focusKey”“外部 focusDate/focusNonce → 余额图 focusDate”以及“余额图点击日期 → 回传给父层”三条联动链路，避免图表容器层继续只靠纯函数测试兜底
 - feat(event-navigation): 事件抽屉里的图表定位横幅新增“当前时间窗内发生日”总览；当某条规则在当前时间窗出现多次时，现在会直接列出所有发生日期，并允许点击任意日期跳图，不再只能靠“上一个 / 下一个日期”来回试探
 - test(event-navigation): 新增 `src/components/events/__tests__/EventPanel.test.ts` 组件级回归，覆盖事件定位横幅里的发生日列表渲染、激活态切换与点击跳图，避免这条浏览链路只剩纯函数测试兜底
 - test(event-focus): 扩展 `src/utils/__tests__/event-focus.test.ts`，补图表定位状态中的发生日总览文案断言，避免多次发生日期的说明与组件展示再次漂移
