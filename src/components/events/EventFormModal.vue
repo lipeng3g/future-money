@@ -167,9 +167,9 @@ const defaultFormState = (): FormState => ({
   amount: 0,
   category: 'income',
   type: 'monthly',
-  startDate: dayjs().format('YYYY-MM-DD'),
+  startDate: store.todayStr,
   endDate: undefined,
-  onceDate: dayjs().format('YYYY-MM-DD'), // 默认今天
+  onceDate: store.todayStr, // 默认业务今天
   monthlyDay: 1, // 默认每月1号
   yearlyMonth: 1, // 默认1月
   yearlyDay: 1, // 默认1号
@@ -286,7 +286,7 @@ watch(
 watch(
   () => formState.type,
   (newType) => {
-    Object.assign(formState, applyEventTypeDefaults(formState, newType, dayjs().format('YYYY-MM-DD')));
+    Object.assign(formState, applyEventTypeDefaults(formState, newType, store.todayStr));
   },
 );
 
@@ -302,7 +302,7 @@ const handleSubmit = () => {
     amount: formState.amount,
     category: formState.category,
     type: formState.type,
-    startDate: normalizeDate(formState.startDate) ?? dayjs().format('YYYY-MM-DD'),
+    startDate: normalizeDate(formState.startDate) ?? store.todayStr,
     endDate: normalizeDate(formState.endDate),
     onceDate: normalizeDate(formState.onceDate),
     monthlyDay: formState.monthlyDay,

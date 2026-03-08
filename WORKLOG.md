@@ -102,3 +102,8 @@
 [2026-03-09 04:14:00] verification: npm test ✅ (105), npm run type-check ✅, npm run build ✅；chart-base 仍为共享异步大块，确认其主要是 ECharts 运行时本体，本轮未继续硬拆
 [2026-03-09 04:24:00] task: 继续打磨事件表单即时反馈，把起始日期 / 结束日期 / 一次性发生日期的越界错误前移到字段旁展示，避免只在提交时 toast
 [2026-03-09 04:24:00] deliverables: src/utils/event-form.ts 新增 getEventFormDateFeedback；EventFormModal 接入日期字段级 validate-status/help；补 event-form 回归测试覆盖起止日期倒挂与 onceDate 超出范围；同步更新 CHANGELOG / NEXT_TASK
+[2026-03-09 04:35:00] task: 把事件表单上一轮纯函数改造补齐到组件级交互回归，避免“逻辑函数过了但模板接线回归”
+[2026-03-09 04:35:00] deliverables: 新增 src/components/events/__tests__/EventFormModal.test.ts，覆盖频率切换字段显隐、预演区块显示/隐藏、起止/发生日期字段级错误、非法提交阻断；引入 @vue/test-utils 作为 Vue 组件测试基础能力
+[2026-03-09 04:47:00] task: 修正事件表单默认日期的时间语义漂移，统一使用业务 today 而不是系统当前时间
+[2026-03-09 04:47:00] deliverables: EventFormModal 的默认 startDate/onceDate、频率切换补默认值、提交兜底日期全部改为复用 store.todayStr，保证模拟日期 / 预演锚点 / 表单默认值一致
+[2026-03-09 04:49:00] verification: npm test ✅ (110), npm run type-check ✅, npm run build ✅；组件级测试已打通，chart-base ~471.8kB 仍是下一轮主要本地优化目标
