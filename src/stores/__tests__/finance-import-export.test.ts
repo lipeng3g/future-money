@@ -243,4 +243,140 @@ describe('finance store import/export', () => {
     expect(secondaryEvents).toHaveLength(1);
     expect(secondaryEvents[0].name).toBe('副账户收入');
   });
+
+  it('导入当前账户时会为事件与对账链路重建内部 ID 和引用关系', () => {
+    const store = useFinanceStore();
+    const targetId = store.currentAccount.id;
+
+    store.addEvent({
+      name: '旧事件',
+      amount: 1200,
+      category: 'income',
+      type: 'monthly',
+      startDate: '2026-01-01',
+      monthlyDay: 3,
+      enabled: true,
+    });
+    store.reconcile('2026-03-01', 5000, [], '旧对账');
+
+    const backup = {
+      version: '2.0.0',
+      timestamp: '2026-03-08T00:00:00.000Z',
+      state: {
+        version: '2.0.0',
+        account: {
+          id: 'imported-acc',
+          name: '导入账户',
+          typeLabel: '现金',
+          initialBalance: 8000,
+          currency: '¥',
+          warningThreshold: 1500,
+          color: '#10b981',
+          iconKey: 'piggy',
+          createdAt: '2026-03-01T00:00:00.000Z',
+          updatedAt: '2026-03-01T00:00:00.000Z',
+        },
+        accounts: [
+          {
+            id: 'imported-acc',
+            name: '导入账户',
+            typeLabel: '现金',
+            initialBalance: 8000,
+            currency: '¥',
+            warningThreshold: 1500,
+            color: '#10b981',
+            iconKey: 'piggy',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+        events: [
+          {
+            id: 'evt-salary',
+            accountId: 'imported-acc',
+            name: '工资',
+            amount: 9000,
+            category: 'income',
+            type: 'monthly',
+            startDate: '2026-02-01',
+            monthlyDay: 9,
+            enabled: true,
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+        preferences: store.preferences,
+        snapshots: [
+          {
+            id: 'snap-1',
+            accountId: 'imported-acc',
+            date: '2026-03-10',
+            balance: 8000,
+            source: 'manual',
+            createdAt: '2026-03-10T00:00:00.000Z',
+          },
+        ],
+        reconciliations: [
+          {
+            id: 'recon-1',
+            accountId: 'imported-acc',
+            date: '2026-03-10',
+            balance: 8000,
+            note: '导入对账',
+            createdAt: '2026-03-10T00:00:00.000Z',
+          },
+        ],
+        ledgerEntries: [
+          {
+            id: 'ledger-1',
+            accountId: 'imported-acc',
+            reconciliationId: 'recon-1',
+            ruleId: 'evt-salary',
+            name: '工资',
+            amount: 9000,
+            category: 'income',
+            date: '2026-03-09',
+            source: 'rule',
+            createdAt: '2026-03-10T00:00:00.000Z',
+            updatedAt: '2026-03-10T00:00:00.000Z',
+          },
+        ],
+        eventOverrides: [
+          {
+            id: 'override-1',
+            accountId: 'imported-acc',
+            ruleId: 'evt-salary',
+            period: '2026-03',
+            action: 'modified',
+            amount: 9500,
+            createdAt: '2026-03-10T00:00:00.000Z',
+          },
+        ],
+      },
+    };
+
+    store.importState(JSON.stringify(backup), 'current');
+
+    const importedEvent = store.events.find((event) => event.accountId === targetId && event.name === '工资');
+    const importedReconciliation = store.reconciliations.find((recon) => recon.accountId === targetId && recon.note === '导入对账');
+    const importedLedgerEntry = store.ledgerEntries.find((entry) => entry.accountId === targetId && entry.name === '工资');
+    const importedOverride = store.eventOverrides.find((override) => override.accountId === targetId && override.period === '2026-03');
+    const importedSnapshot = store.snapshots.find((snapshot) => snapshot.accountId === targetId && snapshot.date === '2026-03-10');
+
+    expect(importedEvent).toBeTruthy();
+    expect(importedReconciliation).toBeTruthy();
+    expect(importedLedgerEntry).toBeTruthy();
+    expect(importedOverride).toBeTruthy();
+    expect(importedSnapshot).toBeTruthy();
+
+    expect(importedEvent?.id).not.toBe('evt-salary');
+    expect(importedReconciliation?.id).not.toBe('recon-1');
+    expect(importedLedgerEntry?.id).not.toBe('ledger-1');
+    expect(importedOverride?.id).not.toBe('override-1');
+    expect(importedSnapshot?.id).not.toBe('snap-1');
+
+    expect(importedLedgerEntry?.ruleId).toBe(importedEvent?.id);
+    expect(importedLedgerEntry?.reconciliationId).toBe(importedReconciliation?.id);
+    expect(importedOverride?.ruleId).toBe(importedEvent?.id);
+  });
 });

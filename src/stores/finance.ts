@@ -686,8 +686,14 @@ export const useFinanceStore = defineStore('finance', () => {
     const sourceId = imported.account.id;
     const targetId = currentAccount.value.id;
 
-    // 将导入数据的 accountId 全部重映射为当前账户 ID
-    const remap = (id: string) => (id === sourceId ? targetId : id);
+    const importedEvents = imported.events.filter((e) => e.accountId === sourceId);
+    const importedSnapshots = imported.snapshots.filter((s) => s.accountId === sourceId);
+    const importedReconciliations = imported.reconciliations.filter((r) => r.accountId === sourceId);
+    const importedLedgerEntries = imported.ledgerEntries.filter((e) => e.accountId === sourceId);
+    const importedOverrides = imported.eventOverrides.filter((o) => o.accountId === sourceId);
+
+    const eventIdMap = new Map(importedEvents.map((event) => [event.id, createId()]));
+    const reconciliationIdMap = new Map(importedReconciliations.map((recon) => [recon.id, createId()]));
 
     const mergedAccount: AccountConfig = { ...imported.account, id: targetId };
     const idx = accounts.value.findIndex((a) => a.id === targetId);
@@ -698,24 +704,47 @@ export const useFinanceStore = defineStore('finance', () => {
 
     events.value = [
       ...events.value.filter((e) => e.accountId !== targetId),
-      ...imported.events.filter((e) => e.accountId === sourceId).map((e) => ({ ...e, accountId: remap(e.accountId) })),
+      ...importedEvents.map((event) => ({
+        ...event,
+        id: eventIdMap.get(event.id) ?? createId(),
+        accountId: targetId,
+      })),
     ];
     snapshots.value = [
       ...snapshots.value.filter((s) => s.accountId !== targetId),
-      ...imported.snapshots.filter((s) => s.accountId === sourceId).map((s) => ({ ...s, accountId: remap(s.accountId) })),
+      ...importedSnapshots.map((snapshot) => ({
+        ...snapshot,
+        id: createId(),
+        accountId: targetId,
+      })),
     ].sort((a, b) => a.date.localeCompare(b.date));
 
     reconciliations.value = [
       ...reconciliations.value.filter((r) => r.accountId !== targetId),
-      ...imported.reconciliations.filter((r) => r.accountId === sourceId).map((r) => ({ ...r, accountId: remap(r.accountId) })),
+      ...importedReconciliations.map((reconciliation) => ({
+        ...reconciliation,
+        id: reconciliationIdMap.get(reconciliation.id) ?? createId(),
+        accountId: targetId,
+      })),
     ];
     ledgerEntries.value = [
       ...ledgerEntries.value.filter((e) => e.accountId !== targetId),
-      ...imported.ledgerEntries.filter((e) => e.accountId === sourceId).map((e) => ({ ...e, accountId: remap(e.accountId) })),
+      ...importedLedgerEntries.map((entry) => ({
+        ...entry,
+        id: createId(),
+        accountId: targetId,
+        reconciliationId: reconciliationIdMap.get(entry.reconciliationId) ?? entry.reconciliationId,
+        ruleId: entry.ruleId ? (eventIdMap.get(entry.ruleId) ?? entry.ruleId) : undefined,
+      })),
     ];
     eventOverrides.value = [
       ...eventOverrides.value.filter((o) => o.accountId !== targetId),
-      ...imported.eventOverrides.filter((o) => o.accountId === sourceId).map((o) => ({ ...o, accountId: remap(o.accountId) })),
+      ...importedOverrides.map((override) => ({
+        ...override,
+        id: createId(),
+        accountId: targetId,
+        ruleId: eventIdMap.get(override.ruleId) ?? override.ruleId,
+      })),
     ];
 
     viewMode.value = 'single';
