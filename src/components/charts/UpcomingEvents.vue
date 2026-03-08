@@ -65,6 +65,7 @@ import { computed, ref } from 'vue';
 import { message } from 'ant-design-vue';
 import type { DailySnapshot } from '@/types/timeline';
 import { useFinanceStore } from '@/stores/finance';
+import { getUpcomingCutoffDate } from '@/utils/upcoming';
 
 const props = defineProps<{ timeline: DailySnapshot[] }>();
 const store = useFinanceStore();
@@ -87,9 +88,7 @@ interface UpcomingItem {
 
 const items = computed<UpcomingItem[]>(() => {
   const today = store.todayStr;
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() + 60);
-  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  const cutoffStr = getUpcomingCutoffDate(today);
   const flattened = props.timeline.flatMap((day) =>
     day.events.map((event) => ({
       id: `${event.id}-${day.date}`,
