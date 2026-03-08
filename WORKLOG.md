@@ -21,3 +21,5 @@
 [2026-03-08 21:32:00] deliverables: scoped localStorage keys + legacy fallback + scoped export filename + regression tests
 [2026-03-08 21:40:00] task: fix AI analysis context source so drawer follows selected account scope instead of accidentally reusing current store timeline/analytics
 [2026-03-08 21:40:00] deliverables: extracted buildScopedFinancialContext + scoped timeline/analytics recomputation + regression tests for single/multi/missing reconciliation cases
+[2026-03-08 21:47:00] task: reduce initial bundle cost by replacing global Ant Design Vue install with explicit per-component registration in src/main.ts
+[2026-03-08 21:47:00] verification: npm run type-check ✅, npm test ✅ (42), npm run build ✅; vendor-antd chunk ~1403kB -> ~718kB, build time ~16.5s -> ~14.3s

@@ -1,6 +1,25 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
-import Antd from 'ant-design-vue';
+import {
+  Button,
+  Checkbox,
+  ConfigProvider,
+  DatePicker,
+  Drawer,
+  Dropdown,
+  Empty,
+  Form,
+  Input,
+  InputNumber,
+  Menu,
+  Modal,
+  Popover,
+  Radio,
+  Segmented,
+  Select,
+  Steps,
+  Switch,
+} from 'ant-design-vue';
 import VChart from 'vue-echarts';
 import { use } from 'echarts/core';
 import { LineChart, BarChart } from 'echarts/charts';
@@ -14,6 +33,29 @@ use([LineChart, BarChart, TitleComponent, TooltipComponent, GridComponent, Legen
 
 const app = createApp(App);
 app.use(createPinia());
-app.use(Antd);
+
+[
+  Button,
+  Checkbox,
+  ConfigProvider,
+  DatePicker,
+  Drawer,
+  Dropdown,
+  Empty,
+  Form,
+  Input,
+  InputNumber,
+  Menu,
+  Modal,
+  Popover,
+  Radio,
+  Segmented,
+  Select,
+  Steps,
+  Switch,
+].forEach((component) => {
+  app.use(component);
+});
+
 app.component('VChart', VChart);
 app.mount('#app');
