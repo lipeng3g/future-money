@@ -31,3 +31,6 @@
 [2026-03-08 22:00:00] verification: npm run type-check ✅, npm test ✅ (42), npm run build ✅; app entry index js 65.37kB -> 57.04kB, reconciliation/event/account modal code now emitted as separate async chunks
 [2026-03-08 22:08:00] task: upgrade import/export from single-account semantics to explicit current-account vs all-accounts backup/restore, avoiding multi-account data loss during local backup workflows
 [2026-03-08 22:08:00] deliverables: store-level full backup/restore path, account management dual import/export actions, account-specific export filename, regression tests covering current/all modes
+[2026-03-08 22:22:00] task: harden local AI config + proxy target validation to reduce SSRF/internal-target risk and normalize OpenAI-compatible endpoints
+[2026-03-08 22:22:00] deliverables: shared target guard in src/utils/ai.ts, config sanitization/normalization, AiConfigModal UX copy update, Cloudflare ai-proxy server-side allowlist check, regression tests for localhost/private-network rejection and URL normalization
+[2026-03-08 22:24:00] verification: npm test ✅ (49), npm run type-check ✅, npm run build ✅; build warning unchanged: vendor-charts ~563kB, vendor-antd ~718kB

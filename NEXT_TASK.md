@@ -1,14 +1,15 @@
-# Next Task（非权威草稿）
+# Next Task（worker 更新）
 
-> 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实下一步计划，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
+## 刚完成
+- 已为 AI 分析链路补齐本地配置规范化与代理目标双层校验：
+  - 保存前自动规范 baseUrl
+  - 支持从完整 `/chat/completions` 地址回收为 base URL
+  - 拒绝 localhost / 127.* / 10.* / 172.16-31.* / 192.168.* 等内网目标
+  - Cloudflare Pages `ai-proxy` 也做了服务端拦截，避免仅靠前端约束
+  - 已补回归测试
 
-
-## 当前目标
-继续沿“本地优先、项目负责人视角”的路线推进 future-money，并保持长期 worker 持续工作。
-
-## 立即待办
-1. 继续处理前端包体积：图表区已延迟加载，但 `vendor-charts` 仍约 563kB；下一步重点细分 echarts 依赖边界，评估按图表拆 runtime 或移除未用组件
-2. 为“恢复全部账户”补一层 UI 级保护文案/二次确认，避免用户把全量恢复误当成单账户导入
-3. 审视导入导出的格式演进策略：是否需要在备份元数据中明确 `scope=current|all`，降低用户选错模式后的困惑
-4. 继续补多账户边界：尤其是账户删除/切换后的状态隔离，以及 AI 历史 legacy 数据的逐步迁移策略
-5. 保持每轮都更新 `WORKLOG.md`，并以 git commit 留下可核验节点
+## 下一轮优先级
+1. **继续压包**：`vendor-charts` 仍约 563kB，重点看 ECharts 是否还能按图表/组件进一步细拆，或替换未必要的 runtime 依赖
+2. **导入恢复防误操作**：为“恢复全部账户”增加更强的 UI 二次确认与元数据提示（例如 scope=current|all）
+3. **AI 体验**：继续检查分析抽屉的流式渲染/大段 markdown 性能，必要时做消息虚拟化或渲染节流
+4. **测试补洞**：给 Cloudflare `functions/api/ai-proxy.ts` 单独补函数级测试，覆盖 header 缺失与 unsafe target 拒绝

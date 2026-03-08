@@ -8,6 +8,38 @@
 
 interface Env { }
 
+const isAllowedAiProxyTarget = (targetUrl: string): boolean => {
+    let parsedUrl: URL;
+    try {
+        parsedUrl = new URL(targetUrl);
+    } catch {
+        return false;
+    }
+
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return false;
+    }
+
+    const hostname = parsedUrl.hostname.trim().toLowerCase();
+    if (!hostname) return false;
+
+    if (
+        hostname === 'localhost'
+        || hostname.endsWith('.localhost')
+        || hostname === '0.0.0.0'
+        || hostname === '127.0.0.1'
+        || hostname === '::1'
+        || hostname.startsWith('127.')
+        || hostname.startsWith('10.')
+        || hostname.startsWith('192.168.')
+        || /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
+    ) {
+        return false;
+    }
+
+    return parsedUrl.pathname.replace(/\/+$/, '').endsWith('/chat/completions');
+};
+
 export const onRequestPost: PagesFunction<Env> = async (context) => {
     const request = context.request;
 
@@ -21,12 +53,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         });
     }
 
+    if (!isAllowedAiProxyTarget(targetUrl)) {
+        return new Response(JSON.stringify({ error: 'Blocked unsafe proxy target' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+
     try {
         const proxyHeaders: Record<string, string> = {
             'Content-Type': 'application/json',
         };
         if (auth) {
-            proxyHeaders['Authorization'] = auth;
+            proxyHeaders.Authorization = auth;
         }
 
         const proxyRes = await fetch(targetUrl, {

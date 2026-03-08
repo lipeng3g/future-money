@@ -14,7 +14,7 @@
       </p>
       <a-form layout="vertical">
         <a-form-item label="API 地址" required>
-          <a-input v-model:value="form.baseUrl" placeholder="https://api.openai.com" />
+          <a-input v-model:value="form.baseUrl" placeholder="https://api.openai.com 或完整 /chat/completions 地址" />
         </a-form-item>
         <a-form-item label="API Key" required>
           <a-input-password v-model:value="form.apiKey" placeholder="sk-..." />
@@ -23,6 +23,9 @@
           <a-input v-model:value="form.model" placeholder="gpt-4o-mini" />
         </a-form-item>
       </a-form>
+      <p class="config-tip">
+        仅支持公开的 OpenAI 兼容 chat completions 接口；保存时会自动规范化地址并拦截 localhost / 内网目标。
+      </p>
     </div>
   </a-modal>
 </template>
@@ -52,17 +55,14 @@ watch(
 );
 
 const handleSave = () => {
-  if (!form.value.baseUrl.trim()) {
-    message.warning('请填写 API 地址');
-    return;
+  try {
+    saveAiConfig(form.value);
+    form.value = { ...loadAiConfig() ?? form.value };
+    message.success('AI 配置已保存');
+    emit('saved');
+  } catch (error) {
+    message.warning(error instanceof Error ? error.message : 'AI 配置保存失败');
   }
-  if (!form.value.apiKey.trim()) {
-    message.warning('请填写 API Key');
-    return;
-  }
-  saveAiConfig(form.value);
-  message.success('AI 配置已保存');
-  emit('saved');
 };
 </script>
 
@@ -76,5 +76,12 @@ const handleSave = () => {
   font-size: 0.85rem;
   color: var(--fm-text-secondary);
   line-height: 1.6;
+}
+
+.config-tip {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: #64748b;
 }
 </style>

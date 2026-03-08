@@ -27,6 +27,7 @@ export interface AiConfig {
 
 const CONFIG_KEY = 'fm-ai-config';
 const CHAT_KEY = 'fm-ai-chat';
+const DEFAULT_AI_MODEL = 'gpt-4o-mini';
 
 export interface ChatHistoryScope {
     accountIds?: string[];
@@ -43,17 +44,110 @@ export const createChatHistoryScopeKey = (scope?: ChatHistoryScope): string => {
     return `${CHAT_KEY}:${accountIds.join(',')}`;
 };
 
+export const isAllowedAiProxyTarget = (targetUrl: string): boolean => {
+    let parsedUrl: URL;
+    try {
+        parsedUrl = new URL(targetUrl);
+    } catch {
+        return false;
+    }
+
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return false;
+    }
+
+    const hostname = parsedUrl.hostname.trim().toLowerCase();
+    if (!hostname) return false;
+
+    if (
+        hostname === 'localhost'
+        || hostname.endsWith('.localhost')
+        || hostname === '0.0.0.0'
+        || hostname === '127.0.0.1'
+        || hostname === '::1'
+        || hostname.startsWith('127.')
+        || hostname.startsWith('10.')
+        || hostname.startsWith('192.168.')
+        || /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
+    ) {
+        return false;
+    }
+
+    return parsedUrl.pathname.replace(/\/+$/, '').endsWith('/chat/completions');
+};
+
+export const normalizeAiBaseUrl = (input: string): string => {
+    const trimmed = input.trim();
+    if (!trimmed) {
+        throw new Error('请填写 API 地址');
+    }
+
+    let parsedUrl: URL;
+    try {
+        parsedUrl = new URL(trimmed);
+    } catch {
+        throw new Error('API 地址格式不正确');
+    }
+
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        throw new Error('API 地址仅支持 http 或 https');
+    }
+
+    const normalizedPath = parsedUrl.pathname.replace(/\/+$/, '');
+    if (normalizedPath.endsWith('/chat/completions')) {
+        parsedUrl.pathname = normalizedPath.replace(/\/chat\/completions$/, '');
+    } else {
+        parsedUrl.pathname = normalizedPath;
+    }
+
+    const normalized = parsedUrl.toString().replace(/\/+$/, '');
+    const targetUrl = buildAiChatCompletionsUrl(normalized);
+
+    if (!isAllowedAiProxyTarget(targetUrl)) {
+        throw new Error('API 地址不安全或不受支持，请使用公开的 OpenAI 兼容 /chat/completions 接口');
+    }
+
+    return normalized;
+};
+
+export const sanitizeAiConfig = (config: AiConfig): AiConfig => {
+    const baseUrl = normalizeAiBaseUrl(config.baseUrl);
+    const apiKey = config.apiKey.trim();
+    const model = config.model.trim() || DEFAULT_AI_MODEL;
+
+    if (!apiKey) {
+        throw new Error('请填写 API Key');
+    }
+
+    return {
+        baseUrl,
+        apiKey,
+        model,
+    };
+};
+
+export const buildAiChatCompletionsUrl = (baseUrl: string): string => {
+    const normalizedBaseUrl = normalizeAiBaseUrlForTarget(baseUrl);
+    return `${normalizedBaseUrl}/v1/chat/completions`;
+};
+
+const normalizeAiBaseUrlForTarget = (baseUrl: string): string => {
+    return baseUrl.trim().replace(/\/+$/, '').replace(/\/chat\/completions$/, '');
+};
+
 export const loadAiConfig = (): AiConfig | null => {
     try {
         const raw = localStorage.getItem(CONFIG_KEY);
-        return raw ? JSON.parse(raw) : null;
+        if (!raw) return null;
+        return sanitizeAiConfig(JSON.parse(raw) as AiConfig);
     } catch {
         return null;
     }
 };
 
 export const saveAiConfig = (config: AiConfig) => {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    const sanitized = sanitizeAiConfig(config);
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(sanitized));
 };
 
 // ---- 对话持久化 ----
@@ -310,17 +404,18 @@ export async function* streamChat(
     config: AiConfig,
     messages: ChatMessage[],
 ): AsyncGenerator<StreamChunk, void, unknown> {
-    const targetUrl = `${config.baseUrl.replace(/\/+$/, '')}/v1/chat/completions`;
+    const sanitizedConfig = sanitizeAiConfig(config);
+    const targetUrl = buildAiChatCompletionsUrl(sanitizedConfig.baseUrl);
 
     const response = await fetch('/api/ai-proxy', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-Target-Url': targetUrl,
-            'X-Auth': `Bearer ${config.apiKey}`,
+            'X-Auth': `Bearer ${sanitizedConfig.apiKey}`,
         },
         body: JSON.stringify({
-            model: config.model,
+            model: sanitizedConfig.model,
             messages,
             stream: true,
             temperature: 0.7,
