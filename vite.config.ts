@@ -109,6 +109,31 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+
+          if (id.includes('ant-design-vue')) {
+            return 'vendor-antd';
+          }
+
+          if (id.includes('echarts') || id.includes('zrender') || id.includes('vue-echarts')) {
+            return 'vendor-charts';
+          }
+
+          if (id.includes('/vue/') || id.includes('/@vue/') || id.includes('pinia')) {
+            return 'vendor-vue';
+          }
+
+          if (id.includes('dayjs') || id.includes('date-fns') || id.includes('markdown-it')) {
+            return 'vendor-utils';
+          }
+        },
+      },
+    },
+  },
   server: {
     port: 3000,
   },
