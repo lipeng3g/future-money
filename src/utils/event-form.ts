@@ -35,6 +35,12 @@ export interface EventFormVisibleSections {
   showYearlyFields: boolean;
 }
 
+export interface EventFormDateFeedback {
+  startDateHint: EventFormSemanticHint | null;
+  endDateHint: EventFormSemanticHint | null;
+  onceDateHint: EventFormSemanticHint | null;
+}
+
 const clampDateRange = (date: string | undefined, min?: string, max?: string): string | undefined => {
   if (!date) return date;
   if (min && date < min) return min;
@@ -161,6 +167,34 @@ export const getEventFormVisibleSections = (type: EventFormValues['type']): Even
   showMonthlyDay: type === 'monthly' || type === 'quarterly' || type === 'semi-annual',
   showYearlyFields: type === 'yearly',
 });
+
+export const getEventFormDateFeedback = (draft: Pick<EventFormDraft, 'type' | 'startDate' | 'endDate' | 'onceDate'>): EventFormDateFeedback => {
+  const startDateHint: EventFormSemanticHint | null = draft.endDate && draft.startDate && draft.startDate > draft.endDate
+    ? { level: 'error', message: '起始日期不能晚于结束日期。' }
+    : null;
+
+  const endDateHint: EventFormSemanticHint | null = draft.endDate && draft.startDate && draft.endDate < draft.startDate
+    ? { level: 'error', message: '结束日期不能早于起始日期。' }
+    : null;
+
+  const onceDateHint: EventFormSemanticHint | null = draft.type === 'once' && draft.onceDate
+    ? (() => {
+      if (draft.startDate && draft.onceDate < draft.startDate) {
+        return { level: 'error', message: '发生日期不能早于起始日期。' };
+      }
+      if (draft.endDate && draft.onceDate > draft.endDate) {
+        return { level: 'error', message: '发生日期不能晚于结束日期。' };
+      }
+      return null;
+    })()
+    : null;
+
+  return {
+    startDateHint,
+    endDateHint,
+    onceDateHint,
+  };
+};
 
 export const applyEventTypeDefaults = (draft: EventFormDraft, nextType: EventFormValues['type'], today: string): EventFormDraft => {
   const next: EventFormDraft = {

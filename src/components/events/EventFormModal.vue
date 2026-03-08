@@ -30,16 +30,30 @@
             <a-select-option value="yearly">每年</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="起始日期" required>
+        <a-form-item
+          label="起始日期"
+          required
+          :validate-status="dateFeedback.startDateHint?.level === 'error' ? 'error' : undefined"
+          :help="dateFeedback.startDateHint?.message"
+        >
           <a-date-picker v-model:value="startDateValue" style="width: 100%" :disabled-date="disabledStartDate" />
         </a-form-item>
-        <a-form-item label="结束日期">
+        <a-form-item
+          label="结束日期"
+          :validate-status="dateFeedback.endDateHint?.level === 'error' ? 'error' : undefined"
+          :help="dateFeedback.endDateHint?.message"
+        >
           <a-date-picker v-model:value="endDateValue" style="width: 100%" :disabled-date="disabledEndDate" />
         </a-form-item>
       </div>
 
       <template v-if="visibleSections.showOnceDate">
-        <a-form-item label="发生日期" required>
+        <a-form-item
+          label="发生日期"
+          required
+          :validate-status="dateFeedback.onceDateHint?.level === 'error' ? 'error' : undefined"
+          :help="dateFeedback.onceDateHint?.message"
+        >
           <a-date-picker v-model:value="onceDateValue" style="width: 100%" :disabled-date="disabledOnceDate" />
         </a-form-item>
       </template>
@@ -114,6 +128,7 @@ import {
   buildEventSchedulePreview,
   getEventFormValidationErrors,
   getEventFormVisibleSections,
+  getEventFormDateFeedback,
   getMonthlyRuleSemanticHint,
   getYearlyRuleSemanticHint,
   isEndDateSelectable,
@@ -202,6 +217,7 @@ const periodicDayLabel = computed(() => {
 });
 
 const visibleSections = computed(() => getEventFormVisibleSections(formState.type));
+const dateFeedback = computed(() => getEventFormDateFeedback(formState));
 const monthlyDayHint = computed(() => getMonthlyRuleSemanticHint(formState.monthlyDay));
 const yearlyDayHint = computed(() => getYearlyRuleSemanticHint(formState.yearlyMonth, formState.yearlyDay));
 const schedulePreview = computed(() => buildEventSchedulePreview(formState, 3, store.todayStr));

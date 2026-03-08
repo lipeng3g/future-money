@@ -100,3 +100,5 @@
 [2026-03-09 04:14:00] task: 将事件表单“频率切换 → 字段显隐 / 默认值补齐”下沉为纯函数，避免组件模板继续散落条件判断
 [2026-03-09 04:14:00] deliverables: src/utils/event-form.ts 新增 getEventFormVisibleSections / applyEventTypeDefaults；EventFormModal 改为复用纯函数控制区块显隐与频率切换默认值；补 event-form 回归测试覆盖字段区块与默认值补齐；新增 docs/worker-2026-03-09-event-form-followup.md 记录本轮任务切换原因
 [2026-03-09 04:14:00] verification: npm test ✅ (105), npm run type-check ✅, npm run build ✅；chart-base 仍为共享异步大块，确认其主要是 ECharts 运行时本体，本轮未继续硬拆
+[2026-03-09 04:24:00] task: 继续打磨事件表单即时反馈，把起始日期 / 结束日期 / 一次性发生日期的越界错误前移到字段旁展示，避免只在提交时 toast
+[2026-03-09 04:24:00] deliverables: src/utils/event-form.ts 新增 getEventFormDateFeedback；EventFormModal 接入日期字段级 validate-status/help；补 event-form 回归测试覆盖起止日期倒挂与 onceDate 超出范围；同步更新 CHANGELOG / NEXT_TASK

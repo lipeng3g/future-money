@@ -5,6 +5,7 @@ import {
   clampEventFormDates,
   getEventFormValidationErrors,
   getEventFormVisibleSections,
+  getEventFormDateFeedback,
   getMonthlyRuleSemanticHint,
   getYearlyRuleSemanticHint,
   isEndDateSelectable,
@@ -113,6 +114,28 @@ describe('event-form helpers', () => {
       showOnceDate: false,
       showMonthlyDay: false,
       showYearlyFields: true,
+    });
+  });
+
+  it('会为起止日期和一次性日期给出即时字段级错误提示', () => {
+    expect(getEventFormDateFeedback(createDraft({
+      type: 'monthly',
+      startDate: '2026-03-12',
+      endDate: '2026-03-10',
+      onceDate: undefined,
+    }))).toMatchObject({
+      startDateHint: { level: 'error', message: '起始日期不能晚于结束日期。' },
+      endDateHint: { level: 'error', message: '结束日期不能早于起始日期。' },
+      onceDateHint: null,
+    });
+
+    expect(getEventFormDateFeedback(createDraft({
+      type: 'once',
+      startDate: '2026-03-10',
+      endDate: '2026-03-20',
+      onceDate: '2026-03-25',
+    }))).toMatchObject({
+      onceDateHint: { level: 'error', message: '发生日期不能晚于结束日期。' },
     });
   });
 
