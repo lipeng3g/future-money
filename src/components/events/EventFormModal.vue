@@ -38,13 +38,13 @@
         </a-form-item>
       </div>
 
-      <template v-if="formState.type === 'once'">
+      <template v-if="visibleSections.showOnceDate">
         <a-form-item label="发生日期" required>
           <a-date-picker v-model:value="onceDateValue" style="width: 100%" :disabled-date="disabledOnceDate" />
         </a-form-item>
       </template>
 
-      <template v-else-if="formState.type === 'monthly' || formState.type === 'quarterly' || formState.type === 'semi-annual'">
+      <template v-else-if="visibleSections.showMonthlyDay">
         <a-form-item
           :label="periodicDayLabel"
           required
@@ -55,7 +55,7 @@
         </a-form-item>
       </template>
 
-      <template v-else>
+      <template v-else-if="visibleSections.showYearlyFields">
         <div class="form-grid">
           <a-form-item label="月份" required>
             <a-select v-model:value="formState.yearlyMonth">
@@ -110,8 +110,10 @@ import { useFinanceStore } from '@/stores/finance';
 import { message } from 'ant-design-vue';
 import type { CashFlowEvent, EventFormValues } from '@/types/event';
 import {
+  applyEventTypeDefaults,
   buildEventSchedulePreview,
   getEventFormValidationErrors,
+  getEventFormVisibleSections,
   getMonthlyRuleSemanticHint,
   getYearlyRuleSemanticHint,
   isEndDateSelectable,
@@ -199,6 +201,7 @@ const periodicDayLabel = computed(() => {
   return labels[formState.type] ?? '日期 (1-31)';
 });
 
+const visibleSections = computed(() => getEventFormVisibleSections(formState.type));
 const monthlyDayHint = computed(() => getMonthlyRuleSemanticHint(formState.monthlyDay));
 const yearlyDayHint = computed(() => getYearlyRuleSemanticHint(formState.yearlyMonth, formState.yearlyDay));
 const schedulePreview = computed(() => buildEventSchedulePreview(formState, 3, store.todayStr));
@@ -267,14 +270,7 @@ watch(
 watch(
   () => formState.type,
   (newType) => {
-    if (newType === 'once' && !formState.onceDate) {
-      formState.onceDate = dayjs().format('YYYY-MM-DD');
-    } else if ((newType === 'monthly' || newType === 'quarterly' || newType === 'semi-annual') && !formState.monthlyDay) {
-      formState.monthlyDay = 1;
-    } else if (newType === 'yearly') {
-      if (!formState.yearlyMonth) formState.yearlyMonth = 1;
-      if (!formState.yearlyDay) formState.yearlyDay = 1;
-    }
+    Object.assign(formState, applyEventTypeDefaults(formState, newType, dayjs().format('YYYY-MM-DD')));
   },
 );
 

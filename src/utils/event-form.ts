@@ -29,6 +29,12 @@ export interface EventSchedulePreviewItem {
   label: string;
 }
 
+export interface EventFormVisibleSections {
+  showOnceDate: boolean;
+  showMonthlyDay: boolean;
+  showYearlyFields: boolean;
+}
+
 const clampDateRange = (date: string | undefined, min?: string, max?: string): string | undefined => {
   if (!date) return date;
   if (min && date < min) return min;
@@ -148,6 +154,34 @@ export const getYearlyRuleSemanticHint = (month?: number, day?: number): EventFo
   }
 
   return null;
+};
+
+export const getEventFormVisibleSections = (type: EventFormValues['type']): EventFormVisibleSections => ({
+  showOnceDate: type === 'once',
+  showMonthlyDay: type === 'monthly' || type === 'quarterly' || type === 'semi-annual',
+  showYearlyFields: type === 'yearly',
+});
+
+export const applyEventTypeDefaults = (draft: EventFormDraft, nextType: EventFormValues['type'], today: string): EventFormDraft => {
+  const next: EventFormDraft = {
+    ...draft,
+    type: nextType,
+  };
+
+  if (nextType === 'once' && !next.onceDate) {
+    next.onceDate = today;
+  }
+
+  if ((nextType === 'monthly' || nextType === 'quarterly' || nextType === 'semi-annual') && !next.monthlyDay) {
+    next.monthlyDay = 1;
+  }
+
+  if (nextType === 'yearly') {
+    if (!next.yearlyMonth) next.yearlyMonth = 1;
+    if (!next.yearlyDay) next.yearlyDay = 1;
+  }
+
+  return next;
 };
 
 const buildPreviewEvent = (draft: EventFormDraft): CashFlowEvent => ({

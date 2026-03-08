@@ -97,3 +97,6 @@
 [2026-03-09 03:50:00] deliverables: buildEventSchedulePreview 新增 anchorDate（组件接入 store.todayStr）；预演从业务今天或开始日期（取较晚者）往后推导；补 event-form 回归测试覆盖未来锚点与开始日前锚点
 [2026-03-09 04:05:00] task: 继续降低本地整库恢复误操作风险，把确认框从“文件摘要”升级为“风险分级 + 当前本地将被替换的后果说明”
 [2026-03-09 04:05:00] deliverables: import-preview 新增 buildImportRiskSummary；AppHeader 的“恢复全部账户”确认框展示高/中风险提示、当前本地替换范围与作用域说明；补 import-preview 回归测试覆盖整库恢复与 legacy 未标记备份
+[2026-03-09 04:14:00] task: 将事件表单“频率切换 → 字段显隐 / 默认值补齐”下沉为纯函数，避免组件模板继续散落条件判断
+[2026-03-09 04:14:00] deliverables: src/utils/event-form.ts 新增 getEventFormVisibleSections / applyEventTypeDefaults；EventFormModal 改为复用纯函数控制区块显隐与频率切换默认值；补 event-form 回归测试覆盖字段区块与默认值补齐；新增 docs/worker-2026-03-09-event-form-followup.md 记录本轮任务切换原因
+[2026-03-09 04:14:00] verification: npm test ✅ (105), npm run type-check ✅, npm run build ✅；chart-base 仍为共享异步大块，确认其主要是 ECharts 运行时本体，本轮未继续硬拆

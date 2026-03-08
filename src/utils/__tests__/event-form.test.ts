@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyEventTypeDefaults,
   buildEventSchedulePreview,
   clampEventFormDates,
   getEventFormValidationErrors,
+  getEventFormVisibleSections,
   getMonthlyRuleSemanticHint,
   getYearlyRuleSemanticHint,
   isEndDateSelectable,
@@ -92,6 +94,36 @@ describe('event-form helpers', () => {
       level: 'error',
       message: '4 月没有 31 日，请调整为该月存在的日期。',
     });
+  });
+
+  it('会根据频率切换决定表单应展示的字段区块', () => {
+    expect(getEventFormVisibleSections('once')).toEqual({
+      showOnceDate: true,
+      showMonthlyDay: false,
+      showYearlyFields: false,
+    });
+
+    expect(getEventFormVisibleSections('monthly')).toEqual({
+      showOnceDate: false,
+      showMonthlyDay: true,
+      showYearlyFields: false,
+    });
+
+    expect(getEventFormVisibleSections('yearly')).toEqual({
+      showOnceDate: false,
+      showMonthlyDay: false,
+      showYearlyFields: true,
+    });
+  });
+
+  it('频率切换时会自动补齐对应字段的默认值，但不会覆盖已有输入', () => {
+    expect(applyEventTypeDefaults(createDraft({ onceDate: undefined }), 'once', '2026-03-09').onceDate).toBe('2026-03-09');
+    expect(applyEventTypeDefaults(createDraft({ monthlyDay: undefined }), 'quarterly', '2026-03-09').monthlyDay).toBe(1);
+    expect(applyEventTypeDefaults(createDraft({ yearlyMonth: undefined, yearlyDay: undefined }), 'yearly', '2026-03-09')).toMatchObject({
+      yearlyMonth: 1,
+      yearlyDay: 1,
+    });
+    expect(applyEventTypeDefaults(createDraft({ monthlyDay: 18 }), 'monthly', '2026-03-09').monthlyDay).toBe(18);
   });
 
   it('会给每月规则预演最近几次发生日期，并显示短月月末降级后的真实日期', () => {
