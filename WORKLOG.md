@@ -48,3 +48,5 @@
 [2026-03-08 23:36:00] verification: npm run type-check ✅, npm test ✅ (69), npm run build ✅；构建 warning 仍是既有 vendor-charts ~563kB / vendor-antd ~718kB，后续继续拆包
 [2026-03-08 23:50:00] task: 为本地 JSON 导入/恢复补充“备份作用域识别 + 模式不匹配拦截”，降低误把整库备份导入成单账户或反向误恢复的风险
 [2026-03-08 23:50:00] deliverables: PersistedStateEnvelope 新增可选 scope=current|all；导出时写入 scope；导入预览识别 current/all/legacy-unknown；AppHeader 在导入前校验模式匹配并在整库恢复确认框展示文件类型；补 import-preview / finance-import-export 回归测试
+[2026-03-09 00:03:00] task: 打磨图表可维护性与空数据体验，把 ECharts option 构建抽成纯函数并给长时间线补标签稀疏/动画降级策略
+[2026-03-09 00:03:00] deliverables: 新增 src/utils/chart-options.ts；BalanceChart / CashFlowChart 接入共享 option builder；新增空数据态；补 chart-options 单测覆盖空时间线、长时间线、月度序列映射
