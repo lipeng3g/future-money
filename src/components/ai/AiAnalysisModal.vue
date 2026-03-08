@@ -34,6 +34,9 @@
           {{ acc.name }}
         </a-checkbox>
       </a-checkbox-group>
+      <span class="scope-tip">
+        {{ selectedAccountIds.length > 1 ? '当前对话仅保存到这组账户的分析上下文中' : '当前对话仅保存到所选账户中' }}
+      </span>
     </div>
 
     <!-- 对话区 -->
@@ -148,6 +151,9 @@ const mdRenderer = ref<(text: string) => string>((text) => text.replace(/&/g, '&
 const configOpen = ref(false);
 const allAccounts = computed(() => store.accounts);
 const selectedAccountIds = ref<string[]>([]);
+const chatHistoryScope = computed(() => ({
+  accountIds: [...selectedAccountIds.value],
+}));
 
 watch(
   () => store.isMultiAccountView,
@@ -155,6 +161,14 @@ watch(
     selectedAccountIds.value = isMulti ? [...store.selectedAccountIds] : [store.currentAccount.id];
   },
   { immediate: true },
+);
+
+watch(
+  selectedAccountIds,
+  () => {
+    loadScopedChatHistory();
+  },
+  { deep: true },
 );
 
 // 预设
@@ -173,8 +187,12 @@ const thinkingBuffer = ref('');
 const userInput = ref('');
 const chatAreaRef = ref<HTMLElement | null>(null);
 
+const loadScopedChatHistory = () => {
+  chatMessages.value = loadChatHistory(chatHistoryScope.value);
+};
+
 onMounted(async () => {
-  chatMessages.value = loadChatHistory();
+  loadScopedChatHistory();
   const { default: MarkdownIt } = await import('markdown-it');
   const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
   mdRenderer.value = (text: string) => md.render(text);
@@ -231,7 +249,7 @@ const sendToAi = async (question?: string) => {
     role: 'user',
     content: question || '请分析我的财务状况',
   });
-  saveChatHistory(chatMessages.value);
+  saveChatHistory(chatMessages.value, chatHistoryScope.value);
   scrollToBottom();
 
   streaming.value = true;
@@ -252,14 +270,14 @@ const sendToAi = async (question?: string) => {
       content: contentBuffer.value,
       thinking: thinkingBuffer.value || undefined,
     });
-    saveChatHistory(chatMessages.value);
+    saveChatHistory(chatMessages.value, chatHistoryScope.value);
   } catch (err: any) {
     message.error(`请求失败: ${err.message}`);
     chatMessages.value.push({
       role: 'assistant',
       content: `请求失败: ${err.message}`,
     });
-    saveChatHistory(chatMessages.value);
+    saveChatHistory(chatMessages.value, chatHistoryScope.value);
   } finally {
     streaming.value = false;
     contentBuffer.value = '';
@@ -285,8 +303,8 @@ const handleEnter = (e: KeyboardEvent) => {
 
 const handleClearChat = () => {
   chatMessages.value = [];
-  clearChatHistory();
-  message.success('对话已清空');
+  clearChatHistory(chatHistoryScope.value);
+  message.success(selectedAccountIds.value.length > 1 ? '当前账户组合对话已清空' : '当前账户对话已清空');
 };
 
 const handleExport = () => {
@@ -294,8 +312,8 @@ const handleExport = () => {
     message.info('暂无对话内容');
     return;
   }
-  exportChatHistory(chatMessages.value);
-  message.success('对话已导出');
+  exportChatHistory(chatMessages.value, chatHistoryScope.value);
+  message.success(selectedAccountIds.value.length > 1 ? '当前账户组合对话已导出' : '当前账户对话已导出');
 };
 </script>
 
@@ -351,6 +369,7 @@ const handleExport = () => {
   gap: 12px;
   padding: 10px 20px;
   border-bottom: 1px solid var(--fm-border-subtle);
+  flex-wrap: wrap;
 }
 
 .bar-label {
@@ -364,6 +383,12 @@ const handleExport = () => {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.scope-tip {
+  font-size: 0.75rem;
+  color: var(--fm-text-muted);
+  margin-left: auto;
 }
 
 /* 对话区 */

@@ -17,3 +17,5 @@
 [2026-03-08 20:34:17] validating current recurrence refactor
 [2026-03-08 20:48:17] task: fix storage normalization so legacy/empty imports do not fabricate default snapshots or reconciliations
 [2026-03-08 20:48:17] verification: npm test ✅ (34), npm run type-check ✅, npm run build ✅
+[2026-03-08 21:32:00] task: scope AI chat history by selected account set, avoid cross-account context contamination in analysis drawer
+[2026-03-08 21:32:00] deliverables: scoped localStorage keys + legacy fallback + scoped export filename + regression tests

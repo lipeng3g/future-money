@@ -17,6 +17,21 @@ export interface AiConfig {
 const CONFIG_KEY = 'fm-ai-config';
 const CHAT_KEY = 'fm-ai-chat';
 
+export interface ChatHistoryScope {
+    accountIds?: string[];
+}
+
+const normalizeScopeAccountIds = (accountIds?: string[]): string[] => {
+    if (!accountIds?.length) return [];
+    return Array.from(new Set(accountIds.map((id) => id.trim()).filter(Boolean))).sort();
+};
+
+export const createChatHistoryScopeKey = (scope?: ChatHistoryScope): string => {
+    const accountIds = normalizeScopeAccountIds(scope?.accountIds);
+    if (!accountIds.length) return CHAT_KEY;
+    return `${CHAT_KEY}:${accountIds.join(',')}`;
+};
+
 export const loadAiConfig = (): AiConfig | null => {
     try {
         const raw = localStorage.getItem(CONFIG_KEY);
@@ -38,24 +53,34 @@ export interface ChatRecord {
     thinking?: string;
 }
 
-export const loadChatHistory = (): ChatRecord[] => {
+export const loadChatHistory = (scope?: ChatHistoryScope): ChatRecord[] => {
     try {
-        const raw = localStorage.getItem(CHAT_KEY);
-        return raw ? JSON.parse(raw) : [];
+        const scopedKey = createChatHistoryScopeKey(scope);
+        const raw = localStorage.getItem(scopedKey);
+        if (raw) {
+            return JSON.parse(raw);
+        }
+
+        if (scopedKey !== CHAT_KEY) {
+            const legacyRaw = localStorage.getItem(CHAT_KEY);
+            return legacyRaw ? JSON.parse(legacyRaw) : [];
+        }
+
+        return [];
     } catch {
         return [];
     }
 };
 
-export const saveChatHistory = (messages: ChatRecord[]) => {
-    localStorage.setItem(CHAT_KEY, JSON.stringify(messages));
+export const saveChatHistory = (messages: ChatRecord[], scope?: ChatHistoryScope) => {
+    localStorage.setItem(createChatHistoryScopeKey(scope), JSON.stringify(messages));
 };
 
-export const clearChatHistory = () => {
-    localStorage.removeItem(CHAT_KEY);
+export const clearChatHistory = (scope?: ChatHistoryScope) => {
+    localStorage.removeItem(createChatHistoryScopeKey(scope));
 };
 
-export const exportChatHistory = (messages: ChatRecord[]) => {
+export const exportChatHistory = (messages: ChatRecord[], scope?: ChatHistoryScope) => {
     const text = messages
         .map((m) => {
             const prefix = m.role === 'user' ? '## 提问' : '## 回答';
@@ -64,11 +89,14 @@ export const exportChatHistory = (messages: ChatRecord[]) => {
         })
         .join('\n\n---\n\n');
 
+    const scopedAccountIds = normalizeScopeAccountIds(scope?.accountIds);
+    const scopeLabel = scopedAccountIds.length ? `-${scopedAccountIds.join('_')}` : '';
+
     const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `财务分析对话-${formatLocalISODate()}.md`;
+    a.download = `财务分析对话${scopeLabel}-${formatLocalISODate()}.md`;
     a.click();
     URL.revokeObjectURL(url);
 };
