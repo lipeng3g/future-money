@@ -179,4 +179,27 @@ describe('LocalStorageStateRepository', () => {
     vi.advanceTimersByTime(150);
     expect(saveSpy).toHaveBeenCalledTimes(1);
   });
+
+  it('可以保存、读取并清除导入前回滚快照', () => {
+    const storage = createMemoryStorage();
+    const repository = new LocalStorageStateRepository(storage);
+    const state = createDefaultState();
+    state.account.name = '回滚前账户';
+    state.accounts = [{ ...state.account }];
+
+    repository.saveRollbackSnapshot({
+      state,
+      mode: 'all',
+      fileName: 'backup.json',
+    });
+
+    const snapshot = repository.loadRollbackSnapshot();
+    expect(snapshot).toBeTruthy();
+    expect(snapshot?.mode).toBe('all');
+    expect(snapshot?.fileName).toBe('backup.json');
+    expect(snapshot?.state.account.name).toBe('回滚前账户');
+
+    repository.clearRollbackSnapshot();
+    expect(repository.loadRollbackSnapshot()).toBeNull();
+  });
 });

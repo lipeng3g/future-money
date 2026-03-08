@@ -31,7 +31,7 @@
           <div class="action-item action-item-warning">
             <div class="action-desc">
               <strong>恢复全部账户</strong>
-              <span>仅接受整库备份；会覆盖当前本地全部账户、事件、对账与偏好设置，选择文件后还需二次确认</span>
+              <span>仅接受整库备份；会覆盖当前本地全部账户、事件、对账与偏好设置，选择文件后还需二次确认；系统会先自动生成一份本地回滚快照，便于撤销</span>
             </div>
             <a-button size="small" danger @click="$emit('import', 'all')">恢复全部账户</a-button>
           </div>
@@ -48,6 +48,20 @@
               <span>导出整份本地数据，包含所有账户、偏好与历史记录</span>
             </div>
             <a-button size="small" @click="$emit('export', 'all')">导出全部账户</a-button>
+          </div>
+          <div class="action-item" :class="{ 'action-item-muted': !canUndoImport }">
+            <div class="action-desc">
+              <strong>撤销上次导入 / 恢复</strong>
+              <span>
+                <template v-if="canUndoImport">
+                  回退到导入或恢复前的本地状态。{{ undoSummary }}
+                </template>
+                <template v-else>
+                  当前没有可撤销的导入或恢复记录
+                </template>
+              </span>
+            </div>
+            <a-button size="small" :disabled="!canUndoImport" @click="$emit('undo-import')">撤销上次导入</a-button>
           </div>
         </div>
       </div>
@@ -85,11 +99,16 @@
 <script setup lang="ts">
 import { useFinanceStore } from '@/stores/finance';
 
-defineProps<{ open: boolean }>();
+defineProps<{
+  open: boolean;
+  canUndoImport?: boolean;
+  undoSummary?: string;
+}>();
 defineEmits<{
   (e: 'close'): void;
   (e: 'import', mode: 'current' | 'all'): void;
   (e: 'export', mode: 'current' | 'all'): void;
+  (e: 'undo-import'): void;
   (e: 'clear'): void;
   (e: 'delete'): void;
 }>();
@@ -168,6 +187,10 @@ const store = useFinanceStore();
 .action-item-warning {
   background: #fff7ed;
   border-color: #fdba74;
+}
+
+.action-item-muted {
+  opacity: 0.72;
 }
 
 .action-desc {

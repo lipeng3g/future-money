@@ -22,7 +22,7 @@ import type {
   LedgerEntry,
   EventOverride,
 } from '@/types';
-import type { ImportExportMode } from '@/types/storage';
+import type { ImportExportMode, RollbackSnapshot } from '@/types/storage';
 import { createId } from '@/utils/id';
 import { generateSampleEvents } from '@/utils/sample-data';
 import { formatLocalISODate } from '@/utils/date';
@@ -256,6 +256,20 @@ export const useFinanceStore = defineStore('finance', () => {
     if (options?.flush) {
       storage.flushPendingSave();
     }
+  };
+
+  const createRollbackSnapshot = (mode: ImportExportMode, fileName?: string) => {
+    storage.saveRollbackSnapshot({
+      state: buildAppState('all'),
+      mode,
+      fileName,
+    });
+  };
+
+  const rollbackSnapshot = ref<RollbackSnapshot | null>(storage.loadRollbackSnapshot());
+
+  const refreshRollbackSnapshot = () => {
+    rollbackSnapshot.value = storage.loadRollbackSnapshot();
   };
 
   const applyState = (nextState: AppState, options?: { preferredAccountId?: string }) => {
@@ -683,8 +697,10 @@ export const useFinanceStore = defineStore('finance', () => {
     persist();
   };
 
-  const importCurrentAccountState = (content: string) => {
+  const importCurrentAccountState = (content: string, fileName?: string) => {
     const imported = storage.importState(content);
+    createRollbackSnapshot('current', fileName);
+    refreshRollbackSnapshot();
     const sourceId = imported.account.id;
     const targetId = currentAccount.value.id;
 
@@ -756,19 +772,36 @@ export const useFinanceStore = defineStore('finance', () => {
     persist({ flush: true });
   };
 
-  const importAllState = (content: string) => {
+  const importAllState = (content: string, fileName?: string) => {
     const imported = storage.importState(content);
+    createRollbackSnapshot('all', fileName);
+    refreshRollbackSnapshot();
     applyState(imported, { preferredAccountId: imported.account.id });
     sortEvents();
     persist({ flush: true });
   };
 
-  const importState = (content: string, mode: ImportExportMode = 'current') => {
+  const importState = (content: string, mode: ImportExportMode = 'current', fileName?: string) => {
     if (mode === 'all') {
-      importAllState(content);
+      importAllState(content, fileName);
       return;
     }
-    importCurrentAccountState(content);
+    importCurrentAccountState(content, fileName);
+  };
+
+  const undoLastImport = () => {
+    const snapshot = storage.loadRollbackSnapshot();
+    if (!snapshot) {
+      return { success: false as const, message: '没有可撤销的导入/恢复记录' };
+    }
+
+    applyState(snapshot.state, { preferredAccountId: snapshot.state.account.id });
+    sortEvents();
+    persist({ flush: true });
+    storage.clearRollbackSnapshot();
+    refreshRollbackSnapshot();
+
+    return { success: true as const, snapshot };
   };
 
   const exportState = (mode: ImportExportMode = 'current') =>
@@ -881,6 +914,8 @@ export const useFinanceStore = defineStore('finance', () => {
     importCurrentAccountState,
     importAllState,
     exportState,
+    rollbackSnapshot,
+    undoLastImport,
     clearCurrentAccount,
     deleteAccount,
     // 对账 Actions

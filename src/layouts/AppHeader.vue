@@ -160,9 +160,12 @@
     <AccountManageModal
       v-if="accountManageOpen"
       :open="accountManageOpen"
+      :can-undo-import="!!rollbackSummary"
+      :undo-summary="rollbackSummary ? `${rollbackSummary.mode === 'all' ? '恢复全部账户' : '导入当前账户'} · ${rollbackSummary.fileName ?? '未记录文件名'}` : undefined"
       @close="accountManageOpen = false"
       @import="handleManageImport"
       @export="handleManageExport"
+      @undo-import="handleManageUndoImport"
       @clear="handleManageClear"
       @delete="handleManageDelete"
     />
@@ -177,7 +180,7 @@ import { Modal, message } from 'ant-design-vue';
 import type { UserPreferences } from '@/types/account';
 import { useFinanceStore } from '@/stores/finance';
 import { formatLocalISODate } from '@/utils/date';
-import { parseImportPreview } from '@/utils/import-preview';
+import { buildRollbackPreview, parseImportPreview } from '@/utils/import-preview';
 import type { ImportExportMode } from '@/types/storage';
 
 const PreferencesModal = defineAsyncComponent(() => import('@/components/common/PreferencesModal.vue'));
@@ -282,6 +285,11 @@ const getScopeLabel = (scope: 'current' | 'all' | 'legacy-unknown') => {
   return '旧版/未标记备份';
 };
 
+const rollbackSummary = computed(() => {
+  if (!store.rollbackSnapshot) return null;
+  return buildRollbackPreview(store.rollbackSnapshot);
+});
+
 const validateImportMode = (mode: ImportExportMode, content: string) => {
   const summary = parseImportPreview(content);
 
@@ -338,8 +346,8 @@ const confirmImportAll = (content: string, fileName: string) => {
         message.error('输入的文字不正确，操作已取消');
         return Promise.reject();
       }
-      store.importState(content, 'all');
-      message.success('已恢复全部账户数据');
+      store.importState(content, 'all', fileName);
+      message.success('已恢复全部账户数据，可在账户管理中撤销上次恢复');
     },
   });
 };
@@ -358,8 +366,8 @@ const handleFileChange = (event: Event) => {
         confirmImportAll(content, fileName);
       } else {
         validateImportMode('current', content);
-        store.importState(content, mode);
-        message.success('已导入当前账户数据');
+        store.importState(content, mode, fileName);
+        message.success('已导入当前账户数据，可在账户管理中撤销上次导入');
       }
     } catch (error) {
       console.error(error);
@@ -438,6 +446,49 @@ const handleManageClear = () => {
 const handleManageDelete = () => {
   accountManageOpen.value = false;
   confirmDeleteAccount();
+};
+
+const handleManageUndoImport = () => {
+  accountManageOpen.value = false;
+
+  const summary = rollbackSummary.value;
+  if (!summary) {
+    message.info('没有可撤销的导入/恢复记录');
+    return;
+  }
+
+  const backupTime = summary.timestamp
+    ? new Date(summary.timestamp).toLocaleString('zh-CN', { hour12: false })
+    : '未知';
+  const accountNames = summary.accountNames.length ? summary.accountNames.join('、') : '未识别账户名';
+  const targetLabel = summary.mode === 'all' ? '恢复前的整库状态' : '导入前的本地状态';
+
+  Modal.confirm({
+    title: '撤销上次导入/恢复？',
+    width: 540,
+    content: h('div', [
+      h('p', { style: 'margin-bottom: 12px; color: #475569;' }, `将回退到${targetLabel}。这会覆盖当前浏览器里的最新改动。`),
+      h('div', { style: 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
+        h('div', `回滚来源：${summary.fileName ?? '未记录文件名'}`),
+        h('div', `回滚类型：${summary.mode === 'all' ? '恢复全部账户前快照' : '导入当前账户前快照'}`),
+        h('div', `快照时间：${backupTime}`),
+        h('div', `账户数：${summary.accountsCount}（${accountNames}）`),
+        h('div', `事件 / 对账 / 账本：${summary.eventsCount} / ${summary.reconciliationsCount} / ${summary.ledgerEntriesCount}`),
+      ]),
+    ]),
+    okText: '确认撤销',
+    okButtonProps: { danger: true },
+    cancelText: '取消',
+    onOk: () => {
+      const result = store.undoLastImport();
+      if (result.success) {
+        message.success('已撤销上次导入/恢复');
+      } else {
+        message.error(result.message ?? '撤销失败');
+        return Promise.reject();
+      }
+    },
+  });
 };
 
 const confirmDeleteAccount = () => {

@@ -68,3 +68,6 @@
 [2026-03-09 01:57:00] task: 打通“事件清单 → 图表日期”反向定位链路，补齐与“图表点 → 事件清单”相反方向的浏览闭环
 [2026-03-09 01:57:00] deliverables: 新增 buildEventChartFocusState；事件卡增加“查看图上日期”；事件抽屉支持高亮当前定位事件、给出发生次数说明，并驱动余额图跳到对应日期；补 event-focus / chart-options 回归测试
 [2026-03-09 02:02:00] verification: npm test ✅ (90), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB
+[2026-03-09 02:20:00] task: 为本地导入/恢复补一层“自动回滚快照 + 一键撤销”，降低误恢复整库或误导入错误备份后的不可逆风险
+[2026-03-09 02:20:00] deliverables: storage 仓储新增 rollback snapshot；finance store 在 import current / import all 前自动保存回滚点并暴露 undoLastImport；账户管理面板新增“撤销上次导入/恢复”；补 storage / finance-import-export 回归测试
+[2026-03-09 02:22:00] verification: npm test ✅ (92), npm run type-check ✅, npm run build ✅；新增回滚链路通过验证，构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB

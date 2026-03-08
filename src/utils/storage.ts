@@ -1,9 +1,10 @@
-import type { AppState, PersistedStateEnvelope } from '@/types/storage';
+import type { AppState, PersistedStateEnvelope, RollbackSnapshot } from '@/types/storage';
 import type { Reconciliation } from '@/types/reconciliation';
 import { APP_VERSION, DEFAULT_ACCOUNT_CONFIG, DEFAULT_PREFERENCES } from '@/utils/defaults';
 import { createId } from '@/utils/id';
 
 const STORAGE_KEY = 'futureMoney.state';
+const ROLLBACK_STORAGE_KEY = 'futureMoney.rollback';
 
 const isStorageAvailable = (): boolean => typeof window !== 'undefined' && !!window.localStorage;
 
@@ -14,6 +15,9 @@ export interface StateRepository {
   clear(): void;
   exportState(state: AppState, mode?: 'current' | 'all'): string;
   importState(content: string): AppState;
+  saveRollbackSnapshot(snapshot: { state: AppState; mode: 'current' | 'all'; fileName?: string }): void;
+  loadRollbackSnapshot(): { state: AppState; mode: 'current' | 'all'; createdAt: string; fileName?: string } | null;
+  clearRollbackSnapshot(): void;
 }
 
 const SAVE_DEBOUNCE_MS = 120;
@@ -97,6 +101,17 @@ const createEnvelope = (state: AppState, scope: 'current' | 'all' = 'all'): Pers
   version: APP_VERSION,
   timestamp: new Date().toISOString(),
   scope,
+  state,
+});
+
+const createRollbackSnapshot = (
+  state: AppState,
+  mode: 'current' | 'all',
+  fileName?: string,
+): RollbackSnapshot => ({
+  mode,
+  createdAt: new Date().toISOString(),
+  fileName,
   state,
 });
 
@@ -206,6 +221,45 @@ export class LocalStorageStateRepository implements StateRepository {
     }
     this.lastSavedSnapshot = null;
     this.storage.removeItem(STORAGE_KEY);
+  }
+
+  saveRollbackSnapshot(snapshot: { state: AppState; mode: 'current' | 'all'; fileName?: string }): void {
+    if (!this.storage) return;
+
+    try {
+      this.storage.setItem(
+        ROLLBACK_STORAGE_KEY,
+        JSON.stringify(createRollbackSnapshot(snapshot.state, snapshot.mode, snapshot.fileName)),
+      );
+    } catch (error) {
+      console.warn('保存回滚快照失败', error);
+    }
+  }
+
+  loadRollbackSnapshot(): RollbackSnapshot | null {
+    if (!this.storage) return null;
+
+    try {
+      const raw = this.storage.getItem(ROLLBACK_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as RollbackSnapshot;
+      if (!parsed?.state || (parsed.mode !== 'current' && parsed.mode !== 'all')) {
+        return null;
+      }
+
+      return {
+        ...parsed,
+        state: normalizeState(parsed.state),
+      };
+    } catch (error) {
+      console.warn('读取回滚快照失败', error);
+      return null;
+    }
+  }
+
+  clearRollbackSnapshot(): void {
+    if (!this.storage) return;
+    this.storage.removeItem(ROLLBACK_STORAGE_KEY);
   }
 
   exportState(state: AppState, mode: 'current' | 'all' = 'all'): string {

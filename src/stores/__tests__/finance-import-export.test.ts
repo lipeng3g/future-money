@@ -254,6 +254,92 @@ describe('finance store import/export', () => {
     expect(secondaryEvents[0].name).toBe('副账户收入');
   });
 
+  it('导入当前账户时会保存回滚快照，并允许一键撤销', () => {
+    const store = useFinanceStore();
+    const originalAccountId = store.currentAccount.id;
+    const originalAccountName = store.currentAccount.name;
+
+    store.addEvent({
+      name: '原始工资',
+      amount: 5000,
+      category: 'income',
+      type: 'monthly',
+      startDate: '2026-01-01',
+      monthlyDay: 1,
+      enabled: true,
+    });
+
+    const backup = {
+      version: '2.0.0',
+      timestamp: '2026-03-08T00:00:00.000Z',
+      scope: 'current',
+      state: {
+        version: '2.0.0',
+        account: {
+          id: 'imported-acc',
+          name: '导入账户',
+          typeLabel: '现金',
+          initialBalance: 6600,
+          currency: '¥',
+          warningThreshold: 999,
+          color: '#10b981',
+          iconKey: 'piggy',
+          createdAt: '2026-03-01T00:00:00.000Z',
+          updatedAt: '2026-03-01T00:00:00.000Z',
+        },
+        accounts: [
+          {
+            id: 'imported-acc',
+            name: '导入账户',
+            typeLabel: '现金',
+            initialBalance: 6600,
+            currency: '¥',
+            warningThreshold: 999,
+            color: '#10b981',
+            iconKey: 'piggy',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+        events: [
+          {
+            id: 'evt-new',
+            accountId: 'imported-acc',
+            name: '新工资',
+            amount: 9000,
+            category: 'income',
+            type: 'monthly',
+            startDate: '2026-02-01',
+            monthlyDay: 9,
+            enabled: true,
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+        preferences: store.preferences,
+        snapshots: [],
+        reconciliations: [],
+        ledgerEntries: [],
+        eventOverrides: [],
+      },
+    };
+
+    store.importState(JSON.stringify(backup), 'current', 'import-current.json');
+
+    expect(store.rollbackSnapshot).toBeTruthy();
+    expect(store.rollbackSnapshot?.mode).toBe('current');
+    expect(store.rollbackSnapshot?.fileName).toBe('import-current.json');
+    expect(store.rollbackSnapshot?.state.account.id).toBe(originalAccountId);
+
+    const undoResult = store.undoLastImport();
+    expect(undoResult.success).toBe(true);
+    expect(store.currentAccountId).toBe(originalAccountId);
+    expect(store.currentAccount.name).toBe(originalAccountName);
+    expect(store.events).toHaveLength(1);
+    expect(store.events[0].name).toBe('原始工资');
+    expect(store.rollbackSnapshot).toBeNull();
+  });
+
   it('导入当前账户时会为事件与对账链路重建内部 ID 和引用关系', () => {
     const store = useFinanceStore();
     const targetId = store.currentAccount.id;

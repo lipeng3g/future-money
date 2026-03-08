@@ -23,6 +23,13 @@ export interface AppState {
 
 export type ImportExportMode = 'current' | 'all';
 
+export interface RollbackSnapshot {
+  mode: ImportExportMode;
+  createdAt: string;
+  fileName?: string;
+  state: AppState;
+}
+
 export interface PersistedStateEnvelope {
   version: string;
   timestamp: string;
