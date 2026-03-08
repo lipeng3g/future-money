@@ -170,25 +170,65 @@ const selectionIssue = computed(() => {
 
 const canConfirm = computed(() => !selectionIssue.value);
 
+const buildDateGroupSelection = (baseDate: string | null) => {
+  if (!baseDate) return [];
+  return props.accounts
+    .filter((acc) => getLatestReconciliation(acc.id)?.date === baseDate)
+    .map((acc) => acc.id);
+};
+
+const pickFallbackGroup = () => {
+  const dateGroups = new Map<string, string[]>();
+
+  props.accounts.forEach((acc) => {
+    const date = getLatestReconciliation(acc.id)?.date;
+    if (!date) return;
+    const existing = dateGroups.get(date) ?? [];
+    existing.push(acc.id);
+    dateGroups.set(date, existing);
+  });
+
+  return [...dateGroups.entries()]
+    .sort((a, b) => {
+      if (b[1].length !== a[1].length) {
+        return b[1].length - a[1].length;
+      }
+      return b[0].localeCompare(a[0]);
+    })
+    .map(([, ids]) => ids)
+    .find((ids) => ids.length >= 2) ?? [];
+};
+
 const syncSelectionByInitial = () => {
   const knownIds = new Set(props.accounts.map((acc) => acc.id));
   const initialIds = props.initialSelected.filter((id) => knownIds.has(id));
   const firstReconId = initialIds.find((id) => !!getLatestReconciliation(id));
 
-  if (!firstReconId) {
-    selectedIds.value = [];
-    anchorAccountId.value = null;
+  const preferredGroup = buildDateGroupSelection(
+    firstReconId ? getLatestReconciliation(firstReconId)?.date ?? null : null,
+  );
+
+  if (preferredGroup.length >= 2) {
+    selectedIds.value = preferredGroup;
+    anchorAccountId.value = preferredGroup[0] ?? null;
     return;
   }
 
-  const baseDate = getLatestReconciliation(firstReconId)?.date;
-  const filtered = initialIds.filter((id) => {
-    const recon = getLatestReconciliation(id);
-    return !!recon && recon.date === baseDate;
-  });
+  const fallbackGroup = pickFallbackGroup();
+  if (fallbackGroup.length >= 2) {
+    selectedIds.value = fallbackGroup;
+    anchorAccountId.value = fallbackGroup[0] ?? null;
+    return;
+  }
 
-  selectedIds.value = filtered.length ? filtered : [firstReconId];
-  anchorAccountId.value = selectedIds.value[0] ?? null;
+  if (firstReconId) {
+    selectedIds.value = [firstReconId];
+    anchorAccountId.value = firstReconId;
+    return;
+  }
+
+  selectedIds.value = [];
+  anchorAccountId.value = null;
 };
 
 watch(
@@ -198,7 +238,7 @@ watch(
       syncSelectionByInitial();
     }
   },
-  { immediate: false },
+  { immediate: true },
 );
 
 const toggleAccount = (id: string, checked: boolean) => {
