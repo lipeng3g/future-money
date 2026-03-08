@@ -8,6 +8,10 @@
 
 interface Env { }
 
+type ProxyFunctionContext = {
+    request: Request;
+};
+
 const isAllowedAiProxyTarget = (targetUrl: string): boolean => {
     let parsedUrl: URL;
     try {
@@ -40,7 +44,7 @@ const isAllowedAiProxyTarget = (targetUrl: string): boolean => {
     return parsedUrl.pathname.replace(/\/+$/, '').endsWith('/chat/completions');
 };
 
-export const onRequestPost: PagesFunction<Env> = async (context) => {
+export const onRequestPost = async (context: ProxyFunctionContext) => {
     const request = context.request;
 
     const targetUrl = request.headers.get('X-Target-Url');
@@ -92,7 +96,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 };
 
 // 处理 CORS 预检请求
-export const onRequestOptions: PagesFunction<Env> = async () => {
+export const onRequestOptions = async () => {
     return new Response(null, {
         status: 204,
         headers: {

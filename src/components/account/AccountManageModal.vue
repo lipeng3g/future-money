@@ -28,12 +28,12 @@
             </div>
             <a-button size="small" @click="$emit('import', 'current')">导入当前账户</a-button>
           </div>
-          <div class="action-item">
+          <div class="action-item action-item-warning">
             <div class="action-desc">
               <strong>恢复全部账户</strong>
-              <span>用整份备份恢复全部账户、事件、对账与偏好设置</span>
+              <span>用整份备份覆盖当前本地全部账户、事件、对账与偏好设置；选择文件后还需二次确认</span>
             </div>
-            <a-button size="small" @click="$emit('import', 'all')">恢复全部账户</a-button>
+            <a-button size="small" danger @click="$emit('import', 'all')">恢复全部账户</a-button>
           </div>
           <div class="action-item">
             <div class="action-desc">
@@ -163,6 +163,11 @@ const store = useFinanceStore();
 .danger-section .action-item {
   background: #fef2f2;
   border-color: #fecaca;
+}
+
+.action-item-warning {
+  background: #fff7ed;
+  border-color: #fdba74;
 }
 
 .action-desc {

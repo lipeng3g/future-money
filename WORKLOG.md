@@ -34,3 +34,6 @@
 [2026-03-08 22:22:00] task: harden local AI config + proxy target validation to reduce SSRF/internal-target risk and normalize OpenAI-compatible endpoints
 [2026-03-08 22:22:00] deliverables: shared target guard in src/utils/ai.ts, config sanitization/normalization, AiConfigModal UX copy update, Cloudflare ai-proxy server-side allowlist check, regression tests for localhost/private-network rejection and URL normalization
 [2026-03-08 22:24:00] verification: npm test ✅ (49), npm run type-check ✅, npm run build ✅; build warning unchanged: vendor-charts ~563kB, vendor-antd ~718kB
+[2026-03-08 22:34:00] task: harden full-backup restore UX with import preview + typed confirmation before replacing all local accounts/data
+[2026-03-08 22:34:00] deliverables: import-preview parser utility, restore-all modal summary (accounts/events/reconciliations/ledger/timestamp), warning styling, Cloudflare ai-proxy function-level tests
+[2026-03-08 22:35:00] verification: npm test ✅ (57), npm run type-check ✅, npm run build ✅; build warning unchanged: vendor-charts ~563kB, vendor-antd ~718kB

@@ -177,6 +177,7 @@ import { Modal, message } from 'ant-design-vue';
 import type { UserPreferences } from '@/types/account';
 import { useFinanceStore } from '@/stores/finance';
 import { formatLocalISODate } from '@/utils/date';
+import { parseImportPreview } from '@/utils/import-preview';
 
 const PreferencesModal = defineAsyncComponent(() => import('@/components/common/PreferencesModal.vue'));
 const ReconciliationHistory = defineAsyncComponent(() => import('@/components/reconciliation/ReconciliationHistory.vue'));
@@ -276,16 +277,69 @@ const triggerImport = (mode: ImportExportMode) => {
   fileInput.value?.click();
 };
 
+const confirmImportAll = (content: string, fileName: string) => {
+  const summary = parseImportPreview(content);
+  let inputValue = '';
+  const confirmText = '恢复全部账户';
+  const backupTime = summary.timestamp
+    ? new Date(summary.timestamp).toLocaleString('zh-CN', { hour12: false })
+    : '未知';
+  const accountNames = summary.accountNames.length ? summary.accountNames.join('、') : '未识别账户名';
+
+  Modal.confirm({
+    title: '恢复全部账户并覆盖当前本地数据？',
+    width: 560,
+    content: h('div', [
+      h('p', { style: 'color: #ef4444; margin-bottom: 12px; font-weight: 600;' }, '此操作会整体替换当前浏览器中的全部账户、事件、对账和偏好设置，无法撤销。'),
+      h('div', { style: 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
+        h('div', `备份文件：${fileName}`),
+        h('div', `备份时间：${backupTime}`),
+        h('div', `账户数：${summary.accountsCount}（${accountNames}）`),
+        h('div', `事件 / 对账 / 账本：${summary.eventsCount} / ${summary.reconciliationsCount} / ${summary.ledgerEntriesCount}`),
+        h('div', `覆盖记录：${summary.eventOverridesCount}`),
+        h('div', `备份版本：${summary.stateVersion}`),
+      ]),
+      h('p', { style: 'margin-bottom: 8px;' }, `请输入“${confirmText}”以继续：`),
+      h('input', {
+        type: 'text',
+        class: 'ant-input',
+        placeholder: `请输入：${confirmText}`,
+        style: 'width: 100%;',
+        onInput: (e: Event) => {
+          inputValue = (e.target as HTMLInputElement).value;
+        },
+      }),
+    ]),
+    okText: '确认恢复',
+    okButtonProps: { danger: true },
+    cancelText: '取消',
+    onOk: () => {
+      if (inputValue.trim() !== confirmText) {
+        message.error('输入的文字不正确，操作已取消');
+        return Promise.reject();
+      }
+      store.importState(content, 'all');
+      message.success('已恢复全部账户数据');
+    },
+  });
+};
+
 const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (!file) return;
   const mode = fileActionMode.value;
+  const fileName = file.name;
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      store.importState(String(reader.result), mode);
-      message.success(mode === 'all' ? '已恢复全部账户数据' : '已导入当前账户数据');
+      const content = String(reader.result);
+      if (mode === 'all') {
+        confirmImportAll(content, fileName);
+      } else {
+        store.importState(content, mode);
+        message.success('已导入当前账户数据');
+      }
     } catch (error) {
       console.error(error);
       message.error(mode === 'all' ? '恢复失败，请检查备份文件内容' : '导入失败，请检查文件内容');
