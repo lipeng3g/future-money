@@ -12,7 +12,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import VChart from 'vue-echarts';
-import '@/utils/echarts';
+import '@/utils/echarts-cashflow';
 import type { MonthlySnapshot } from '@/types/analytics';
 import { buildCashFlowChartOption } from '@/utils/chart-options';
 

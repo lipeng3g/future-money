@@ -46,7 +46,7 @@
 import { computed, ref, watch } from 'vue';
 import type { ECElementEvent } from 'echarts/core';
 import VChart from 'vue-echarts';
-import '@/utils/echarts';
+import '@/utils/echarts-balance';
 import type { DailySnapshot } from '@/types/timeline';
 import {
   buildBalanceChartFocusInsight,

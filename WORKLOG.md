@@ -71,3 +71,6 @@
 [2026-03-09 02:20:00] task: 为本地导入/恢复补一层“自动回滚快照 + 一键撤销”，降低误恢复整库或误导入错误备份后的不可逆风险
 [2026-03-09 02:20:00] deliverables: storage 仓储新增 rollback snapshot；finance store 在 import current / import all 前自动保存回滚点并暴露 undoLastImport；账户管理面板新增“撤销上次导入/恢复”；补 storage / finance-import-export 回归测试
 [2026-03-09 02:22:00] verification: npm test ✅ (92), npm run type-check ✅, npm run build ✅；新增回滚链路通过验证，构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB
+[2026-03-09 02:35:00] task: 继续压缩图表大包，撤销把全部 ECharts/vue-echarts/zrender 强绑进单一 vendor-charts 的策略，改为按余额图/收支图分模块注册
+[2026-03-09 02:35:00] deliverables: 新增 src/utils/echarts-balance.ts 与 src/utils/echarts-cashflow.ts；BalanceChart / CashFlowChart 分别按需注册图表能力；vite manualChunks 不再把所有图表依赖合并进 vendor-charts，恢复 Rollup 对异步图表 chunk 的自然拆分
+[2026-03-09 02:40:00] verification: npm run type-check ✅, npm test ✅ (92), npm run build ✅；图表大包已从单一 vendor-charts ~563kB 拆为 BalanceChart ~59.6kB + CashFlowChart ~35.8kB + chart-options ~483.2kB，当前仅剩 vendor-antd ~718kB 为构建告警
