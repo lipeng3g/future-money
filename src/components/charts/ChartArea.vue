@@ -65,6 +65,7 @@
 
     <!-- AI 配置弹窗（首次使用时弹出） -->
     <AiConfigModal
+      v-if="aiConfigOpen"
       :open="aiConfigOpen"
       @cancel="aiConfigOpen = false"
       @saved="handleConfigSaved"
@@ -72,6 +73,7 @@
 
     <!-- AI 对话抽屉 -->
     <AiAnalysisModal
+      v-if="aiChatOpen"
       :open="aiChatOpen"
       @close="aiChatOpen = false"
     />
@@ -79,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { defineAsyncComponent, ref } from 'vue';
 import { message } from 'ant-design-vue';
 import TimeRangeControl from '@/components/charts/TimeRangeControl.vue';
 import BalanceChart from '@/components/charts/BalanceChart.vue';
@@ -88,19 +90,23 @@ import StatisticsPanel from '@/components/charts/StatisticsPanel.vue';
 import UpcomingEvents from '@/components/charts/UpcomingEvents.vue';
 import ReconciliationBanner from '@/components/reconciliation/ReconciliationBanner.vue';
 import ReconciliationModal from '@/components/reconciliation/ReconciliationModal.vue';
-import AiAnalysisModal from '@/components/ai/AiAnalysisModal.vue';
-import AiConfigModal from '@/components/ai/AiConfigModal.vue';
 import { useFinanceStore } from '@/stores/finance';
-import { loadAiConfig } from '@/utils/ai';
 import AppIcon from '@/components/common/AppIcon.vue';
+
+const AiAnalysisModal = defineAsyncComponent(() => import('@/components/ai/AiAnalysisModal.vue'));
+const AiConfigModal = defineAsyncComponent(() => import('@/components/ai/AiConfigModal.vue'));
+const loadAiConfig = async () => {
+  const mod = await import('@/utils/ai');
+  return mod.loadAiConfig();
+};
 
 const store = useFinanceStore();
 const reconcileModalOpen = ref(false);
 const aiConfigOpen = ref(false);
 const aiChatOpen = ref(false);
 
-const handleAiClick = () => {
-  const config = loadAiConfig();
+const handleAiClick = async () => {
+  const config = await loadAiConfig();
   if (config && config.apiKey) {
     aiChatOpen.value = true;
   } else {

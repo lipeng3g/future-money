@@ -32,6 +32,28 @@ function aiProxyPlugin(): Plugin {
           return;
         }
 
+        let parsedUrl: URL;
+        try {
+          parsedUrl = new URL(targetUrl);
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid target URL' }));
+          return;
+        }
+
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Unsupported target protocol' }));
+          return;
+        }
+
+        const normalizedPath = parsedUrl.pathname.replace(/\/+$/, '');
+        if (!normalizedPath.endsWith('/chat/completions')) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Only OpenAI-compatible chat completions endpoints are allowed' }));
+          return;
+        }
+
         // 读取请求体
         const chunks: Buffer[] = [];
         for await (const chunk of req) {

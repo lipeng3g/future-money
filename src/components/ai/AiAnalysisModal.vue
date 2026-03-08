@@ -123,7 +123,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
-import MarkdownIt from 'markdown-it';
 import { useFinanceStore } from '@/stores/finance';
 import AiConfigModal from '@/components/ai/AiConfigModal.vue';
 import {
@@ -144,7 +143,7 @@ defineProps<{ open: boolean }>();
 defineEmits(['close']);
 
 const store = useFinanceStore();
-const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
+const mdRenderer = ref<(text: string) => string>((text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>'));
 
 const configOpen = ref(false);
 const allAccounts = computed(() => store.accounts);
@@ -174,8 +173,11 @@ const thinkingBuffer = ref('');
 const userInput = ref('');
 const chatAreaRef = ref<HTMLElement | null>(null);
 
-onMounted(() => {
+onMounted(async () => {
   chatMessages.value = loadChatHistory();
+  const { default: MarkdownIt } = await import('markdown-it');
+  const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
+  mdRenderer.value = (text: string) => md.render(text);
 });
 
 const scrollToBottom = () => {
@@ -186,7 +188,7 @@ const scrollToBottom = () => {
   });
 };
 
-const renderMd = (text: string): string => md.render(text);
+const renderMd = (text: string): string => mdRenderer.value(text);
 
 const getFinancialContext = (): FinancialContext => {
   const selectedAccounts = store.accounts.filter((a) => selectedAccountIds.value.includes(a.id));
