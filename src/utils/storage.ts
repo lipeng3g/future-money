@@ -10,10 +10,13 @@ const isStorageAvailable = (): boolean => typeof window !== 'undefined' && !!win
 export interface StateRepository {
   loadState(): AppState;
   saveState(state: AppState): void;
+  flushPendingSave(): void;
   clear(): void;
   exportState(state: AppState): string;
   importState(content: string): AppState;
 }
+
+const SAVE_DEBOUNCE_MS = 120;
 
 export const createDefaultState = (): AppState => {
   const account = DEFAULT_ACCOUNT_CONFIG();
@@ -99,8 +102,23 @@ const createEnvelope = (state: AppState): PersistedStateEnvelope => ({
 export class LocalStorageStateRepository implements StateRepository {
   private storage: Storage | null;
 
+  private pendingSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private pendingState: AppState | null = null;
+
+  private lastSavedSnapshot: string | null = null;
+
+  private readonly beforeUnloadHandler = () => {
+    this.flushPendingSave();
+  };
+
   constructor(storage: Storage | null = isStorageAvailable() ? window.localStorage : null) {
     this.storage = storage;
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', this.beforeUnloadHandler);
+      window.addEventListener('pagehide', this.beforeUnloadHandler);
+    }
   }
 
   loadState(): AppState {
@@ -120,7 +138,7 @@ export class LocalStorageStateRepository implements StateRepository {
         || !parsed.state.snapshots?.length;
 
       if (shouldPersistMigration) {
-        this.saveState(state);
+        this.writeState(state);
       }
 
       return state;
@@ -130,17 +148,62 @@ export class LocalStorageStateRepository implements StateRepository {
     }
   }
 
-  saveState(state: AppState): void {
+  private writeState(state: AppState): void {
     if (!this.storage) return;
+
+    const serializedState = JSON.stringify(state);
+    if (serializedState === this.lastSavedSnapshot) {
+      return;
+    }
+
     try {
       this.storage.setItem(STORAGE_KEY, JSON.stringify(createEnvelope(state)));
+      this.lastSavedSnapshot = serializedState;
     } catch (error) {
       console.warn('存储数据失败', error);
     }
   }
 
+  flushPendingSave(): void {
+    if (this.pendingSaveTimer) {
+      clearTimeout(this.pendingSaveTimer);
+      this.pendingSaveTimer = null;
+    }
+
+    if (!this.pendingState) {
+      return;
+    }
+
+    const state = this.pendingState;
+    this.pendingState = null;
+    this.writeState(state);
+  }
+
+  saveState(state: AppState): void {
+    if (!this.storage) return;
+
+    if (!this.pendingSaveTimer) {
+      this.writeState(state);
+    }
+
+    this.pendingState = state;
+    if (this.pendingSaveTimer) {
+      clearTimeout(this.pendingSaveTimer);
+    }
+
+    this.pendingSaveTimer = setTimeout(() => {
+      this.flushPendingSave();
+    }, SAVE_DEBOUNCE_MS);
+  }
+
   clear(): void {
     if (!this.storage) return;
+    this.pendingState = null;
+    if (this.pendingSaveTimer) {
+      clearTimeout(this.pendingSaveTimer);
+      this.pendingSaveTimer = null;
+    }
+    this.lastSavedSnapshot = null;
     this.storage.removeItem(STORAGE_KEY);
   }
 

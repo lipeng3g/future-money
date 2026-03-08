@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { APP_VERSION } from '@/utils/defaults';
 import { LocalStorageStateRepository, createDefaultState } from '@/utils/storage';
 import type { PersistedStateEnvelope } from '@/types/storage';
@@ -26,6 +26,11 @@ const createMemoryStorage = (): Storage => {
     },
   } as Storage;
 };
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 describe('LocalStorageStateRepository', () => {
   it('缺少 accounts/reconciliations 时会自动迁移并回写', () => {
@@ -113,5 +118,65 @@ describe('LocalStorageStateRepository', () => {
 
     expect(imported.snapshots).toEqual([]);
     expect(imported.reconciliations).toEqual([]);
+  });
+
+  it('连续 saveState 会立即保存首个状态，并在短时间内合并后续写入', () => {
+    vi.useFakeTimers();
+    const storage = createMemoryStorage();
+    const repository = new LocalStorageStateRepository(storage);
+    const saveSpy = vi.spyOn(storage, 'setItem');
+
+    const first = createDefaultState();
+    const second = createDefaultState();
+    second.account = { ...second.account, name: '第二次保存' };
+    second.accounts = [{ ...second.accounts[0], name: '第二次保存' }];
+
+    repository.saveState(first);
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+
+    repository.saveState(second);
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(150);
+
+    expect(saveSpy).toHaveBeenCalledTimes(2);
+    const persisted = JSON.parse(storage.getItem('futureMoney.state') || '{}') as PersistedStateEnvelope;
+    expect(persisted.state.account.name).toBe('第二次保存');
+  });
+
+  it('beforeunload 会立即 flush 尚未落盘的最新状态', () => {
+    vi.useFakeTimers();
+    const storage = createMemoryStorage();
+    const repository = new LocalStorageStateRepository(storage);
+    const saveSpy = vi.spyOn(storage, 'setItem');
+    const first = createDefaultState();
+    const second = createDefaultState();
+    second.account = { ...second.account, name: '离开前落盘' };
+    second.accounts = [{ ...second.accounts[0], name: '离开前落盘' }];
+
+    repository.saveState(first);
+    repository.saveState(second);
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+
+    window.dispatchEvent(new Event('beforeunload'));
+
+    expect(saveSpy).toHaveBeenCalledTimes(2);
+    const persisted = JSON.parse(storage.getItem('futureMoney.state') || '{}') as PersistedStateEnvelope;
+    expect(persisted.state.account.name).toBe('离开前落盘');
+  });
+
+  it('相同状态重复保存时不会重复写 localStorage', () => {
+    vi.useFakeTimers();
+    const storage = createMemoryStorage();
+    const repository = new LocalStorageStateRepository(storage);
+    const saveSpy = vi.spyOn(storage, 'setItem');
+    const state = createDefaultState();
+
+    repository.saveState(state);
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+
+    repository.saveState(state);
+    vi.advanceTimersByTime(150);
+    expect(saveSpy).toHaveBeenCalledTimes(1);
   });
 });

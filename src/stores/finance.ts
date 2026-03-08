@@ -252,8 +252,11 @@ export const useFinanceStore = defineStore('finance', () => {
     };
   };
 
-  const persist = () => {
+  const persist = (options?: { flush?: boolean }) => {
     storage.saveState(buildAppState('all'));
+    if (options?.flush) {
+      storage.flushPendingSave();
+    }
   };
 
   const applyState = (nextState: AppState, options?: { preferredAccountId?: string }) => {
@@ -751,14 +754,14 @@ export const useFinanceStore = defineStore('finance', () => {
     multiAccountSelection.value = [];
     viewSnapshotId.value = null;
     sortEvents();
-    persist();
+    persist({ flush: true });
   };
 
   const importAllState = (content: string) => {
     const imported = storage.importState(content);
     applyState(imported, { preferredAccountId: imported.account.id });
     sortEvents();
-    persist();
+    persist({ flush: true });
   };
 
   const importState = (content: string, mode: ImportExportMode = 'current') => {

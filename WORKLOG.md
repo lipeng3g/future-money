@@ -43,3 +43,6 @@
 [2026-03-08 22:55:00] task: 提取多账户时间线聚合器，消除 finance store / AI 上下文重复实现，并把按日期 repeatedly find 的 O(accounts×dates×timeline) 聚合改成预索引查表
 [2026-03-08 22:55:00] deliverables: 新增 src/utils/timeline-aggregate.ts 共享聚合工具；store 与 AI buildScopedFinancialContext 统一复用；补 timeline-aggregate 单测覆盖余额/事件/accountId/空时间线/日期排序
 [2026-03-08 22:55:00] verification: npm run type-check ✅, npm test ✅ (65), npm run build ✅; 功能行为不变，减少多账户视图与 AI 分析上下文构建时的重复扫描成本
+[2026-03-08 23:20:00] task: 优化本地持久化写入策略，避免高频编辑/导入时反复全量序列化并写 localStorage，同时保证关键导入/恢复场景可立即读到最新状态
+[2026-03-08 23:20:00] deliverables: LocalStorageStateRepository 新增“首写立即落盘 + 短窗口去抖合并 + 相同状态跳过重复写入 + beforeunload/pagehide flush + 显式 flushPendingSave 接口”；store 在 import current / import all 等关键路径强制 flush；新增 3 个存储层回归测试
+[2026-03-08 23:36:00] verification: npm run type-check ✅, npm test ✅ (69), npm run build ✅；构建 warning 仍是既有 vendor-charts ~563kB / vendor-antd ~718kB，后续继续拆包
