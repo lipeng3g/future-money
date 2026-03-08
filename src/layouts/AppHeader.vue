@@ -167,6 +167,7 @@ import type { Dayjs } from 'dayjs';
 import { Modal, message } from 'ant-design-vue';
 import type { UserPreferences } from '@/types/account';
 import { useFinanceStore } from '@/stores/finance';
+import { formatLocalISODate } from '@/utils/date';
 import PreferencesModal from '@/components/common/PreferencesModal.vue';
 import ReconciliationHistory from '@/components/reconciliation/ReconciliationHistory.vue';
 import ReconciliationModal from '@/components/reconciliation/ReconciliationModal.vue';
@@ -286,7 +287,7 @@ const exportData = () => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `future-money-${new Date().toISOString().slice(0, 10)}.json`;
+  link.download = `future-money-${formatLocalISODate()}.json`;
   link.click();
   URL.revokeObjectURL(url);
   message.success('导出成功');

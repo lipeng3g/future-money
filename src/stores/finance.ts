@@ -25,6 +25,7 @@ import type {
 } from '@/types';
 import { createId } from '@/utils/id';
 import { generateSampleEvents } from '@/utils/sample-data';
+import { formatLocalISODate } from '@/utils/date';
 
 const storage = createStateRepository();
 const generator = new TimelineGenerator();
@@ -52,7 +53,7 @@ export const useFinanceStore = defineStore('finance', () => {
 
   /** 当前逻辑日期字符串 (YYYY-MM-DD) */
   const todayStr = computed<string>(() => {
-    return simulatedToday.value ?? new Date().toISOString().split('T')[0];
+    return simulatedToday.value ?? formatLocalISODate();
   });
 
   type ViewMode = 'single' | 'multi';

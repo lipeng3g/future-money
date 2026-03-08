@@ -4,6 +4,7 @@
  */
 
 import type { AccountConfig, CashFlowEvent, AnalyticsSummary, DailySnapshot } from '@/types';
+import { formatLocalISODate } from '@/utils/date';
 
 // ---- 配置管理 ----
 
@@ -67,7 +68,7 @@ export const exportChatHistory = (messages: ChatRecord[]) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `财务分析对话-${new Date().toISOString().slice(0, 10)}.md`;
+    a.download = `财务分析对话-${formatLocalISODate()}.md`;
     a.click();
     URL.revokeObjectURL(url);
 };

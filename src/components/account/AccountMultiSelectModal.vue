@@ -67,6 +67,7 @@ import dayjs from 'dayjs';
 import { computed, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import type { AccountConfig } from '@/types/account';
+import { formatLocalISODate } from '@/utils/date';
 
 interface LatestReconciliationBrief {
   date: string;
@@ -90,7 +91,7 @@ const emit = defineEmits<{
 const selectedIds = ref<string[]>([]);
 const anchorAccountId = ref<string | null>(null);
 
-const todayStr = computed(() => props.today ?? new Date().toISOString().split('T')[0]);
+const todayStr = computed(() => props.today ?? formatLocalISODate());
 
 const formatMoney = (amount: number) => `¥${amount.toLocaleString('zh-CN')}`;
 
