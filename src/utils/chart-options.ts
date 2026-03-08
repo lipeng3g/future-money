@@ -53,24 +53,38 @@ export const buildBalanceChartFocusTargets = (
   ].filter((item): item is BalanceChartFocusTarget => Boolean(item));
 };
 
+export const getDefaultBalanceChartFocusKey = (
+  timeline: DailySnapshot[],
+  warningThreshold: number,
+  reconciliationDate?: string,
+): BalanceChartFocusKey | undefined => {
+  if (!timeline.length) return undefined;
+
+  if (timeline.some((point) => point.balance < warningThreshold)) {
+    return 'warning';
+  }
+
+  if (timeline.some((point) => point.isToday)) {
+    return 'today';
+  }
+
+  if (reconciliationDate && timeline.some((point) => point.date === reconciliationDate)) {
+    return 'reconciliation';
+  }
+
+  return 'latest';
+};
+
 export const getDefaultBalanceChartFocusDate = (
   timeline: DailySnapshot[],
   warningThreshold: number,
   reconciliationDate?: string,
 ): string | undefined => {
-  if (!timeline.length) return undefined;
+  const focusKey = getDefaultBalanceChartFocusKey(timeline, warningThreshold, reconciliationDate);
+  if (!focusKey) return undefined;
 
-  const firstWarning = timeline.find((point) => point.balance < warningThreshold)?.date;
-  if (firstWarning) return firstWarning;
-
-  const today = timeline.find((point) => point.isToday)?.date;
-  if (today) return today;
-
-  if (reconciliationDate && timeline.some((point) => point.date === reconciliationDate)) {
-    return reconciliationDate;
-  }
-
-  return timeline.at(-1)?.date;
+  return buildBalanceChartFocusTargets(timeline, warningThreshold, reconciliationDate)
+    .find((target) => target.key === focusKey)?.date;
 };
 
 export const getBalanceChartZoomWindow = (

@@ -5,6 +5,7 @@ import {
   buildBalanceChartOption,
   getBalanceChartZoomWindow,
   getDefaultBalanceChartFocusDate,
+  getDefaultBalanceChartFocusKey,
 } from '@/utils/chart-options';
 import {
   buildCashFlowChartOption,
@@ -49,13 +50,26 @@ describe('chart-options', () => {
       createDay({ date: '2025-01-02', balance: 900, change: -1100 }),
       createDay({ date: '2025-01-03', balance: 1200, change: 300, isToday: true }),
     ];
+    expect(getDefaultBalanceChartFocusKey(warningTimeline, 1000, '2025-01-01')).toBe('warning');
     expect(getDefaultBalanceChartFocusDate(warningTimeline, 1000, '2025-01-01')).toBe('2025-01-02');
+
+    const overlapTimeline = [
+      createDay({ date: '2025-01-01', balance: 2000, change: 0 }),
+      createDay({ date: '2025-01-02', balance: 900, change: -1100, isToday: true }),
+    ];
+    expect(getDefaultBalanceChartFocusKey(overlapTimeline, 1000, '2025-01-01')).toBe('warning');
+    expect(getDefaultBalanceChartFocusDate(overlapTimeline, 1000, '2025-01-01')).toBe('2025-01-02');
 
     const todayTimeline = [
       createDay({ date: '2025-01-01', balance: 2000, change: 0 }),
       createDay({ date: '2025-01-02', balance: 1800, change: -200, isToday: true }),
     ];
+    expect(getDefaultBalanceChartFocusKey(todayTimeline, 1000, '2025-01-01')).toBe('today');
     expect(getDefaultBalanceChartFocusDate(todayTimeline, 1000, '2025-01-01')).toBe('2025-01-02');
+    expect(getDefaultBalanceChartFocusKey([
+      createDay({ date: '2025-01-01', balance: 2000, change: 0 }),
+      createDay({ date: '2025-01-02', balance: 1800, change: -200 }),
+    ], 1000, '2025-01-01')).toBe('reconciliation');
     expect(getDefaultBalanceChartFocusDate([
       createDay({ date: '2025-01-01', balance: 2000, change: 0 }),
       createDay({ date: '2025-01-02', balance: 1800, change: -200 }),

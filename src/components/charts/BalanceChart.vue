@@ -53,6 +53,7 @@ import {
   buildBalanceChartFocusTargets,
   buildBalanceChartOption,
   getDefaultBalanceChartFocusDate,
+  getDefaultBalanceChartFocusKey,
   type BalanceChartFocusKey,
 } from '@/utils/chart-options';
 
@@ -99,12 +100,18 @@ watch(
       return;
     }
 
+    const preferredKey = getDefaultBalanceChartFocusKey(
+      props.timeline,
+      props.warningThreshold,
+      props.reconciliationDate,
+    );
     const preferredDate = getDefaultBalanceChartFocusDate(
       props.timeline,
       props.warningThreshold,
       props.reconciliationDate,
     );
-    const preferredButton = buttons.find((button) => button.date === preferredDate);
+    const preferredButton = buttons.find((button) => button.key === preferredKey)
+      ?? buttons.find((button) => button.date === preferredDate);
 
     if (preferredButton) {
       activeFocusKey.value = preferredButton.key;

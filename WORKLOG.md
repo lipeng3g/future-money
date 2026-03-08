@@ -115,3 +115,6 @@
 [2026-03-09 05:32:00] task: 给高风险导入/恢复 UI 补组件级回归，避免账户差异/数据规模提示与撤销入口只在纯函数层被覆盖
 [2026-03-09 05:32:00] deliverables: 新增 src/layouts/__tests__/AppHeader.test.ts，覆盖“恢复全部账户”确认框里的账户差异与数据规模变化接线，以及“撤销上次导入”在账户管理中的可见性、确认框摘要和真实回滚执行
 [2026-03-09 05:33:00] verification: npm test ✅ (115), npm run type-check ✅, npm run build ✅；高风险导入/撤销流现已同时具备 store / pure util / 组件接线三层回归，chart-base ~471.84kB 仍是后续主要性能优化点
+[2026-03-09 05:40:00] task: 给余额图“快速定位条 + 焦点解释卡”补组件级回归，避免图表交互继续只靠纯函数测试兜底
+[2026-03-09 05:40:00] deliverables: 新增 src/components/charts/__tests__/BalanceChart.test.ts，覆盖空态、快速定位切换、外部 focusKey/focusDate 联动、仅含事件点触发 select-date；同时在补测中发现并修复默认焦点优先级 bug：当“今天”和“首次预警”落在同一天时，默认焦点现在按 warning > today > reconciliation 的 key 优先级稳定命中，而不再按日期误落到第一个按钮
+[2026-03-09 05:45:00] verification: npm test ✅ (120), npm run type-check ✅, npm run build ✅；新增图表组件级回归已纳入全量验证，当前主要性能余项仍是 chart-base ~471.84kB
