@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildEventChartFocusState, buildEventListFocusState } from '@/utils/event-focus';
+import { buildEventChartFocusState, buildEventListFocusState, stepEventChartFocusState } from '@/utils/event-focus';
 import type { CashFlowEvent, DailySnapshot } from '@/types';
 
 const createDay = (overrides: Partial<DailySnapshot> & Pick<DailySnapshot, 'date' | 'balance' | 'change'>): DailySnapshot => ({
@@ -68,7 +68,7 @@ describe('event-focus', () => {
     expect(buildEventListFocusState(timeline, [], '2025-01-11')).toBeNull();
   });
 
-  it('会从事件反向定位到图表中的下一次发生日期，并给出次数说明', () => {
+  it('会从事件反向定位到图表中的下一次发生日期，并给出可切换状态', () => {
     const event = createEvent({
       id: 'evt-rent',
       accountId: 'acc-cash',
@@ -97,15 +97,83 @@ describe('event-focus', () => {
         change: -3000,
         events: [{ id: 'occ-2', eventId: 'evt-rent', name: '房租', amount: 3000, category: 'expense', date: '2025-02-10', accountId: 'acc-cash' }],
       }),
+      createDay({
+        date: '2025-03-10',
+        balance: 500,
+        change: -3000,
+        events: [{ id: 'occ-3', eventId: 'evt-rent', name: '房租', amount: 3000, category: 'expense', date: '2025-03-10', accountId: 'acc-cash' }],
+      }),
     ];
 
     expect(buildEventChartFocusState(timeline, event)).toEqual({
       eventId: 'evt-rent',
       date: '2025-02-10',
-      occurrenceCount: 2,
+      occurrenceCount: 3,
+      occurrenceIndex: 1,
+      matchedDates: ['2025-01-10', '2025-02-10', '2025-03-10'],
       title: '已定位到「房租」',
-      summary: '图表已跳到 2025-02-10（当前时间窗内共 2 次发生，可继续拖动查看其它日期）。',
+      summary: '图表已跳到 2025-02-10（第 2 / 3 次发生，可继续切换查看前后日期）。',
+      canFocusPrev: true,
+      canFocusNext: true,
     });
+  });
+
+  it('支持在同一事件的多个发生日期之间前后切换', () => {
+    const event = createEvent({
+      id: 'evt-rent',
+      accountId: 'acc-cash',
+      name: '房租',
+      amount: 3000,
+      category: 'expense',
+      type: 'monthly',
+      startDate: '2025-01-01',
+      enabled: true,
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:00.000Z',
+      monthlyDay: 10,
+    });
+
+    const timeline = [
+      createDay({
+        date: '2025-01-10',
+        balance: 3200,
+        change: -3000,
+        events: [{ id: 'occ-1', eventId: 'evt-rent', name: '房租', amount: 3000, category: 'expense', date: '2025-01-10', accountId: 'acc-cash' }],
+      }),
+      createDay({ date: '2025-01-15', balance: 4000, change: 800, isToday: true }),
+      createDay({
+        date: '2025-02-10',
+        balance: 1000,
+        change: -3000,
+        events: [{ id: 'occ-2', eventId: 'evt-rent', name: '房租', amount: 3000, category: 'expense', date: '2025-02-10', accountId: 'acc-cash' }],
+      }),
+      createDay({
+        date: '2025-03-10',
+        balance: 500,
+        change: -3000,
+        events: [{ id: 'occ-3', eventId: 'evt-rent', name: '房租', amount: 3000, category: 'expense', date: '2025-03-10', accountId: 'acc-cash' }],
+      }),
+    ];
+
+    const initial = buildEventChartFocusState(timeline, event);
+    expect(initial?.date).toBe('2025-02-10');
+
+    const next = initial ? stepEventChartFocusState(timeline, event, initial, 1) : null;
+    expect(next).toEqual({
+      eventId: 'evt-rent',
+      date: '2025-03-10',
+      occurrenceCount: 3,
+      occurrenceIndex: 2,
+      matchedDates: ['2025-01-10', '2025-02-10', '2025-03-10'],
+      title: '已定位到「房租」',
+      summary: '图表已跳到 2025-03-10（第 3 / 3 次发生，可继续切换查看前后日期）。',
+      canFocusPrev: true,
+      canFocusNext: false,
+    });
+
+    const back = next ? stepEventChartFocusState(timeline, event, next, -1) : null;
+    expect(back?.date).toBe('2025-02-10');
+    expect(back?.occurrenceIndex).toBe(1);
   });
 
   it('当前时间窗内没有该事件发生时，不触发图表定位', () => {

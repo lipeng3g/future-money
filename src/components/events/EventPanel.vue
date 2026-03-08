@@ -12,11 +12,17 @@
     </header>
 
     <div v-if="activeFocus" class="focus-banner" :class="{ 'focus-banner--chart': activeChartFocus }">
-      <div>
+      <div class="focus-banner-copy">
         <strong>{{ activeFocus.title }}</strong>
         <p>{{ activeFocus.summary }}</p>
       </div>
-      <a-button size="small" type="text" @click="clearFocus">清除定位</a-button>
+      <div class="focus-banner-actions">
+        <template v-if="activeChartFocus">
+          <a-button size="small" @click="stepChartFocus(-1)" :disabled="!activeChartFocus.canFocusPrev">上一个日期</a-button>
+          <a-button size="small" @click="stepChartFocus(1)" :disabled="!activeChartFocus.canFocusNext">下一个日期</a-button>
+        </template>
+        <a-button size="small" type="text" @click="clearFocus">清除定位</a-button>
+      </div>
     </div>
 
     <EventList
@@ -47,7 +53,7 @@ import EventList from '@/components/events/EventList.vue';
 import EventFormModal from '@/components/events/EventFormModal.vue';
 import type { CashFlowEvent, EventFormValues, NewCashFlowEvent } from '@/types/event';
 import type { EventListFocusState, EventChartFocusState } from '@/utils/event-focus';
-import { buildEventChartFocusState } from '@/utils/event-focus';
+import { buildEventChartFocusState, stepEventChartFocusState } from '@/utils/event-focus';
 import { useFinanceStore } from '@/stores/finance';
 
 const props = defineProps<{
@@ -152,6 +158,22 @@ const handleFocusChart = (event: CashFlowEvent) => {
 
   chartFocusState.value = focus;
   emit('focus-chart-date', focus.date);
+};
+
+const stepChartFocus = (direction: -1 | 1) => {
+  if (!chartFocusState.value) return;
+
+  const event = events.value.find((item) => item.id === chartFocusState.value?.eventId);
+  if (!event) {
+    clearFocus();
+    return;
+  }
+
+  const nextFocus = stepEventChartFocusState(store.timeline, event, chartFocusState.value, direction);
+  if (!nextFocus) return;
+
+  chartFocusState.value = nextFocus;
+  emit('focus-chart-date', nextFocus.date);
 };
 
 const handleSubmit = (values: EventFormValues) => {
@@ -281,6 +303,11 @@ const loadSamples = () => {
   background: rgba(14, 165, 233, 0.07);
 }
 
+.focus-banner-copy {
+  min-width: 0;
+  flex: 1;
+}
+
 .focus-banner strong {
   color: var(--fm-text-primary);
   font-size: 0.9rem;
@@ -291,5 +318,13 @@ const loadSamples = () => {
   color: var(--fm-text-secondary);
   font-size: 0.82rem;
   line-height: 1.6;
+}
+
+.focus-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 </style>

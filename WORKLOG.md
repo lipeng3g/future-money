@@ -83,3 +83,7 @@
 [2026-03-09 03:00:00] task: 将事件表单中的 yearly/monthly 重复日期语义前移为即时字段提示，减少用户提交后才发现规则含义或非法月日组合的成本
 [2026-03-09 03:00:00] deliverables: src/utils/event-form.ts 新增 monthly/yearly semantic hint 纯函数；EventFormModal 接入 help / validate-status；补 event-form 回归测试覆盖 31 日月末降级、2/29 平年降级、4/31 即时错误
 [2026-03-09 03:03:00] verification: npm test ✅ (94), npm run type-check ✅, npm run build ✅；当前构建无默认 chunk 告警，残余较大共享异步块为 chart-base ~471.8kB，可作为下一轮继续拆分目标
+
+[2026-03-09 03:18:38] task: 为事件清单补“同一规则多次发生日期前后切换”能力
+[2026-03-09 03:20:21] deliverables: 事件图表定位支持同一规则的前后日期切换；event-focus 纯函数新增 occurrence index / matchedDates / step 导航
+[2026-03-09 03:20:21] verification: npm run type-check ✅, npm test ✅ (95), npm run build ✅

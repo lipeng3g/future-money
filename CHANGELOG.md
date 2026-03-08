@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-03-09
+- feat(event-navigation): 事件清单里的“查看图上日期”现在支持在同一规则的多个发生日期之间前后切换；定位横幅会显示当前是第几次发生，并提供“上一个日期 / 下一个日期”按钮，避免高频事件只能跳到一次后还要手动拖图继续找
+- test(event-focus): 扩展事件定位纯函数测试，覆盖多次发生日期的索引、前后可切换状态，以及 step 切换回归
 - fix(build): 删除误导 Vite 实际构建的历史编译产物 `vite.config.js`，收口到源码配置 `vite.config.ts`，修复“代码已拆包但生产构建仍回退到旧 manualChunks 策略”的配置漂移问题
 - perf(build): 继续细化 Vite `manualChunks`，把原先单一的 `vendor-antd` 大包拆成 `vendor-antd-core / vendor-antd-form / vendor-antd-feedback / vendor-antd-icons`，并把 `markdown-it`、日期库单独分仓，降低首屏被低频弹窗 UI 依赖绑住的概率
 - perf(charts): 将共享图表纯函数从单一 `chart-options.ts` 继续拆成 `chart-base.ts + chart-options-cashflow.ts + chart-options.ts(余额图)`，让月度收支图不再跟余额图焦点/tooltip/markLine 逻辑打进同一异步块
