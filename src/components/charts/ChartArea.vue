@@ -58,6 +58,7 @@
 
     <!-- 对账弹窗 -->
     <ReconciliationModal
+      v-if="reconcileModalOpen"
       :open="reconcileModalOpen"
       @cancel="reconcileModalOpen = false"
       @done="handleReconcileDone"
@@ -87,12 +88,12 @@ import TimeRangeControl from '@/components/charts/TimeRangeControl.vue';
 import StatisticsPanel from '@/components/charts/StatisticsPanel.vue';
 import UpcomingEvents from '@/components/charts/UpcomingEvents.vue';
 import ReconciliationBanner from '@/components/reconciliation/ReconciliationBanner.vue';
-import ReconciliationModal from '@/components/reconciliation/ReconciliationModal.vue';
 import { useFinanceStore } from '@/stores/finance';
 import AppIcon from '@/components/common/AppIcon.vue';
 
 const BalanceChart = defineAsyncComponent(() => import('@/components/charts/BalanceChart.vue'));
 const CashFlowChart = defineAsyncComponent(() => import('@/components/charts/CashFlowChart.vue'));
+const ReconciliationModal = defineAsyncComponent(() => import('@/components/reconciliation/ReconciliationModal.vue'));
 const AiAnalysisModal = defineAsyncComponent(() => import('@/components/ai/AiAnalysisModal.vue'));
 const AiConfigModal = defineAsyncComponent(() => import('@/components/ai/AiConfigModal.vue'));
 const loadAiConfig = async () => {

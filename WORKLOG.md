@@ -26,3 +26,6 @@
 [2026-03-08 21:55:00] task: defer ECharts runtime out of app entry; move vue-echarts registration into chart components and lazy-load chart panes from ChartArea
 [2026-03-08 21:55:00] expected gain: reduce non-chart route/bootstrap JS, keep analytics cards/upcoming list interactive while chart chunk loads separately
 [2026-03-08 21:57:00] verification: npm run type-check ✅, npm test ✅ (42), npm run build ✅; app entry index js 96.67kB -> 88.34kB, chart panes split into BalanceChart/CashFlowChart async chunks; vendor-charts still ~563kB and remains next splitting target
+[2026-03-08 21:58:00] task: lazy-load low-frequency management surfaces from header/drawer instead of eagerly shipping them in the app shell
+[2026-03-08 21:58:00] deliverables: AppHeader management modals async + render-on-open, MainLayout event panel/form async + render-on-open, ChartArea reconcile modal async to avoid static-import chunk pinning
+[2026-03-08 22:00:00] verification: npm run type-check ✅, npm test ✅ (42), npm run build ✅; app entry index js 65.37kB -> 57.04kB, reconciliation/event/account modal code now emitted as separate async chunks

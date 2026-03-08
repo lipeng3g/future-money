@@ -26,11 +26,12 @@
       width="480"
       :bodyStyle="{ padding: '24px' }"
     >
-      <EventPanel />
+      <EventPanel v-if="drawerVisible" />
     </a-drawer>
 
     <!-- 快速添加表单 -->
     <EventFormModal
+      v-if="modalOpen"
       :open="modalOpen"
       :event="null"
       @submit="handleSubmit"
@@ -40,14 +41,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { defineAsyncComponent, ref } from 'vue';
 import { message } from 'ant-design-vue';
 import { useFinanceStore } from '@/stores/finance';
-import EventPanel from '@/components/events/EventPanel.vue';
-import EventFormModal from '@/components/events/EventFormModal.vue';
 import ChartArea from '@/components/charts/ChartArea.vue';
 import type { EventFormValues, NewCashFlowEvent } from '@/types/event';
 import AppIcon from '@/components/common/AppIcon.vue';
+
+const EventPanel = defineAsyncComponent(() => import('@/components/events/EventPanel.vue'));
+const EventFormModal = defineAsyncComponent(() => import('@/components/events/EventFormModal.vue'));
 
 const store = useFinanceStore();
 const drawerVisible = ref(false);

@@ -123,24 +123,32 @@
     </div>
     <input ref="fileInput" type="file" accept="application/json" class="file-input" @change="handleFileChange" />
     <PreferencesModal
+      v-if="preferencesOpen"
       :open="preferencesOpen"
       :preferences="store.preferences"
       @save="savePreferences"
       @cancel="preferencesOpen = false"
     />
-    <ReconciliationHistory :open="reconciliationHistoryOpen" @close="reconciliationHistoryOpen = false" />
+    <ReconciliationHistory
+      v-if="reconciliationHistoryOpen"
+      :open="reconciliationHistoryOpen"
+      @close="reconciliationHistoryOpen = false"
+    />
     <ReconciliationModal
+      v-if="reconcileOpen"
       :open="reconcileOpen"
       @cancel="reconcileOpen = false"
       @done="handleReconcileDone"
     />
     <CreateAccountModal
+      v-if="createAccountOpen"
       :open="createAccountOpen"
       :default-warning-threshold="store.currentAccount.warningThreshold"
       @submit="handleCreateAccountSubmit"
       @cancel="createAccountOpen = false"
     />
     <AccountMultiSelectModal
+      v-if="multiAccountOpen"
       :open="multiAccountOpen"
       :accounts="store.accounts"
       :initial-selected="store.selectedAccountIds"
@@ -150,6 +158,7 @@
       @cancel="multiAccountOpen = false"
     />
     <AccountManageModal
+      v-if="accountManageOpen"
       :open="accountManageOpen"
       @close="accountManageOpen = false"
       @import="handleManageImport"
@@ -161,19 +170,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, h } from 'vue';
+import { computed, defineAsyncComponent, ref, h } from 'vue';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { Modal, message } from 'ant-design-vue';
 import type { UserPreferences } from '@/types/account';
 import { useFinanceStore } from '@/stores/finance';
 import { formatLocalISODate } from '@/utils/date';
-import PreferencesModal from '@/components/common/PreferencesModal.vue';
-import ReconciliationHistory from '@/components/reconciliation/ReconciliationHistory.vue';
-import ReconciliationModal from '@/components/reconciliation/ReconciliationModal.vue';
-import AccountMultiSelectModal from '@/components/account/AccountMultiSelectModal.vue';
-import CreateAccountModal from '@/components/account/CreateAccountModal.vue';
-import AccountManageModal from '@/components/account/AccountManageModal.vue';
+
+const PreferencesModal = defineAsyncComponent(() => import('@/components/common/PreferencesModal.vue'));
+const ReconciliationHistory = defineAsyncComponent(() => import('@/components/reconciliation/ReconciliationHistory.vue'));
+const ReconciliationModal = defineAsyncComponent(() => import('@/components/reconciliation/ReconciliationModal.vue'));
+const AccountMultiSelectModal = defineAsyncComponent(() => import('@/components/account/AccountMultiSelectModal.vue'));
+const CreateAccountModal = defineAsyncComponent(() => import('@/components/account/CreateAccountModal.vue'));
+const AccountManageModal = defineAsyncComponent(() => import('@/components/account/AccountManageModal.vue'));
 
 interface LatestReconciliationBrief {
   date: string;
