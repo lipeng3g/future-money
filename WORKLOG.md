@@ -112,3 +112,6 @@
 [2026-03-09 05:20:00] task: 继续降低整库恢复误操作风险，把确认框里的“当前本地 vs 备份文件”差异从账户名级扩展到数据规模净增减摘要
 [2026-03-09 05:20:00] deliverables: src/utils/import-preview.ts 新增 buildImportDataDeltaSummary；AppHeader 的恢复全部账户确认框展示账户 / 事件 / 对账 / 账本 / 覆盖记录的恢复前后净变化；补 import-preview 回归测试覆盖净增减计算；同步更新 CHANGELOG / NEXT_TASK
 [2026-03-09 05:20:00] verification: npm test ✅ (113), npm run type-check ✅, npm run build ✅；构建默认 chunk 告警仍已消除，chart-base ~471.84kB 仍是下一轮可继续优化目标
+[2026-03-09 05:32:00] task: 给高风险导入/恢复 UI 补组件级回归，避免账户差异/数据规模提示与撤销入口只在纯函数层被覆盖
+[2026-03-09 05:32:00] deliverables: 新增 src/layouts/__tests__/AppHeader.test.ts，覆盖“恢复全部账户”确认框里的账户差异与数据规模变化接线，以及“撤销上次导入”在账户管理中的可见性、确认框摘要和真实回滚执行
+[2026-03-09 05:33:00] verification: npm test ✅ (115), npm run type-check ✅, npm run build ✅；高风险导入/撤销流现已同时具备 store / pure util / 组件接线三层回归，chart-base ~471.84kB 仍是后续主要性能优化点
