@@ -5,3 +5,4 @@ dist
 .vscode
 pnpm-lock.yaml
 yarn.lock
+*.tsbuildinfo
