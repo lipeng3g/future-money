@@ -48,6 +48,12 @@ export interface ImportAccountDataDeltaItem {
   eventOverridesDelta: number;
 }
 
+export interface ImportAccountEventDiffItem {
+  accountName: string;
+  addedEventNames: string[];
+  removedEventNames: string[];
+}
+
 export interface ImportDateRangeSummary {
   currentRangeLabel: string;
   incomingRangeLabel: string;
@@ -295,6 +301,57 @@ export const buildImportAccountDataDeltaSummary = (
       eventOverridesDelta: (incomingOverrides.get(accountName) ?? 0) - (currentOverrides.get(accountName) ?? 0),
     }))
     .filter((item) => item.eventsDelta !== 0 || item.reconciliationsDelta !== 0 || item.ledgerEntriesDelta !== 0 || item.eventOverridesDelta !== 0)
+    .sort((a, b) => a.accountName.localeCompare(b.accountName, 'zh-CN'));
+};
+
+const buildAccountEventNameMap = (
+  accounts: AppState['accounts'] | undefined,
+  events: Pick<AppState, 'events'>['events'] | undefined,
+) => {
+  const accountNames = buildAccountNameMap(accounts);
+  const map = new Map<string, Set<string>>();
+
+  (events ?? []).forEach((event) => {
+    const accountName = accountNames.get(event.accountId) ?? '';
+    const eventName = event.name?.trim() ?? '';
+    if (!accountName || !eventName) return;
+    const existing = map.get(accountName) ?? new Set<string>();
+    existing.add(eventName);
+    map.set(accountName, existing);
+  });
+
+  return map;
+};
+
+export const buildImportAccountEventDiffSummary = (
+  incomingState: Pick<AppState, 'accounts' | 'events'>,
+  currentState?: Pick<AppState, 'accounts' | 'events'>,
+): ImportAccountEventDiffItem[] => {
+  const currentMap = buildAccountEventNameMap(currentState?.accounts, currentState?.events);
+  const incomingMap = buildAccountEventNameMap(incomingState.accounts, incomingState.events);
+  const allAccountNames = Array.from(new Set([
+    ...currentMap.keys(),
+    ...incomingMap.keys(),
+  ])).filter(Boolean);
+
+  return allAccountNames
+    .map((accountName) => {
+      const currentNames = currentMap.get(accountName) ?? new Set<string>();
+      const incomingNames = incomingMap.get(accountName) ?? new Set<string>();
+      const addedEventNames = Array.from(incomingNames)
+        .filter((name) => !currentNames.has(name))
+        .sort((a, b) => a.localeCompare(b, 'zh-CN'));
+      const removedEventNames = Array.from(currentNames)
+        .filter((name) => !incomingNames.has(name))
+        .sort((a, b) => a.localeCompare(b, 'zh-CN'));
+
+      return {
+        accountName,
+        addedEventNames,
+        removedEventNames,
+      };
+    })
+    .filter((item) => item.addedEventNames.length || item.removedEventNames.length)
     .sort((a, b) => a.accountName.localeCompare(b.accountName, 'zh-CN'));
 };
 

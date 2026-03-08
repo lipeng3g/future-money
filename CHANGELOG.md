@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-03-09
+- safety(import): “恢复全部账户”确认框新增“按账户的事件规则变化”摘要；现在除了账户名、总量变化和日期覆盖范围外，还会直接提示每个账户有哪些事件规则会新增/移除，减少用户在恢复前自己脑补“这份备份到底会把哪些业务规则换掉”的成本
+- test(import-preview): 扩展 `src/utils/__tests__/import-preview.test.ts`，补按账户事件名增删聚合回归，避免事件规则 diff 在账户迁移、重名事件或脏数据下再次漂移
+- test(import-ui): 扩展 `src/layouts/__tests__/AppHeader.test.ts`，真实覆盖整库恢复确认框里的“按账户的事件规则变化”接线，继续把高风险恢复流的提示从纯函数补到组件层
 - safety(import): “恢复全部账户”确认框新增“备份新旧程度”提示；当备份文件的最新业务日期明显早于当前本地时，会直接提示这可能是一份偏旧备份，并展示“当前本地最新日期 / 备份文件最新日期”，帮助在确认前更快识别“旧备份覆盖新数据”的风险
 - test(import-preview): 扩展 `src/utils/__tests__/import-preview.test.ts`，补“旧备份预警 / 日期不早于当前本地”的回归，避免备份新旧判断再次漂移
 - test(import-ui): 扩展 `src/layouts/__tests__/AppHeader.test.ts`，真实覆盖整库恢复确认框中的“备份时间新旧正常 / 旧备份预警”接线，继续把高风险恢复流的提示从纯函数补到组件层

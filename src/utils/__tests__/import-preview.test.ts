@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildImportAccountDataDeltaSummary,
   buildImportAccountDiffSummary,
+  buildImportAccountEventDiffSummary,
   buildImportDataDeltaSummary,
   buildImportDateRangeSummary,
   buildImportFreshnessSummary,
@@ -256,6 +257,49 @@ describe('parseImportPreview', () => {
         reconciliationsDelta: 0,
         ledgerEntriesDelta: 0,
         eventOverridesDelta: 1,
+      },
+    ]);
+  });
+
+  it('会给出按账户聚合后的事件名增删摘要，便于直接看出会多哪些规则、少哪些规则', () => {
+    const diff = buildImportAccountEventDiffSummary({
+      accounts: [
+        { id: 'acc-a', name: '现金账户' },
+        { id: 'acc-b', name: '信用卡' },
+      ],
+      events: [
+        { id: 'evt-1', accountId: 'acc-a', name: '工资' },
+        { id: 'evt-2', accountId: 'acc-a', name: '奖金' },
+        { id: 'evt-3', accountId: 'acc-b', name: '还款' },
+        { id: 'evt-4', accountId: 'acc-b', name: '还款' },
+      ],
+    } as never, {
+      accounts: [
+        { id: 'current-a', name: '现金账户' },
+        { id: 'current-c', name: '旅行基金' },
+      ],
+      events: [
+        { id: 'evt-old-1', accountId: 'current-a', name: '工资' },
+        { id: 'evt-old-2', accountId: 'current-a', name: '餐补' },
+        { id: 'evt-old-3', accountId: 'current-c', name: '旅行储蓄' },
+      ],
+    } as never);
+
+    expect(diff).toEqual([
+      {
+        accountName: '旅行基金',
+        addedEventNames: [],
+        removedEventNames: ['旅行储蓄'],
+      },
+      {
+        accountName: '现金账户',
+        addedEventNames: ['奖金'],
+        removedEventNames: ['餐补'],
+      },
+      {
+        accountName: '信用卡',
+        addedEventNames: ['还款'],
+        removedEventNames: [],
       },
     ]);
   });

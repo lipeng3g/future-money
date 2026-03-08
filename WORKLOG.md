@@ -123,3 +123,6 @@
 [2026-03-09 06:18:00] task: 继续降低整库恢复误操作风险，补“备份是否明显比当前本地旧”的直接预警，减少用户只看日期范围却没快速意识到是旧备份的情况
 [2026-03-09 06:18:00] deliverables: src/utils/import-preview.ts 新增 buildImportFreshnessSummary；AppHeader 的恢复全部账户确认框展示“备份时间新旧正常 / 旧备份预警”与最新业务日期对比；补 import-preview / AppHeader 回归测试
 [2026-03-09 06:20:00] verification: npm run type-check ✅, npm test ✅ (125), npm run build ✅；构建默认 chunk 告警仍已消除，chart-base ~471.84kB 仍是下一轮主要性能优化点
+[2026-03-09 06:32:00] task: 把整库恢复确认信息继续从“数量 diff”推进到“按账户的事件规则名级 diff”，避免用户知道会增减几条事件却仍不清楚具体会替换掉哪些规则
+[2026-03-09 06:32:00] deliverables: src/utils/import-preview.ts 新增 buildImportAccountEventDiffSummary；AppHeader 的恢复全部账户确认框展示“按账户的事件规则变化”；补 import-preview / AppHeader 回归测试覆盖新增事件、移除事件、按账户聚合与去重语义
+[2026-03-09 06:36:00] verification: npm run type-check ✅, npm test ✅ (126), npm run build ✅；当前恢复确认流已具备账户名 / 数据规模 / 日期范围 / 备份新旧 / 事件规则名级 diff 五层提示，下一轮仍可继续攻 chart-base ~471.84kB 性能余项

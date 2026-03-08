@@ -184,6 +184,7 @@ import { formatLocalISODate } from '@/utils/date';
 import {
   buildImportAccountDataDeltaSummary,
   buildImportAccountDiffSummary,
+  buildImportAccountEventDiffSummary,
   buildImportDataDeltaSummary,
   buildImportDateRangeSummary,
   buildImportFreshnessSummary,
@@ -329,6 +330,7 @@ const confirmImportAll = (content: string, fileName: string) => {
   const accountDiff = buildImportAccountDiffSummary(summary, store.accounts);
   const dataDelta = buildImportDataDeltaSummary(summary, currentState);
   const accountDataDelta = buildImportAccountDataDeltaSummary(incomingState, currentState);
+  const accountEventDiff = buildImportAccountEventDiffSummary(incomingState, currentState);
   const dateRange = buildImportDateRangeSummary(incomingState, currentState);
   const freshness = buildImportFreshnessSummary(incomingState, currentState);
   let inputValue = '';
@@ -362,6 +364,13 @@ const confirmImportAll = (content: string, fileName: string) => {
       ].filter((part): part is string => !!part);
       return `${item.accountName}：${parts.join('，')}`;
     });
+  const accountEventDiffRows = accountEventDiff.map((item) => {
+    const parts = [
+      item.addedEventNames.length ? `新增事件：${item.addedEventNames.join('、')}` : null,
+      item.removedEventNames.length ? `移除事件：${item.removedEventNames.join('、')}` : null,
+    ].filter((part): part is string => !!part);
+    return `${item.accountName}：${parts.join('；')}`;
+  });
   const dateRangeRows = [
     `当前本地日期覆盖：${dateRange.currentRangeLabel}`,
     `备份文件日期覆盖：${dateRange.incomingRangeLabel}`,
@@ -401,6 +410,12 @@ const confirmImportAll = (content: string, fileName: string) => {
         ? h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
           h('div', { style: 'font-weight: 600; margin-bottom: 6px; color: #0f172a;' }, '按账户的数据变化'),
           ...accountDataDeltaRows.map((row) => h('div', row)),
+        ])
+        : null,
+      accountEventDiffRows.length
+        ? h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
+          h('div', { style: 'font-weight: 600; margin-bottom: 6px; color: #0f172a;' }, '按账户的事件规则变化'),
+          ...accountEventDiffRows.map((row) => h('div', row)),
         ])
         : null,
       freshness

@@ -330,6 +330,10 @@ describe('AppHeader', () => {
     expect(contentText).toContain('覆盖记录：当前 0 → 备份 1（增加 +1）');
     expect(contentText).toContain('按账户的数据变化');
     expect(contentText).toContain('信用卡：事件 +1');
+    expect(contentText).toContain('按账户的事件规则变化');
+    expect(contentText).toContain('现金账户：新增事件：工资');
+    expect(contentText).toContain('信用卡：新增事件：还款');
+    expect(contentText).toContain('主账户：移除事件：现有工资');
     expect(contentText).toContain('当前本地日期覆盖：2026-01-01 → 2026-03-05');
     expect(contentText).toContain('备份文件日期覆盖：2026-03-01 → 2026-03-09');
     expect(contentText).toContain('备份时间新旧正常');
