@@ -22,6 +22,7 @@ import type {
   LedgerEntry,
   EventOverride,
 } from '@/types';
+import type { ImportExportMode } from '@/types/storage';
 import { createId } from '@/utils/id';
 import { generateSampleEvents } from '@/utils/sample-data';
 import { formatLocalISODate } from '@/utils/date';
@@ -33,8 +34,6 @@ const analyticsEngine = new AnalyticsEngine();
 const reconciliationEngine = new ReconciliationEngine();
 
 const seedState = storage.loadState();
-
-type ImportExportMode = 'current' | 'all';
 
 export const useFinanceStore = defineStore('finance', () => {
   const account = ref<AccountConfig>({ ...seedState.account });
@@ -773,7 +772,7 @@ export const useFinanceStore = defineStore('finance', () => {
   };
 
   const exportState = (mode: ImportExportMode = 'current') =>
-    storage.exportState(buildAppState(mode));
+    storage.exportState(buildAppState(mode), mode);
 
   const clearCurrentAccount = () => {
     const targetId = currentAccount.value.id;

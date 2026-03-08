@@ -46,11 +46,21 @@ describe('finance store import/export', () => {
     store.currentAccountId = primaryId;
     const exported = JSON.parse(store.exportState('all'));
 
+    expect(exported.scope).toBe('all');
     expect(exported.state.accounts).toHaveLength(2);
     expect(exported.state.events).toHaveLength(2);
     expect(new Set(exported.state.events.map((event: { accountId: string }) => event.accountId))).toEqual(
       new Set([primaryId, secondary.id]),
     );
+  });
+
+  it('导出当前账户时会写入 current scope，供导入阶段防误操作识别', () => {
+    const store = useFinanceStore();
+
+    const exported = JSON.parse(store.exportState('current'));
+
+    expect(exported.scope).toBe('current');
+    expect(exported.state.accounts).toHaveLength(1);
   });
 
   it('恢复全部账户时会替换整个本地状态，而不是塞进当前账户', () => {

@@ -21,8 +21,11 @@ export interface AppState {
   eventOverrides: EventOverride[];
 }
 
+export type ImportExportMode = 'current' | 'all';
+
 export interface PersistedStateEnvelope {
   version: string;
   timestamp: string;
+  scope?: ImportExportMode;
   state: AppState;
 }

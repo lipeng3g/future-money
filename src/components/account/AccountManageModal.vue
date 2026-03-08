@@ -24,14 +24,14 @@
           <div class="action-item">
             <div class="action-desc">
               <strong>导入当前账户</strong>
-              <span>从 JSON 文件导入，并覆盖当前账户的数据</span>
+              <span>从单账户 JSON 备份导入，并覆盖当前账户的数据；若误选整库备份会被拦截</span>
             </div>
             <a-button size="small" @click="$emit('import', 'current')">导入当前账户</a-button>
           </div>
           <div class="action-item action-item-warning">
             <div class="action-desc">
               <strong>恢复全部账户</strong>
-              <span>用整份备份覆盖当前本地全部账户、事件、对账与偏好设置；选择文件后还需二次确认</span>
+              <span>仅接受整库备份；会覆盖当前本地全部账户、事件、对账与偏好设置，选择文件后还需二次确认</span>
             </div>
             <a-button size="small" danger @click="$emit('import', 'all')">恢复全部账户</a-button>
           </div>

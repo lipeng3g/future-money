@@ -178,6 +178,7 @@ import type { UserPreferences } from '@/types/account';
 import { useFinanceStore } from '@/stores/finance';
 import { formatLocalISODate } from '@/utils/date';
 import { parseImportPreview } from '@/utils/import-preview';
+import type { ImportExportMode } from '@/types/storage';
 
 const PreferencesModal = defineAsyncComponent(() => import('@/components/common/PreferencesModal.vue'));
 const ReconciliationHistory = defineAsyncComponent(() => import('@/components/reconciliation/ReconciliationHistory.vue'));
@@ -185,8 +186,6 @@ const ReconciliationModal = defineAsyncComponent(() => import('@/components/reco
 const AccountMultiSelectModal = defineAsyncComponent(() => import('@/components/account/AccountMultiSelectModal.vue'));
 const CreateAccountModal = defineAsyncComponent(() => import('@/components/account/CreateAccountModal.vue'));
 const AccountManageModal = defineAsyncComponent(() => import('@/components/account/AccountManageModal.vue'));
-
-type ImportExportMode = 'current' | 'all';
 
 interface LatestReconciliationBrief {
   date: string;
@@ -277,8 +276,28 @@ const triggerImport = (mode: ImportExportMode) => {
   fileInput.value?.click();
 };
 
-const confirmImportAll = (content: string, fileName: string) => {
+const getScopeLabel = (scope: 'current' | 'all' | 'legacy-unknown') => {
+  if (scope === 'current') return '当前账户备份';
+  if (scope === 'all') return '全部账户备份';
+  return '旧版/未标记备份';
+};
+
+const validateImportMode = (mode: ImportExportMode, content: string) => {
   const summary = parseImportPreview(content);
+
+  if (mode === 'current' && summary.scope === 'all') {
+    throw new Error('你选择的是“恢复当前账户”，但文件看起来是“全部账户备份”。请改用“恢复全部账户”，避免误把整库备份塞进单账户。');
+  }
+
+  if (mode === 'all' && summary.scope === 'current') {
+    throw new Error('你选择的是“恢复全部账户”，但文件看起来只是“当前账户备份”。为避免误清空其它账户，请改用“导入当前账户”。');
+  }
+
+  return summary;
+};
+
+const confirmImportAll = (content: string, fileName: string) => {
+  const summary = validateImportMode('all', content);
   let inputValue = '';
   const confirmText = '恢复全部账户';
   const backupTime = summary.timestamp
@@ -293,6 +312,7 @@ const confirmImportAll = (content: string, fileName: string) => {
       h('p', { style: 'color: #ef4444; margin-bottom: 12px; font-weight: 600;' }, '此操作会整体替换当前浏览器中的全部账户、事件、对账和偏好设置，无法撤销。'),
       h('div', { style: 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
         h('div', `备份文件：${fileName}`),
+        h('div', `文件类型：${getScopeLabel(summary.scope)}`),
         h('div', `备份时间：${backupTime}`),
         h('div', `账户数：${summary.accountsCount}（${accountNames}）`),
         h('div', `事件 / 对账 / 账本：${summary.eventsCount} / ${summary.reconciliationsCount} / ${summary.ledgerEntriesCount}`),
@@ -337,12 +357,13 @@ const handleFileChange = (event: Event) => {
       if (mode === 'all') {
         confirmImportAll(content, fileName);
       } else {
+        validateImportMode('current', content);
         store.importState(content, mode);
         message.success('已导入当前账户数据');
       }
     } catch (error) {
       console.error(error);
-      message.error(mode === 'all' ? '恢复失败，请检查备份文件内容' : '导入失败，请检查文件内容');
+      message.error(error instanceof Error ? error.message : (mode === 'all' ? '恢复失败，请检查备份文件内容' : '导入失败，请检查文件内容'));
     } finally {
       target.value = '';
       fileActionMode.value = 'current';

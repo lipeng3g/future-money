@@ -1,10 +1,12 @@
 import type { AppState, PersistedStateEnvelope } from '@/types';
+import type { ImportExportMode } from '@/types/storage';
 import { APP_VERSION } from '@/utils/defaults';
 
 export interface ImportPreviewSummary {
   envelopeVersion: string;
   stateVersion: string;
   timestamp: string | null;
+  scope: ImportExportMode | 'legacy-unknown';
   accountsCount: number;
   eventsCount: number;
   reconciliationsCount: number;
@@ -19,6 +21,27 @@ const ensureState = (parsed: unknown): AppState => {
   }
 
   return (parsed as PersistedStateEnvelope).state;
+};
+
+const detectImportScope = (
+  envelope: PersistedStateEnvelope,
+  state: AppState,
+): ImportPreviewSummary['scope'] => {
+  if (envelope.scope === 'current' || envelope.scope === 'all') {
+    return envelope.scope;
+  }
+
+  const accounts = Array.isArray(state.accounts)
+    ? state.accounts
+    : state.account
+      ? [state.account]
+      : [];
+
+  if (accounts.length > 1) {
+    return 'all';
+  }
+
+  return 'legacy-unknown';
 };
 
 export const parseImportPreview = (content: string): ImportPreviewSummary => {
@@ -40,6 +63,7 @@ export const parseImportPreview = (content: string): ImportPreviewSummary => {
     envelopeVersion: parsed.version || APP_VERSION,
     stateVersion: state.version || parsed.version || APP_VERSION,
     timestamp: typeof parsed.timestamp === 'string' ? parsed.timestamp : null,
+    scope: detectImportScope(parsed, state),
     accountsCount: accounts.length,
     eventsCount: Array.isArray(state.events) ? state.events.length : 0,
     reconciliationsCount: Array.isArray(state.reconciliations) ? state.reconciliations.length : 0,

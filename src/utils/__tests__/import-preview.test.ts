@@ -28,6 +28,7 @@ describe('parseImportPreview', () => {
       envelopeVersion: '2.0.0',
       stateVersion: '2.0.0',
       timestamp: '2026-03-08T14:00:00.000Z',
+      scope: 'all',
       accountsCount: 2,
       eventsCount: 2,
       reconciliationsCount: 1,
@@ -50,10 +51,35 @@ describe('parseImportPreview', () => {
       }),
     );
 
+    expect(summary.scope).toBe('legacy-unknown');
     expect(summary.accountsCount).toBe(1);
     expect(summary.accountNames).toEqual(['主账户']);
     expect(summary.eventsCount).toBe(0);
     expect(summary.reconciliationsCount).toBe(0);
+  });
+
+  it('优先使用导出时写入的 scope 标记识别单账户备份', () => {
+    const summary = parseImportPreview(
+      JSON.stringify({
+        version: '2.0.0',
+        scope: 'current',
+        timestamp: '2026-03-08T14:00:00.000Z',
+        state: {
+          version: '2.0.0',
+          account: { id: 'acc-a', name: '现金账户' },
+          accounts: [{ id: 'acc-a', name: '现金账户' }],
+          events: [],
+          preferences: {},
+          snapshots: [],
+          reconciliations: [],
+          ledgerEntries: [],
+          eventOverrides: [],
+        },
+      }),
+    );
+
+    expect(summary.scope).toBe('current');
+    expect(summary.accountsCount).toBe(1);
   });
 
   it('对非法 JSON 和非法结构抛出友好错误', () => {

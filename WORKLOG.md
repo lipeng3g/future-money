@@ -46,3 +46,5 @@
 [2026-03-08 23:20:00] task: 优化本地持久化写入策略，避免高频编辑/导入时反复全量序列化并写 localStorage，同时保证关键导入/恢复场景可立即读到最新状态
 [2026-03-08 23:20:00] deliverables: LocalStorageStateRepository 新增“首写立即落盘 + 短窗口去抖合并 + 相同状态跳过重复写入 + beforeunload/pagehide flush + 显式 flushPendingSave 接口”；store 在 import current / import all 等关键路径强制 flush；新增 3 个存储层回归测试
 [2026-03-08 23:36:00] verification: npm run type-check ✅, npm test ✅ (69), npm run build ✅；构建 warning 仍是既有 vendor-charts ~563kB / vendor-antd ~718kB，后续继续拆包
+[2026-03-08 23:50:00] task: 为本地 JSON 导入/恢复补充“备份作用域识别 + 模式不匹配拦截”，降低误把整库备份导入成单账户或反向误恢复的风险
+[2026-03-08 23:50:00] deliverables: PersistedStateEnvelope 新增可选 scope=current|all；导出时写入 scope；导入预览识别 current/all/legacy-unknown；AppHeader 在导入前校验模式匹配并在整库恢复确认框展示文件类型；补 import-preview / finance-import-export 回归测试

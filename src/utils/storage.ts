@@ -12,7 +12,7 @@ export interface StateRepository {
   saveState(state: AppState): void;
   flushPendingSave(): void;
   clear(): void;
-  exportState(state: AppState): string;
+  exportState(state: AppState, mode?: 'current' | 'all'): string;
   importState(content: string): AppState;
 }
 
@@ -93,9 +93,10 @@ const normalizeState = (rawState: Partial<AppState>): AppState => {
   return state;
 };
 
-const createEnvelope = (state: AppState): PersistedStateEnvelope => ({
+const createEnvelope = (state: AppState, scope: 'current' | 'all' = 'all'): PersistedStateEnvelope => ({
   version: APP_VERSION,
   timestamp: new Date().toISOString(),
+  scope,
   state,
 });
 
@@ -157,7 +158,7 @@ export class LocalStorageStateRepository implements StateRepository {
     }
 
     try {
-      this.storage.setItem(STORAGE_KEY, JSON.stringify(createEnvelope(state)));
+      this.storage.setItem(STORAGE_KEY, JSON.stringify(createEnvelope(state, 'all')));
       this.lastSavedSnapshot = serializedState;
     } catch (error) {
       console.warn('存储数据失败', error);
@@ -207,8 +208,8 @@ export class LocalStorageStateRepository implements StateRepository {
     this.storage.removeItem(STORAGE_KEY);
   }
 
-  exportState(state: AppState): string {
-    return JSON.stringify(createEnvelope(state), null, 2);
+  exportState(state: AppState, mode: 'current' | 'all' = 'all'): string {
+    return JSON.stringify(createEnvelope(state, mode), null, 2);
   }
 
   importState(content: string): AppState {
