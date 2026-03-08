@@ -89,3 +89,6 @@
 [2026-03-09 03:20:21] verification: npm run type-check ✅, npm test ✅ (95), npm run build ✅
 [2026-03-09 03:28:00] task: 补强“图表点 → 事件抽屉”定位说明，把事件名扩展为账户级收支摘要，减少多账户视图下看不出这一天到底发生了什么的问题
 [2026-03-09 03:28:00] deliverables: buildEventListFocusState 新增 detail 聚合（账户名/笔数/收入/支出/当日余额变动）；MainLayout 透传 accounts；EventPanel 横幅展示 detail；补 event-focus 回归测试覆盖账户映射与缺省 accountId 回退
+[2026-03-09 03:44:00] task: 为事件表单补“规则预演”能力，让用户在提交前直接看到最近几次实际发生日期，降低对月末/闰年降级语义的理解成本
+[2026-03-09 03:44:00] deliverables: src/utils/event-form.ts 新增 buildEventSchedulePreview 纯函数，复用 recurrence 规则推导最近发生日；EventFormModal 展示“接下来会这样发生”预演区块；补 event-form 回归测试覆盖 monthly 31 日短月降级、yearly 2/29 平年回退、禁用/非法规则不展示预演
+[2026-03-09 03:44:00] verification: npm run type-check ✅, npm test ✅ (99), npm run build ✅；构建 chunk 告警仍已消除，chart-base ~471.8kB 仍是后续可继续拆分目标

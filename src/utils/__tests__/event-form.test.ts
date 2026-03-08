@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildEventSchedulePreview,
   clampEventFormDates,
   getEventFormValidationErrors,
   getMonthlyRuleSemanticHint,
@@ -91,5 +92,41 @@ describe('event-form helpers', () => {
       level: 'error',
       message: '4 月没有 31 日，请调整为该月存在的日期。',
     });
+  });
+
+  it('会给每月规则预演最近几次发生日期，并显示短月月末降级后的真实日期', () => {
+    expect(buildEventSchedulePreview(createDraft({
+      type: 'monthly',
+      startDate: '2026-01-30',
+      endDate: '2026-04-30',
+      onceDate: undefined,
+      monthlyDay: 31,
+    }), 3)).toEqual([
+      { date: '2026-01-31', label: '每月第 31 天' },
+      { date: '2026-02-28', label: '每月第 28 天' },
+      { date: '2026-03-31', label: '每月第 31 天' },
+    ]);
+  });
+
+  it('会给 2/29 年度规则预演平年回退结果', () => {
+    expect(buildEventSchedulePreview(createDraft({
+      type: 'yearly',
+      startDate: '2025-01-01',
+      endDate: '2028-12-31',
+      onceDate: undefined,
+      monthlyDay: undefined,
+      yearlyMonth: 2,
+      yearlyDay: 29,
+    }), 4)).toEqual([
+      { date: '2025-02-28', label: '平年回退到 2 月 28 日' },
+      { date: '2026-02-28', label: '平年回退到 2 月 28 日' },
+      { date: '2027-02-28', label: '平年回退到 2 月 28 日' },
+      { date: '2028-02-29', label: '每年 2 月 29 日' },
+    ]);
+  });
+
+  it('遇到未启用或无效规则时不输出预演结果', () => {
+    expect(buildEventSchedulePreview(createDraft({ enabled: false }), 3)).toEqual([]);
+    expect(buildEventSchedulePreview(createDraft({ type: 'yearly', onceDate: undefined, monthlyDay: undefined, yearlyMonth: 4, yearlyDay: 31 }), 3)).toEqual([]);
   });
 });

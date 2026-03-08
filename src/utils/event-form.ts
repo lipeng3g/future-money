@@ -1,5 +1,6 @@
-import { getDaysInMonth } from 'date-fns';
-import type { EventFormValues } from '@/types/event';
+import { addYears, format, getDaysInMonth, isAfter, parseISO, startOfDay } from 'date-fns';
+import type { CashFlowEvent, EventFormValues } from '@/types/event';
+import { isEventActiveOnDate, shouldEventOccurOnDate } from '@/utils/recurrence';
 import { validateCashFlowEvent } from '@/utils/validators';
 
 export interface EventFormDraft {
@@ -21,6 +22,11 @@ export interface EventFormDraft {
 export interface EventFormSemanticHint {
   level: 'info' | 'warning' | 'error';
   message: string;
+}
+
+export interface EventSchedulePreviewItem {
+  date: string;
+  label: string;
 }
 
 const clampDateRange = (date: string | undefined, min?: string, max?: string): string | undefined => {
@@ -142,4 +148,73 @@ export const getYearlyRuleSemanticHint = (month?: number, day?: number): EventFo
   }
 
   return null;
+};
+
+const buildPreviewEvent = (draft: EventFormDraft): CashFlowEvent => ({
+  id: '__preview__',
+  accountId: '__preview__',
+  name: draft.name.trim() || '该规则',
+  amount: Number(draft.amount) || 0,
+  category: draft.category,
+  type: draft.type,
+  startDate: draft.startDate,
+  endDate: draft.endDate,
+  onceDate: draft.onceDate,
+  monthlyDay: draft.monthlyDay,
+  yearlyMonth: draft.yearlyMonth,
+  yearlyDay: draft.yearlyDay,
+  notes: draft.notes?.trim() || undefined,
+  color: draft.color,
+  enabled: draft.enabled,
+  createdAt: '',
+  updatedAt: '',
+});
+
+const buildPreviewLabel = (event: CashFlowEvent, date: Date): string => {
+  switch (event.type) {
+    case 'once':
+      return '一次性发生';
+    case 'monthly':
+      return `每月第 ${date.getDate()} 天`;
+    case 'quarterly':
+      return `季度执行 · 本次落在 ${date.getDate()} 日`;
+    case 'semi-annual':
+      return `半年执行 · 本次落在 ${date.getDate()} 日`;
+    case 'yearly': {
+      if (event.yearlyMonth === 2 && event.yearlyDay === 29 && date.getDate() === 28) {
+        return '平年回退到 2 月 28 日';
+      }
+      return `每年 ${date.getMonth() + 1} 月 ${date.getDate()} 日`;
+    }
+    default:
+      return format(date, 'yyyy-MM-dd');
+  }
+};
+
+export const buildEventSchedulePreview = (
+  draft: EventFormDraft,
+  count: number = 3,
+): EventSchedulePreviewItem[] => {
+  const normalized = normalizeEventFormPayload(draft);
+  const errors = getEventFormValidationErrors(normalized);
+  if (errors.length || !normalized.enabled || count <= 0) {
+    return [];
+  }
+
+  const event = buildPreviewEvent(normalized);
+  const start = startOfDay(parseISO(event.startDate));
+  const hardEnd = event.endDate ? startOfDay(parseISO(event.endDate)) : addYears(start, 5);
+  const results: EventSchedulePreviewItem[] = [];
+
+  for (let cursor = start; !isAfter(cursor, hardEnd) && results.length < count; cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000)) {
+    if (!isEventActiveOnDate(event, cursor)) continue;
+    if (!shouldEventOccurOnDate(event, cursor)) continue;
+
+    results.push({
+      date: format(cursor, 'yyyy-MM-dd'),
+      label: buildPreviewLabel(event, cursor),
+    });
+  }
+
+  return results;
 };

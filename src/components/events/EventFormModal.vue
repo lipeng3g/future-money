@@ -86,6 +86,19 @@
           <a-switch v-model:checked="formState.enabled" />
         </a-form-item>
       </div>
+
+      <div v-if="schedulePreview.length" class="schedule-preview">
+        <div class="schedule-preview__header">
+          <strong>接下来会这样发生</strong>
+          <span>按当前规则预演最近 {{ schedulePreview.length }} 次</span>
+        </div>
+        <ol>
+          <li v-for="item in schedulePreview" :key="item.date">
+            <span>{{ item.date }}</span>
+            <small>{{ item.label }}</small>
+          </li>
+        </ol>
+      </div>
     </a-form>
   </a-modal>
 </template>
@@ -96,6 +109,7 @@ import { computed, reactive, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import type { CashFlowEvent, EventFormValues } from '@/types/event';
 import {
+  buildEventSchedulePreview,
   getEventFormValidationErrors,
   getMonthlyRuleSemanticHint,
   getYearlyRuleSemanticHint,
@@ -185,6 +199,7 @@ const periodicDayLabel = computed(() => {
 
 const monthlyDayHint = computed(() => getMonthlyRuleSemanticHint(formState.monthlyDay));
 const yearlyDayHint = computed(() => getYearlyRuleSemanticHint(formState.yearlyMonth, formState.yearlyDay));
+const schedulePreview = computed(() => buildEventSchedulePreview(formState, 3));
 
 const fillForm = (source?: CashFlowEvent | null) => {
   if (!source) {
@@ -309,5 +324,55 @@ const handleCancel = () => emit('cancel');
   height: 40px;
   border: 1px solid rgba(15, 23, 42, 0.2);
   border-radius: 8px;
+}
+
+.schedule-preview {
+  margin-top: 8px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--fm-surface-muted);
+  border: 1px solid var(--fm-border-subtle);
+}
+
+.schedule-preview__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.schedule-preview__header strong {
+  color: var(--fm-text-primary);
+  font-size: 0.92rem;
+}
+
+.schedule-preview__header span {
+  color: var(--fm-text-secondary);
+  font-size: 0.78rem;
+}
+
+.schedule-preview ol {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-preview li {
+  color: var(--fm-text-primary);
+  line-height: 1.5;
+}
+
+.schedule-preview li span {
+  display: inline-block;
+  min-width: 108px;
+  font-family: 'SF Pro Rounded', ui-monospace, sans-serif;
+}
+
+.schedule-preview li small {
+  color: var(--fm-text-secondary);
 }
 </style>
