@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildBalanceChartFocusTargets,
   buildBalanceChartOption,
   buildCashFlowChartOption,
   getAdaptiveAxisLabelInterval,
@@ -56,6 +57,23 @@ describe('chart-options', () => {
       createDay({ date: '2025-01-01', balance: 2000, change: 0 }),
       createDay({ date: '2025-01-02', balance: 1800, change: -200 }),
     ], 1000, '2025-01-01')).toBe('2025-01-01');
+  });
+
+  it('会生成可复用的余额图聚焦目标，供图表工具条和统计卡共享', () => {
+    const timeline = [
+      createDay({ date: '2025-01-01', balance: 2000, change: 0 }),
+      createDay({ date: '2025-01-02', balance: 900, change: -1100, isToday: true }),
+      createDay({ date: '2025-01-03', balance: 2600, change: 1700 }),
+    ];
+
+    expect(buildBalanceChartFocusTargets(timeline, 1000, '2025-01-01')).toEqual([
+      { key: 'latest', label: '最新区间', date: '2025-01-03' },
+      { key: 'today', label: '今天', date: '2025-01-02' },
+      { key: 'warning', label: '首次预警', date: '2025-01-02' },
+      { key: 'min', label: '最低点', date: '2025-01-02' },
+      { key: 'max', label: '最高点', date: '2025-01-03' },
+      { key: 'reconciliation', label: '最近对账', date: '2025-01-01' },
+    ]);
   });
 
   it('会围绕聚焦日期生成默认时间窗，并在尾部自动贴边', () => {

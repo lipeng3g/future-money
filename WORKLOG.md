@@ -53,3 +53,6 @@
 [2026-03-09 00:20:00] task: 继续打磨长时间线余额图浏览效率，为图表加入默认聚焦时间窗与快捷定位（最新区间 / 今天 / 首次预警 / 最低点 / 最近对账）
 [2026-03-09 00:20:00] deliverables: chart-options 新增默认 focus date / zoom window 纯函数；BalanceChart 增加快速定位工具条；补回归测试覆盖聚焦优先级与默认时间窗
 [2026-03-09 00:20:00] verification: npm test ✅ (78), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB，后续继续拆包
+[2026-03-09 00:28:00] task: 打通“统计卡片 → 余额图快速定位”联动，减少长时间线下在卡片和图表之间来回找位置的成本
+[2026-03-09 00:28:00] deliverables: 抽出 buildBalanceChartFocusTargets 作为共享聚焦目标源；StatisticsPanel 可点击跳转到 latest / warning / min / max；ChartArea 与 BalanceChart 通过 focusKey 单向联动；补 chart-options 回归测试覆盖 max/共享目标列表
+[2026-03-09 00:29:00] verification: npm test ✅ (79), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB

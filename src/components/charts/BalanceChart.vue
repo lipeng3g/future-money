@@ -33,7 +33,12 @@ import { computed, ref, watch } from 'vue';
 import VChart from 'vue-echarts';
 import '@/utils/echarts';
 import type { DailySnapshot } from '@/types/timeline';
-import { buildBalanceChartOption, getDefaultBalanceChartFocusDate } from '@/utils/chart-options';
+import {
+  buildBalanceChartFocusTargets,
+  buildBalanceChartOption,
+  getDefaultBalanceChartFocusDate,
+  type BalanceChartFocusKey,
+} from '@/utils/chart-options';
 
 interface Props {
   timeline: DailySnapshot[];
@@ -44,39 +49,30 @@ interface Props {
   reconciliationDate?: string;
   /** 最新对账余额 */
   reconciliationBalance?: number;
+  /** 外部联动指定图表焦点 */
+  focusKey?: BalanceChartFocusKey;
 }
 
 const props = defineProps<Props>();
 
-type FocusKey = 'latest' | 'today' | 'warning' | 'min' | 'reconciliation';
+const focusButtons = computed(() => buildBalanceChartFocusTargets(
+  props.timeline,
+  props.warningThreshold,
+  props.reconciliationDate,
+));
 
-const focusButtons = computed(() => {
-  if (!props.timeline.length) return [] as Array<{ key: FocusKey; label: string; date: string }>;
-
-  const firstWarning = props.timeline.find((point) => point.balance < props.warningThreshold)?.date;
-  const today = props.timeline.find((point) => point.isToday)?.date;
-  const minPoint = props.timeline.reduce((lowest, point) => (
-    point.balance < lowest.balance ? point : lowest
-  ), props.timeline[0]);
-  const latest = props.timeline.at(-1)?.date;
-
-  return [
-    latest ? { key: 'latest' as const, label: '最新区间', date: latest } : null,
-    today ? { key: 'today' as const, label: '今天', date: today } : null,
-    firstWarning ? { key: 'warning' as const, label: '首次预警', date: firstWarning } : null,
-    minPoint?.date ? { key: 'min' as const, label: '最低点', date: minPoint.date } : null,
-    props.reconciliationDate && props.timeline.some((point) => point.date === props.reconciliationDate)
-      ? { key: 'reconciliation' as const, label: '最近对账', date: props.reconciliationDate }
-      : null,
-  ].filter((item): item is { key: FocusKey; label: string; date: string } => Boolean(item));
-});
-
-const activeFocusKey = ref<FocusKey>('latest');
+const activeFocusKey = ref<BalanceChartFocusKey>('latest');
 
 watch(
-  focusButtons,
-  (buttons) => {
+  [focusButtons, () => props.focusKey] as const,
+  ([buttons, requestedFocusKey]) => {
     const availableKeys = new Set(buttons.map((button) => button.key));
+
+    if (requestedFocusKey && availableKeys.has(requestedFocusKey)) {
+      activeFocusKey.value = requestedFocusKey;
+      return;
+    }
+
     const preferredDate = getDefaultBalanceChartFocusDate(
       props.timeline,
       props.warningThreshold,

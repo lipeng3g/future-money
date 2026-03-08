@@ -1,7 +1,7 @@
 <template>
   <div class="stats-panel">
     <div class="stats-grid">
-      <div class="stat-card primary">
+      <div class="stat-card primary clickable" @click="focusChart('latest')">
         <div class="stat-badge">余额</div>
         <div class="stat-content">
           <strong class="stat-value">{{ formatCurrency(analytics.endingBalance) }}</strong>
@@ -25,7 +25,7 @@
         </div>
       </div>
 
-      <div class="stat-card">
+      <div class="stat-card clickable" @click="focusChart('min')">
         <div class="stat-badge">MIN</div>
         <div class="stat-content">
           <strong class="stat-value">{{ formatCurrency(analytics.extremes.minBalance) }}</strong>
@@ -34,7 +34,7 @@
         </div>
       </div>
 
-      <div class="stat-card">
+      <div class="stat-card clickable" @click="focusChart('max')">
         <div class="stat-badge">MAX</div>
         <div class="stat-content">
           <strong class="stat-value" style="font-family: 'SF Pro Rounded', ui-monospace, sans-serif;">{{ formatCurrency(analytics.extremes.maxBalance) }}</strong>
@@ -64,7 +64,7 @@
             </div>
           </div>
         </template>
-        <div class="stat-card warning clickable">
+        <div class="stat-card warning clickable" @click="focusChart('warning')">
           <div class="stat-badge warning">!</div>
           <div class="stat-content">
             <strong class="stat-value">{{ analytics.warningDates.length }} 天</strong>
@@ -88,10 +88,16 @@
 
 <script setup lang="ts">
 import type { AnalyticsSummary } from '@/types/analytics';
+import type { BalanceChartFocusKey } from '@/utils/chart-options';
 
 defineProps<{ analytics: AnalyticsSummary }>();
 
+const emit = defineEmits<{
+  (e: 'focus-chart', key: BalanceChartFocusKey): void;
+}>();
+
 const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
+const focusChart = (key: BalanceChartFocusKey) => emit('focus-chart', key);
 </script>
 
 <style scoped>

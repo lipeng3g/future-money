@@ -22,7 +22,7 @@
 
     <!-- 关键指标置顶 -->
     <div id="stats-panel">
-      <StatisticsPanel :analytics="store.analytics" />
+      <StatisticsPanel :analytics="store.analytics" @focus-chart="handleStatsFocusChart" />
     </div>
 
     <!-- 左右两栏：图表 | 即将发生 + 事件入口 -->
@@ -36,6 +36,7 @@
             :show-weekends="store.preferences.showWeekends"
             :reconciliation-date="store.latestReconciliation?.date"
             :reconciliation-balance="store.latestReconciliation?.balance"
+            :focus-key="balanceChartFocusKey"
           />
         </div>
         <div id="cashflow-chart-card">
@@ -84,6 +85,7 @@
 <script setup lang="ts">
 import { defineAsyncComponent, ref } from 'vue';
 import { message } from 'ant-design-vue';
+import type { BalanceChartFocusKey } from '@/utils/chart-options';
 import TimeRangeControl from '@/components/charts/TimeRangeControl.vue';
 import StatisticsPanel from '@/components/charts/StatisticsPanel.vue';
 import UpcomingEvents from '@/components/charts/UpcomingEvents.vue';
@@ -105,6 +107,7 @@ const store = useFinanceStore();
 const reconcileModalOpen = ref(false);
 const aiConfigOpen = ref(false);
 const aiChatOpen = ref(false);
+const balanceChartFocusKey = ref<BalanceChartFocusKey>('latest');
 
 const handleAiClick = async () => {
   const config = await loadAiConfig();
@@ -123,6 +126,10 @@ const handleConfigSaved = () => {
 const handleReconcileDone = () => {
   reconcileModalOpen.value = false;
   message.success('对账完成');
+};
+
+const handleStatsFocusChart = (key: BalanceChartFocusKey) => {
+  balanceChartFocusKey.value = key;
 };
 </script>
 

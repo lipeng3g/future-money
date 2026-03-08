@@ -6,6 +6,14 @@ const DEFAULT_MONTHLY_LABEL_TARGET = 6;
 const LONG_TIMELINE_ANIMATION_THRESHOLD = 180;
 const DEFAULT_BALANCE_FOCUS_WINDOW = 60;
 
+export type BalanceChartFocusKey = 'latest' | 'today' | 'warning' | 'min' | 'max' | 'reconciliation';
+
+export interface BalanceChartFocusTarget {
+  key: BalanceChartFocusKey;
+  label: string;
+  date: string;
+}
+
 export const getAdaptiveAxisLabelInterval = (totalPoints: number, targetLabels: number): number => {
   if (targetLabels <= 1 || totalPoints <= targetLabels) {
     return 0;
@@ -17,6 +25,35 @@ export const getAdaptiveAxisLabelInterval = (totalPoints: number, targetLabels: 
 export const shouldDisableChartAnimation = (totalPoints: number): boolean => (
   totalPoints >= LONG_TIMELINE_ANIMATION_THRESHOLD
 );
+
+export const buildBalanceChartFocusTargets = (
+  timeline: DailySnapshot[],
+  warningThreshold: number,
+  reconciliationDate?: string,
+): BalanceChartFocusTarget[] => {
+  if (!timeline.length) return [];
+
+  const firstWarning = timeline.find((point) => point.balance < warningThreshold)?.date;
+  const today = timeline.find((point) => point.isToday)?.date;
+  const minPoint = timeline.reduce((lowest, point) => (
+    point.balance < lowest.balance ? point : lowest
+  ), timeline[0]);
+  const maxPoint = timeline.reduce((highest, point) => (
+    point.balance > highest.balance ? point : highest
+  ), timeline[0]);
+  const latest = timeline.at(-1)?.date;
+
+  return [
+    latest ? { key: 'latest', label: '最新区间', date: latest } : null,
+    today ? { key: 'today', label: '今天', date: today } : null,
+    firstWarning ? { key: 'warning', label: '首次预警', date: firstWarning } : null,
+    minPoint?.date ? { key: 'min', label: '最低点', date: minPoint.date } : null,
+    maxPoint?.date ? { key: 'max', label: '最高点', date: maxPoint.date } : null,
+    reconciliationDate && timeline.some((point) => point.date === reconciliationDate)
+      ? { key: 'reconciliation', label: '最近对账', date: reconciliationDate }
+      : null,
+  ].filter((item): item is BalanceChartFocusTarget => Boolean(item));
+};
 
 export const getDefaultBalanceChartFocusDate = (
   timeline: DailySnapshot[],
