@@ -30,6 +30,7 @@
 </template>
 
 <script setup lang="ts">
+import { message } from 'ant-design-vue';
 import { ref, watch } from 'vue';
 
 interface Props {
@@ -59,12 +60,14 @@ watch(
 );
 
 const handleOk = () => {
-  if (!name.value.trim()) {
+  const trimmedName = name.value.trim();
+  if (!trimmedName) {
+    message.error('账户名称不能为空');
     return;
   }
   emit('submit', {
-    name: name.value,
-    typeLabel: typeLabel.value,
+    name: trimmedName,
+    typeLabel: typeLabel.value.trim() || undefined,
     warningThreshold: typeof warningThreshold.value === 'number' ? warningThreshold.value : undefined,
   });
 };

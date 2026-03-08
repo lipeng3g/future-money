@@ -31,16 +31,16 @@
           </a-select>
         </a-form-item>
         <a-form-item label="起始日期" required>
-          <a-date-picker v-model:value="startDateValue" style="width: 100%" />
+          <a-date-picker v-model:value="startDateValue" style="width: 100%" :disabled-date="disabledStartDate" />
         </a-form-item>
         <a-form-item label="结束日期">
-          <a-date-picker v-model:value="endDateValue" style="width: 100%" />
+          <a-date-picker v-model:value="endDateValue" style="width: 100%" :disabled-date="disabledEndDate" />
         </a-form-item>
       </div>
 
       <template v-if="formState.type === 'once'">
         <a-form-item label="发生日期" required>
-          <a-date-picker v-model:value="onceDateValue" style="width: 100%" />
+          <a-date-picker v-model:value="onceDateValue" style="width: 100%" :disabled-date="disabledOnceDate" />
         </a-form-item>
       </template>
 
@@ -83,7 +83,15 @@
 <script setup lang="ts">
 import dayjs, { Dayjs } from 'dayjs';
 import { computed, reactive, watch } from 'vue';
+import { message } from 'ant-design-vue';
 import type { CashFlowEvent, EventFormValues } from '@/types/event';
+import {
+  getEventFormValidationErrors,
+  isEndDateSelectable,
+  isOnceDateSelectable,
+  isStartDateSelectable,
+  normalizeEventFormPayload,
+} from '@/utils/event-form';
 
 interface Props {
   open: boolean;
@@ -148,6 +156,10 @@ const onceDateValue = computed<Dayjs | null>({
   },
 });
 
+const disabledStartDate = (current: Dayjs) => !isStartDateSelectable(current.format('YYYY-MM-DD'), formState.endDate);
+const disabledEndDate = (current: Dayjs) => !isEndDateSelectable(current.format('YYYY-MM-DD'), formState.startDate);
+const disabledOnceDate = (current: Dayjs) => !isOnceDateSelectable(current.format('YYYY-MM-DD'), formState.startDate, formState.endDate);
+
 const title = computed(() => (props.event ? '编辑现金流事件' : '添加现金流事件'));
 
 const periodicDayLabel = computed(() => {
@@ -198,6 +210,27 @@ watch(
   },
 );
 
+watch(
+  () => formState.startDate,
+  () => {
+    if (formState.endDate && formState.endDate < formState.startDate) {
+      formState.endDate = formState.startDate;
+    }
+    if (formState.type === 'once' && formState.onceDate && formState.onceDate < formState.startDate) {
+      formState.onceDate = formState.startDate;
+    }
+  },
+);
+
+watch(
+  () => formState.endDate,
+  (endDate) => {
+    if (formState.type === 'once' && formState.onceDate && endDate && formState.onceDate > endDate) {
+      formState.onceDate = endDate;
+    }
+  },
+);
+
 // 监听频率类型变化，自动设置合理的默认值
 watch(
   () => formState.type,
@@ -220,7 +253,7 @@ const normalizeDate = (value?: string | Dayjs | null): string | undefined => {
 };
 
 const handleSubmit = () => {
-  const payload: EventFormValues = {
+  const payload: EventFormValues = normalizeEventFormPayload({
     name: formState.name,
     amount: formState.amount,
     category: formState.category,
@@ -234,7 +267,15 @@ const handleSubmit = () => {
     notes: formState.notes,
     color: formState.color,
     enabled: formState.enabled,
-  };
+  });
+
+  const errors = getEventFormValidationErrors(payload);
+  if (errors.length) {
+    message.error(errors[0]);
+    return;
+  }
+
+  Object.assign(formState, payload);
   emit('submit', payload);
 };
 

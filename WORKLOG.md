@@ -59,3 +59,6 @@
 [2026-03-09 00:41:48] task: 为余额图快速定位增加焦点解释卡，直接说明最低点/首次预警/最近对账为何重要
 [2026-03-09 00:41:48] deliverables: 新增 buildBalanceChartFocusInsight 纯函数；BalanceChart 展示焦点解释卡与当日事件摘要；补 chart-options 回归测试覆盖 warning/max/reconciliation 解释
 [2026-03-09 00:41:48] verification: npm test ✅ (81), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB
+[2026-03-09 01:00:00] task: 收紧事件/账户创建表单的前置校验与日期约束，减少无效本地配置进入 store 后才报错的情况
+[2026-03-09 01:00:00] deliverables: 新增 src/utils/event-form.ts 提取表单归一化/日期约束/前置校验；EventFormModal 增加起止/一次性日期 selectable 限制与提交时错误提示；CreateAccountModal 补账户名必填提示与 trim；新增 event-form 单测覆盖日期夹取、trim、年份非法组合与可选范围
+[2026-03-09 01:02:00] verification: npm test ✅ (85), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB
