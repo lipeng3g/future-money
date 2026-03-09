@@ -3,6 +3,11 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-10
+- task: 给 EventCard 真组件补只读展示/禁用语义回归，避免事件面板只读保护只停留在父层横幅与守卫，子卡片真实交互却因为接线回退重新放出可点开关/编辑删除按钮
+- implementation: 新增 `src/components/events/__tests__/EventCard.test.ts`，覆盖账户/频率/金额摘要、图表定位入口、暂停状态、开关/编辑/删除事件透传，以及 `readonly` prop / store `isReadOnly` 两条路径下的“开关禁用 + 编辑/删除隐藏”真实组件语义
+- verification: 待本轮完整验证（npm install / test / type-check / build / smoke / preview+curl）结果回填
+
+## 2026-03-10
 - task: 把高风险导入 smoke 从“单账户导入”继续扩到“恢复全部账户”，避免整库恢复/撤销闭环继续主要依赖普通组件测试与手工预览
 - implementation: 扩展 `src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts`，新增“恢复全部账户 → sanitize 后确认摘要 → 真恢复 → 撤销回滚”UI 级 smoke；测试夹具覆盖账户差异、事件规则变化、脏账户/坏事件/断裂引用被过滤后的摘要与真实落地结果
 - verification: `npm install` ✅, `npm test` ✅ (170), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅ (3), `npm run preview -- --host 127.0.0.1 --port 4175` + `curl -I` ✅（返回 200；组合命令收尾时 `kill` 写法触发 shell 用法提示，不影响探活结果）；构建仍保留既有 `vendor-date <-> vendor-antd` circular chunk 提示与 `chart-balance-runtime ~556kB` / `vendor-antd ~715kB` 大 chunk 告警，本轮未触碰用户已验证的构建合并策略
