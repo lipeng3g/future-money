@@ -83,6 +83,9 @@
 [2026-03-09 08:15:00] verification: npm test ✅ (133), npm run type-check ✅, npm run build ✅；构建仍保留既有 chart-balance-runtime ~556.3kB 告警，但现在首页首开不再必须立即执行该重图表异步块
 [2026-03-09 08:42:00] task: 收紧本地存储迁移回写条件，并补齐单账户备份的明确风险分级，减少无意义 localStorage 回写与导入确认语义漂移
 [2026-03-09 08:42:00] deliverables: storage.loadState 改为仅在字段缺失/非数组时判定需要迁移，不再把空 snapshots/reconciliations 误当成未迁移；import-preview 为 scope=current 增加低风险提示；补 storage / import-preview 回归测试
+[2026-03-09 08:50:00] task: 打磨 AI 分析抽屉的本地连续性与上下文稳定性，避免未发送问题和流式请求在账户范围切换时串台
+[2026-03-09 08:50:00] deliverables: AI 抽屉新增按账户 scope 保存/恢复未发送草稿；清空对话同步清空当前 scope 草稿；流式分析时锁定账户勾选并提示当前上下文已锁定；新增 AiAnalysisModal 组件级回归并扩展 ai-chat-history 测试
+[2026-03-09 09:02:00] verification: npm test ✅ (143), npm run type-check ✅, npm run build ✅；构建产物仍保留既有 chart-balance-runtime ~556.26kB 告警，下一轮可继续拆余额图 runtime 或进一步延迟其内部重依赖初始化
 [2026-03-09 02:50:00] deliverables: 删除历史编译产物 vite.config.js；新增 src/utils/chart-base.ts 与 src/utils/chart-options-cashflow.ts；收口 src/utils/chart-options.ts 为余额图专属逻辑；CashFlowChart 与图表测试改为按新模块引用
 [2026-03-09 02:54:00] verification: npm test ✅ (92), npm run build ✅；构建已按 vite.config.ts 生效，默认 500kB 告警消失，主要 chunk 为 vendor-antd-core ~397.8kB / vendor-antd-form ~195.4kB / vendor-antd-feedback ~91.2kB / vendor-markdown ~91.9kB / vendor-date ~43.5kB / BalanceChart ~67.5kB / CashFlowChart ~39.5kB
 [2026-03-09 03:00:00] task: 将事件表单中的 yearly/monthly 重复日期语义前移为即时字段提示，减少用户提交后才发现规则含义或非法月日组合的成本

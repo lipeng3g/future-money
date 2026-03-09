@@ -29,13 +29,17 @@
     <!-- 账户选择 -->
     <div class="account-bar">
       <span class="bar-label">账户</span>
-      <a-checkbox-group v-model:value="selectedAccountIds" class="account-checks">
+      <a-checkbox-group v-model:value="selectedAccountIds" class="account-checks" :disabled="streaming">
         <a-checkbox v-for="acc in allAccounts" :key="acc.id" :value="acc.id">
           {{ acc.name }}
         </a-checkbox>
       </a-checkbox-group>
       <span class="scope-tip">
-        {{ selectedAccountIds.length > 1 ? '当前对话仅保存到这组账户的分析上下文中' : '当前对话仅保存到所选账户中' }}
+        {{ streaming
+          ? '分析进行中，暂时锁定当前账户范围，避免本次上下文串台'
+          : selectedAccountIds.length > 1
+            ? '当前对话与草稿仅保存到这组账户的分析上下文中'
+            : '当前对话与草稿仅保存到所选账户中' }}
       </span>
     </div>
 
@@ -138,6 +142,9 @@ import {
   saveChatHistory,
   clearChatHistory,
   exportChatHistory,
+  loadChatDraft,
+  saveChatDraft,
+  clearChatDraft,
   type ChatMessage,
   type ChatRecord,
 } from '@/utils/ai';
@@ -175,6 +182,7 @@ watch(
   selectedAccountIds,
   () => {
     loadScopedChatHistory();
+    userInput.value = loadChatDraft(chatHistoryScope.value);
   },
   { deep: true },
 );
@@ -199,8 +207,16 @@ const loadScopedChatHistory = () => {
   chatMessages.value = loadChatHistory(chatHistoryScope.value);
 };
 
+watch(
+  userInput,
+  (value) => {
+    saveChatDraft(value, chatHistoryScope.value);
+  },
+);
+
 onMounted(async () => {
   loadScopedChatHistory();
+  userInput.value = loadChatDraft(chatHistoryScope.value);
   const { default: MarkdownIt } = await import('markdown-it');
   const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
   const renderer = (text: string) => md.render(text);
@@ -309,6 +325,7 @@ const handlePreset = (preset: (typeof presets)[number]) => sendToAi(preset.quest
 const handleSend = () => {
   const q = userInput.value.trim();
   if (!q) return;
+  clearChatDraft(chatHistoryScope.value);
   userInput.value = '';
   sendToAi(q);
 };
@@ -321,8 +338,10 @@ const handleEnter = (e: KeyboardEvent) => {
 
 const handleClearChat = () => {
   chatMessages.value = [];
+  userInput.value = '';
   clearChatHistory(chatHistoryScope.value);
-  message.success(selectedAccountIds.value.length > 1 ? '当前账户组合对话已清空' : '当前账户对话已清空');
+  clearChatDraft(chatHistoryScope.value);
+  message.success(selectedAccountIds.value.length > 1 ? '当前账户组合对话与草稿已清空' : '当前账户对话与草稿已清空');
 };
 
 const handleExport = () => {

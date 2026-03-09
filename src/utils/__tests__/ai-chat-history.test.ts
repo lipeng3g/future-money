@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  clearChatDraft,
   clearChatHistory,
+  createChatDraftScopeKey,
   createChatHistoryScopeKey,
   exportChatHistory,
+  loadChatDraft,
   loadChatHistory,
+  saveChatDraft,
   saveChatHistory,
   type ChatRecord,
 } from '@/utils/ai';
@@ -78,5 +82,32 @@ describe('AI chat history scoping', () => {
     expect(click).toHaveBeenCalled();
     expect(createObjectURL).toHaveBeenCalled();
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:test');
+  });
+
+  it('草稿也会按账户范围隔离保存与读取', () => {
+    expect(createChatDraftScopeKey({ accountIds: ['b', 'a', 'a'] })).toBe('fm-ai-draft:a,b');
+
+    saveChatDraft('A 草稿', { accountIds: ['acc-a'] });
+    saveChatDraft('B 草稿', { accountIds: ['acc-b'] });
+
+    expect(loadChatDraft({ accountIds: ['acc-a'] })).toBe('A 草稿');
+    expect(loadChatDraft({ accountIds: ['acc-b'] })).toBe('B 草稿');
+    expect(loadChatDraft({ accountIds: ['acc-c'] })).toBe('');
+  });
+
+  it('兼容读取旧版全局草稿，并支持按 scope 清除', () => {
+    window.localStorage.setItem('fm-ai-draft', '旧版草稿');
+    saveChatDraft('当前草稿', { accountIds: ['acc-a'] });
+
+    expect(loadChatDraft({ accountIds: ['acc-b'] })).toBe('旧版草稿');
+    expect(loadChatDraft({ accountIds: ['acc-a'] })).toBe('当前草稿');
+
+    clearChatDraft({ accountIds: ['acc-a'] });
+    expect(loadChatDraft({ accountIds: ['acc-a'] })).toBe('旧版草稿');
+  });
+
+  it('空白草稿不会持久化，避免无意义残留', () => {
+    saveChatDraft('   ', { accountIds: ['acc-a'] });
+    expect(window.localStorage.getItem('fm-ai-draft:acc-a')).toBeNull();
   });
 });

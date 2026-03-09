@@ -1,9 +1,9 @@
 # Next Task（worker 更新）
 
 ## 刚完成
-- 已收紧本地存储迁移回写条件：`storage.loadState()` 现在只在字段缺失或类型异常时才会判定需要迁移并回写；对于已经是合法空数组的 `snapshots / reconciliations / ledgerEntries / eventOverrides`，不再在每次打开应用时多做一次无意义 `localStorage` 写入
-- 已补齐单账户备份的明确风险分级：`import-preview` 现在会把 `scope=current` 识别成“低风险：这是单账户备份”，不再把这类文件混入“旧版/未标记备份”文案里
-- 已新增对应回归测试，分别覆盖“空数组不重复回写”和“单账户备份低风险提示”
+- AI 分析抽屉现在会按账户范围分别保存未发送草稿：单账户、多账户组合互不串台；关闭抽屉或切换视图回来后，会恢复当前 scope 自己的提问草稿
+- AI 流式分析进行中会临时锁定账户范围切换，并在账户栏直接提示“当前上下文已锁定”，避免请求已按一组账户发出后，界面勾选又被改成另一组账户，导致分析结果和界面范围不一致
+- 已新增 `src/components/ai/__tests__/AiAnalysisModal.test.ts` 组件级回归，并扩展 `src/utils/__tests__/ai-chat-history.test.ts`，覆盖草稿按 scope 隔离、清空联动、旧版全局草稿兼容与流式锁定恢复
 
 ## 下一轮优先级
 1. **继续压包**：当前构建已把图表共享块拆散，但 `chart-balance-runtime` 仍约 556kB；下一步可评估 tooltip formatter、markArea/markLine 或 ECharts 依赖是否还能再拆，进一步降低余额图首次打开成本

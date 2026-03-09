@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-03-09
+- ux(ai): AI 分析抽屉现在会按当前账户范围单独保存未发送草稿；单账户、多账户组合各自恢复自己的输入内容，减少切换视图或中途关闭抽屉后重新组织问题的成本，也避免不同账户上下文把半成品问题串在一起
+- safety(ai): AI 流式分析进行中会临时锁定账户范围切换，并在账户栏明确提示“当前上下文已锁定”；避免请求已经基于一组账户发出后，用户又把勾选范围切走，导致界面显示范围与本次分析上下文不一致
+- test(ai): 新增 `src/components/ai/__tests__/AiAnalysisModal.test.ts` 组件级回归，覆盖“按 scope 恢复草稿”“清空对话时同步清空草稿”“流式中锁定账户范围并在结束后恢复”三条关键交互；同时扩展 `src/utils/__tests__/ai-chat-history.test.ts`，补草稿 scope key、旧版全局草稿兼容与空白草稿不落盘回归
 - perf(storage): `LocalStorageStateRepository.loadState()` 现在只在字段缺失或类型异常时才判定需要迁移并回写本地存储；对于已经是合法空数组的 `snapshots / reconciliations / ledgerEntries / eventOverrides`，不再误判成“未迁移”并在每次打开应用时多做一次无意义 `localStorage` 写入
 - safety(import): 导入预览的风险分级新增 `scope=current` 的明确低风险提示；单账户备份不再被笼统落到“旧版/未标记备份”，恢复语义更清楚，也为后续单账户导入/恢复确认流留下更准确的风险基线
 - test(storage): 扩展 `src/utils/__tests__/storage.test.ts`，新增“空数组字段不会触发重复迁移回写”回归，避免本地持久化层再次因为空集合被误判而反复落盘

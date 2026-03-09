@@ -27,6 +27,7 @@ export interface AiConfig {
 
 const CONFIG_KEY = 'fm-ai-config';
 const CHAT_KEY = 'fm-ai-chat';
+const CHAT_DRAFT_KEY = 'fm-ai-draft';
 const DEFAULT_AI_MODEL = 'gpt-4o-mini';
 
 export interface ChatHistoryScope {
@@ -183,6 +184,43 @@ export const saveChatHistory = (messages: ChatRecord[], scope?: ChatHistoryScope
 
 export const clearChatHistory = (scope?: ChatHistoryScope) => {
     localStorage.removeItem(createChatHistoryScopeKey(scope));
+};
+
+export const createChatDraftScopeKey = (scope?: ChatHistoryScope): string => {
+    const accountIds = normalizeScopeAccountIds(scope?.accountIds);
+    if (!accountIds.length) return CHAT_DRAFT_KEY;
+    return `${CHAT_DRAFT_KEY}:${accountIds.join(',')}`;
+};
+
+export const loadChatDraft = (scope?: ChatHistoryScope): string => {
+    try {
+        const scopedKey = createChatDraftScopeKey(scope);
+        const raw = localStorage.getItem(scopedKey);
+        if (typeof raw === 'string') {
+            return raw;
+        }
+
+        if (scopedKey !== CHAT_DRAFT_KEY) {
+            return localStorage.getItem(CHAT_DRAFT_KEY) ?? '';
+        }
+
+        return '';
+    } catch {
+        return '';
+    }
+};
+
+export const saveChatDraft = (draft: string, scope?: ChatHistoryScope) => {
+    const scopedKey = createChatDraftScopeKey(scope);
+    if (!draft.trim()) {
+        localStorage.removeItem(scopedKey);
+        return;
+    }
+    localStorage.setItem(scopedKey, draft);
+};
+
+export const clearChatDraft = (scope?: ChatHistoryScope) => {
+    localStorage.removeItem(createChatDraftScopeKey(scope));
 };
 
 export const exportChatHistory = (messages: ChatRecord[], scope?: ChatHistoryScope) => {
