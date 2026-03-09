@@ -3,6 +3,11 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-10
+- task: 继续补首页“预测范围”真实 UI 防回归，避免后续更换 segmented 组件或容器接线时，只剩 store 持久化测试兜底、页面点击却悄悄失效
+- implementation: 新增 `src/components/charts/__tests__/TimeRangeControl.test.ts`，直接锁住 6/12/24/36 个月选项文案、向上发出的数值类型，以及底层控件若意外吐出非法值时会显式传成 `NaN` 交给上层兜底；同时扩展 `src/components/charts/__tests__/ChartArea.test.ts`，补“容器收到非法范围后回退到默认 12 个月并同步持久化”的接线回归，确保 `TimeRangeControl -> ChartArea -> store` 链路不只覆盖 happy path
+- tests: `npm test -- src/components/charts/__tests__/TimeRangeControl.test.ts src/components/charts/__tests__/ChartArea.test.ts`
+
+## 2026-03-10
 - task: 修复首页预测范围切换后刷新丢失的本地持久化缺口，避免用户把 12/24/36 个月切到新范围后只在当前会话生效、重开页面又默默回退
 - implementation: `src/stores/finance.ts` 的 `setViewMonths` 现在会在更新运行时 `viewMonths` 的同时，同步写回 `preferences.defaultViewMonths`，并对异常输入回退到默认值；扩展 `src/stores/__tests__/finance-import-export.test.ts`，新增“切换范围 → localStorage 持久化 → 通过持久化状态恢复后仍保留该范围”的回归，锁住首页时间窗的本地连续性
 - tests: `npm test -- src/stores/__tests__/finance-import-export.test.ts`

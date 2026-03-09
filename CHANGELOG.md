@@ -1,6 +1,10 @@
 # Changelog
 
 ## 2026-03-10
+- 给首页“预测范围”继续补组件级防回归：新增 `TimeRangeControl` 独立测试，锁住 6/12/24/36 个月选项、向上发出的数值类型，以及底层 segmented 若意外吐出非法值时的显式 `NaN` 语义
+- 扩展 `ChartArea` 容器回归，新增“预测范围控件发出非法值时回退到默认 12 个月并同步持久化”的测试，避免后续 UI 接线重构只保住 happy path
+
+## 2026-03-10
 
 - test(chart-range): 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“预测范围”容器级接线回归，真实覆盖 `TimeRangeControl -> ChartArea -> store -> BalanceChart timeline` 这条首页关键链路；现在不仅会断言范围切换确实改到 `viewMonths/defaultViewMonths`，也会检查图表拿到的时间线窗口随之变长，避免后续 UI 还显示按钮但实际没把新范围传进图表。
 - fix(view-range): 首页“预测范围”切换现在会同步写回 `preferences.defaultViewMonths`。此前 `setViewMonths()` 只改了运行时 `viewMonths`，但持久化仍保留旧默认值，导致用户把 12/24/36 个月切到新范围后，一刷新页面又悄悄回到旧值；现在本地选择会稳定跨刷新保留。

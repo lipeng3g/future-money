@@ -302,6 +302,8 @@ describe('AiAnalysisModal', () => {
     const wrapper = await mountModal();
     await flushPromises();
     await nextTick();
+    await nextTick();
+
     await wrapper.findAll('button.icon-btn')[0].trigger('click');
 
     expect(exportChatHistoryMock).toHaveBeenCalledWith(scopedMessages, { accountIds: scopeAccountIds });

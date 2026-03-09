@@ -44,7 +44,13 @@ const TimeRangeControlStub = defineComponent({
   name: 'TimeRangeControl',
   props: ['value'],
   emits: ['change'],
-  template: '<button class="time-range-control-stub" @click="$emit(\'change\', 24)">{{ value }}</button>',
+  template: `
+    <div class="time-range-control-stub">
+      <button class="range-to-24" @click="$emit('change', 24)">24</button>
+      <button class="range-to-invalid" @click="$emit('change', Number.NaN)">invalid</button>
+      <span class="current-range">{{ value }}</span>
+    </div>
+  `,
 });
 
 const StatisticsPanelStub = defineComponent({
@@ -184,7 +190,7 @@ describe('ChartArea', () => {
     expect(store.viewMonths).toBe(12);
     expect(initialTimelineLength).toBeGreaterThan(0);
 
-    await wrapper.find('.time-range-control-stub').trigger('click');
+    await wrapper.find('.range-to-24').trigger('click');
     await flushAsyncComponents();
 
     const updatedBalanceChart = wrapper.findComponent({ name: 'BalanceChart' });
@@ -192,5 +198,23 @@ describe('ChartArea', () => {
     expect(store.viewMonths).toBe(24);
     expect(store.preferences.defaultViewMonths).toBe(24);
     expect((updatedBalanceChart.props('timeline') as unknown[]).length).toBeGreaterThan(initialTimelineLength);
+  });
+
+  it('预测范围控件若意外发出非法值，容器仍会回退到默认范围并同步持久化', async () => {
+    const store = useFinanceStore();
+    store.reconcile('2026-03-01', 5000, [], '初始对账');
+
+    const wrapper = mountChartArea();
+    await nextTick();
+
+    observerInstances[0]?.callback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+    await flushAsyncComponents();
+
+    await wrapper.find('.range-to-invalid').trigger('click');
+    await flushAsyncComponents();
+
+    expect(store.viewMonths).toBe(12);
+    expect(store.preferences.defaultViewMonths).toBe(12);
+    expect(wrapper.find('.current-range').text()).toBe('12');
   });
 });
