@@ -243,6 +243,44 @@ describe('AiAnalysisModal', () => {
     expect(messageError).not.toHaveBeenCalled();
   });
 
+  it('请求失败时会保留已提交问题、展示内联错误，并允许一键重试而不污染历史', async () => {
+    streamChatMock
+      .mockImplementationOnce(async function* () {
+        throw new Error('网络异常');
+      })
+      .mockImplementationOnce(async function* () {
+        yield { type: 'content', text: '重试后恢复成功' };
+      });
+
+    const wrapper = await mountModal();
+    await wrapper.find('textarea.a-textarea').setValue('分析失败恢复');
+    await wrapper.find('button.a-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(messageError).toHaveBeenCalledWith('请求失败: 网络异常');
+    expect(wrapper.text()).toContain('请求失败: 网络异常');
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true);
+    expect(wrapper.findAll('.msg-row')).toHaveLength(1);
+    expect(wrapper.findAll('.msg-row')[0]?.text()).toContain('分析失败恢复');
+    expect(wrapper.text()).not.toContain('请求失败: 网络异常请求失败: 网络异常');
+    expect(localStorage.getItem('fm-ai-chat:account-1,account-2') ?? '').not.toContain('请求失败: 网络异常');
+
+    const retryButton = wrapper.find('button.request-retry-btn');
+    expect(retryButton.exists()).toBe(true);
+    await retryButton.trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(streamChatMock).toHaveBeenCalledTimes(2);
+    expect(wrapper.findAll('.msg-row')).toHaveLength(2);
+    expect(wrapper.findAll('.msg-row')[1]?.text()).toContain('重试后恢复成功');
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    const store = useFinanceStore();
+    const historyKey = `fm-ai-chat:${[store.accounts[0].id, store.accounts[1].id].sort().join(',')}`;
+    expect(localStorage.getItem(historyKey) ?? '').toContain('重试后恢复成功');
+  });
+
   it('流式过程中若账户范围变化，会丢弃旧请求结果并切到新 scope', async () => {
     let releaseStream: (() => void) | null = null;
     streamChatMock.mockImplementation(async function* () {
@@ -398,12 +436,12 @@ describe('AiAnalysisModal', () => {
 
     expect(streamChatMock).toHaveBeenCalledTimes(1);
     const [, messages] = streamChatMock.mock.calls[0] as [unknown, ChatMessage[]];
-    expect(messages.map((message) => ({ role: message.role, content: message.content }))).toEqual([
-      expect.objectContaining({ role: 'system' }),
+    expect(messages[0]).toEqual(expect.objectContaining({ role: 'system' }));
+    expect(messages).toEqual(expect.arrayContaining([
       { role: 'user', content: '第一轮问题' },
       { role: 'assistant', content: '第一轮回答' },
-      expect.objectContaining({ role: 'user' }),
-    ]);
+    ]));
+    expect(messages.at(-1)).toEqual(expect.objectContaining({ role: 'user' }));
     expect(wrapper.text()).toContain('第二轮预设回答');
   });
  

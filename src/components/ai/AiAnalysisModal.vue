@@ -92,6 +92,16 @@
 
     <!-- 底部输入 -->
     <div class="input-bar">
+      <div v-if="requestError" class="request-error-banner" role="alert">
+        <span>{{ requestError }}</span>
+        <button
+          class="request-retry-btn"
+          :disabled="!lastSubmittedQuestion || streaming || !selectedAccountIds.length"
+          @click="handleRetry"
+        >
+          重试上一次
+        </button>
+      </div>
       <div v-if="chatMessages.length" class="quick-row">
         <button
           v-for="preset in presets"
@@ -183,6 +193,14 @@ watch(
 );
 
 watch(
+  chatHistoryScope,
+  () => {
+    requestError.value = '';
+  },
+  { deep: true },
+);
+
+watch(
   selectedAccountIds,
   () => {
     loadScopedChatHistory();
@@ -205,6 +223,8 @@ const streaming = ref(false);
 const contentBuffer = ref('');
 const thinkingBuffer = ref('');
 const userInput = ref('');
+const requestError = ref('');
+const lastSubmittedQuestion = ref('');
 const chatAreaRef = ref<HTMLElement | null>(null);
 const activeRequestController = ref<AbortController | null>(null);
 let activeRequestId = 0;
@@ -283,6 +303,22 @@ const sendToAi = async (question?: string) => {
     return;
   }
 
+  const hadExplicitQuestion = typeof question === 'string';
+  const existingMessages = [...chatMessages.value];
+  const shouldAppendUserMessage = !hadExplicitQuestion || existingMessages.at(-1)?.role !== 'user' || existingMessages.at(-1)?.content !== displayQuestion;
+
+  if (shouldAppendUserMessage) {
+    chatMessages.value.push({
+      role: 'user',
+      content: displayQuestion,
+    });
+    saveChatHistory(chatMessages.value, chatHistoryScope.value);
+    scrollToBottom();
+  }
+
+  requestError.value = '';
+  lastSubmittedQuestion.value = displayQuestion;
+
   const ctx = getFinancialContext();
   const summary = buildFinancialSummary(ctx);
   const apiMessages = createAnalysisMessages(summary, promptQuestion);
@@ -297,13 +333,6 @@ const sendToAi = async (question?: string) => {
     ...historyMessages,
     apiMessages[apiMessages.length - 1],
   ];
-
-  chatMessages.value.push({
-    role: 'user',
-    content: displayQuestion,
-  });
-  saveChatHistory(chatMessages.value, chatHistoryScope.value);
-  scrollToBottom();
 
   const requestId = ++activeRequestId;
   const controller = new AbortController();
@@ -344,12 +373,9 @@ const sendToAi = async (question?: string) => {
       return;
     }
 
-    message.error(`请求失败: ${err.message}`);
-    chatMessages.value.push({
-      role: 'assistant',
-      content: `请求失败: ${err.message}`,
-    });
-    saveChatHistory(chatMessages.value, chatHistoryScope.value);
+    const errorMessage = err?.message || '未知错误';
+    requestError.value = `请求失败: ${errorMessage}`;
+    message.error(requestError.value);
   } finally {
     if (requestId === activeRequestId) {
       activeRequestController.value = null;
@@ -361,9 +387,16 @@ const sendToAi = async (question?: string) => {
 
 const handlePreset = (preset: (typeof presets)[number]) => sendToAi(preset.question);
 
+const handleRetry = () => {
+  const retryQuestion = lastSubmittedQuestion.value.trim();
+  if (!retryQuestion) return;
+  void sendToAi(retryQuestion);
+};
+
 const handleSend = () => {
   const q = userInput.value.trim();
   if (!q) return;
+  requestError.value = '';
   clearChatDraft(chatHistoryScope.value);
   userInput.value = '';
   sendToAi(q);
@@ -379,6 +412,7 @@ watch(
   () => props.open,
   (open) => {
     if (open) return;
+    requestError.value = '';
     cancelActiveRequest();
     resetStreamingState();
   },
