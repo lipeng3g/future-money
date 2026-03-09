@@ -39,6 +39,11 @@
       </div>
     </div>
 
+    <div v-if="readOnlyReason" class="readonly-banner" role="status" aria-live="polite">
+      <strong>当前事件列表为只读</strong>
+      <p>{{ readOnlyReason }}</p>
+    </div>
+
     <EventList
       :events="displayEvents"
       :readonly="isReadOnly"
@@ -87,6 +92,15 @@ const activeChartFocus = computed(() => chartFocusState.value);
 const activeListFocus = computed(() => props.focusState ?? null);
 const activeFocus = computed(() => activeChartFocus.value ?? activeListFocus.value ?? null);
 const isReadOnly = computed(() => store.isReadOnly);
+const readOnlyReason = computed(() => {
+  if (store.isMultiAccountView) {
+    return '多账户汇总视图只支持查看与定位，切回单账户后才能新增、编辑、删除或启停事件，避免误把某个账户规则当成整组账户统一修改。';
+  }
+  if (store.isHistoricalView) {
+    return '历史快照视图只用于回看已冻结结果；请切回最新视图后再修改事件规则，避免误以为改动会直接覆盖历史对账结果。';
+  }
+  return null;
+});
 const events = computed(() => store.visibleEvents);
 const highlightedEventIds = computed(() => {
   if (activeChartFocus.value) return [activeChartFocus.value.eventId];
@@ -144,12 +158,20 @@ const mapValuesToPayload = (values: EventFormValues): NewCashFlowEvent => ({
   enabled: values.enabled,
 });
 
+const guardReadOnlyAction = () => {
+  if (!isReadOnly.value) return false;
+  message.info(readOnlyReason.value ?? '当前视图为只读，暂时不能修改事件');
+  return true;
+};
+
 const openCreator = () => {
+  if (guardReadOnlyAction()) return;
   editingEvent.value = null;
   modalOpen.value = true;
 };
 
 const openEditor = (event: CashFlowEvent) => {
+  if (guardReadOnlyAction()) return;
   editingEvent.value = event;
   modalOpen.value = true;
 };
@@ -210,6 +232,8 @@ const stepChartFocus = (direction: -1 | 1) => {
 };
 
 const handleSubmit = (values: EventFormValues) => {
+  if (guardReadOnlyAction()) return;
+
   if (editingEvent.value) {
     const result = store.updateEvent(editingEvent.value.id, mapValuesToPayload(values));
     if (result.success) {
@@ -230,6 +254,8 @@ const handleSubmit = (values: EventFormValues) => {
 };
 
 const confirmDelete = (event: CashFlowEvent) => {
+  if (guardReadOnlyAction()) return;
+
   Modal.confirm({
     title: `删除「${event.name}」？`,
     content: '删除后将无法恢复。',
@@ -247,10 +273,12 @@ const confirmDelete = (event: CashFlowEvent) => {
 };
 
 const handleToggle = ({ id, enabled }: { id: string; enabled: boolean }) => {
+  if (guardReadOnlyAction()) return;
   store.toggleEvent(id, enabled);
 };
 
 const loadSamples = () => {
+  if (guardReadOnlyAction()) return;
   let inputValue = '';
 
   Modal.confirm({
@@ -396,5 +424,27 @@ const loadSamples = () => {
   background: rgba(14, 165, 233, 0.14);
   color: #0c4a6e;
   box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.1);
+}
+
+.readonly-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.readonly-banner strong {
+  color: #92400e;
+  font-size: 0.9rem;
+}
+
+.readonly-banner p {
+  margin: 0;
+  color: #9a3412;
+  font-size: 0.82rem;
+  line-height: 1.6;
 }
 </style>

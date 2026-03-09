@@ -337,4 +337,78 @@ describe('EventPanel', () => {
     expect(wrapper.text()).not.toContain('已定位到「房租」');
     expect(wrapper.emitted('clear-focus')).toBeTruthy();
   });
+
+  it('多账户只读视图会显示原因横幅，并阻止编辑类操作透传到 store', async () => {
+    const store = useFinanceStore();
+    store.$patch({
+      viewMode: 'multi',
+      multiAccountSelection: ['acc-main'],
+    });
+
+    const wrapper = mountPanel();
+
+    expect(wrapper.text()).toContain('当前事件列表为只读');
+    expect(wrapper.text()).toContain('多账户汇总视图只支持查看与定位');
+
+    const originalEvent = store.events.find((event) => event.id === 'evt-rent');
+    expect(originalEvent?.enabled).toBe(true);
+
+    await wrapper.find('.edit-trigger').trigger('click');
+    await nextTick();
+    expect(wrapper.find('.event-form-modal-stub').exists()).toBe(false);
+
+    await wrapper.find('.toggle-trigger').trigger('click');
+    await nextTick();
+
+    await wrapper.find('.delete-trigger').trigger('click');
+    await nextTick();
+
+    const actionButtons = wrapper.findAll('.panel-actions button');
+    const loadSamplesButton = actionButtons.find((button) => button.text() === '载入示例');
+    await loadSamplesButton?.trigger('click');
+
+    expect(store.events.find((event) => event.id === 'evt-rent')?.enabled).toBe(true);
+    expect(store.events.some((event) => event.id === 'evt-rent')).toBe(true);
+    expect(modalConfirm).not.toHaveBeenCalled();
+    expect(messageInfo).toHaveBeenCalled();
+    expect(messageInfo.mock.calls.every(([text]) => String(text).includes('多账户汇总视图只支持查看与定位'))).toBe(true);
+  });
+
+  it('历史快照只读视图会展示原因横幅，并禁用新增按钮', async () => {
+    const store = useFinanceStore();
+    store.$patch({
+      snapshots: [
+      {
+        id: 'snap-old',
+        accountId: 'acc-main',
+        date: '2026-02-01',
+        balance: 4800,
+        source: 'manual',
+        note: '旧快照',
+        createdAt: '2026-02-01T00:00:00.000Z',
+      },
+      {
+        id: 'snap-new',
+        accountId: 'acc-main',
+        date: '2026-03-01',
+        balance: 5000,
+        source: 'manual',
+        note: '最新快照',
+        createdAt: '2026-03-01T00:00:00.000Z',
+      },
+    ],
+    });
+    store.setViewSnapshot('snap-old');
+
+    const wrapper = mountPanel();
+    expect(wrapper.text()).toContain('历史快照视图只用于回看已冻结结果');
+
+    const actionButtons = wrapper.findAll('.panel-actions button');
+    const addButton = actionButtons.find((button) => button.text() === '添加事件');
+    const loadSamplesButton = actionButtons.find((button) => button.text() === '载入示例');
+
+    expect(addButton?.attributes('disabled')).toBeDefined();
+    expect(loadSamplesButton?.attributes('disabled')).toBeDefined();
+    expect(wrapper.find('.event-form-modal-stub').exists()).toBe(false);
+  });
 });

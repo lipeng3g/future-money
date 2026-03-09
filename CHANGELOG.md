@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-03-09
+- ux(event-readonly): 事件面板在多账户汇总 / 历史快照两类只读视图下，新增显式原因横幅，直接说明为什么此时只能查看与定位、不能新增/编辑/删除/启停事件，避免用户只看到按钮灰掉却不明白限制来自哪里
+- safety(event-readonly): `EventPanel` 现在对新增、编辑、删除、启停、载入示例五类修改动作补了运行时只读守卫；即便后续子组件误透传事件或按钮禁用接线回退，也不会在只读视图里偷偷改动本地规则
+- test(event-readonly): 扩展 `src/components/events/__tests__/EventPanel.test.ts`，新增“多账户只读会展示原因且阻止编辑类操作”“历史快照只读会阻止新增事件”两条组件级回归，继续把事件管理的高风险边界锁到真实 UI 行为层
 - test(event-panel): 扩展 `src/components/events/__tests__/EventPanel.test.ts`，把事件面板的高风险 UI 接线从“只测图表定位”补到“编辑事件写回 store、启停开关真正生效、删除确认会清理焦点、载入示例口令错误不覆盖/正确才覆盖”整条组件级闭环，避免事件管理核心操作继续只靠 store 逻辑或手工回归兜底
 - smoke(ui-import): 新增 `src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts`，把“账户管理 → 导入当前账户 → 检查 sanitize 后确认摘要与事件规则 diff → 确认导入 → 撤销上次导入”收口成可重复执行的 DOM 级烟雾测试；不引入 Playwright 也能自动覆盖最脆弱的高风险 UI 链路
 - smoke(script): `npm run smoke` 现在同时执行 store 级 smoke 与 AppHeader UI 级 smoke，避免导入/撤销只在手册或零散组件断言里验证，后续每轮都能一键回归本地高风险导入路径
