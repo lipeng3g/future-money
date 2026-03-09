@@ -73,7 +73,7 @@
           <div class="action-item">
             <div class="action-desc">
               <strong>清空账户数据</strong>
-              <span>删除当前账户的所有事件、对账记录，保留账户本身</span>
+              <span>删除当前账户的事件、对账、账本与覆盖记录，并把账户余额重置为 0；账户本身保留</span>
             </div>
             <a-button size="small" danger ghost @click="$emit('clear')">清空</a-button>
           </div>

@@ -629,11 +629,29 @@ const exportData = (mode: ImportExportMode) => {
 
 const confirmReset = () => {
   let inputValue = '';
+  const targetAccount = store.currentAccount;
+  const eventCount = store.events.filter((event) => event.accountId === targetAccount.id).length;
+  const reconciliationCount = store.reconciliations.filter((item) => item.accountId === targetAccount.id).length;
+  const ledgerEntryCount = store.ledgerEntries.filter((item) => item.accountId === targetAccount.id).length;
+  const overrideCount = store.eventOverrides.filter((item) => item.accountId === targetAccount.id).length;
 
   Modal.confirm({
-    title: '确定清空当前账户数据？',
+    title: `确定清空账户「${targetAccount.name}」的数据？`,
+    width: 540,
     content: h('div', [
-      h('p', { style: 'color: #ef4444; margin-bottom: 12px;' }, '仅清空当前选中账户的所有事件和快照，此操作不可恢复！'),
+      h('div', { style: 'background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 12px; margin-bottom: 12px;' }, [
+        h('p', { style: 'color: #b91c1c; margin-bottom: 8px; font-weight: 700;' }, '危险操作：会重置当前账户的本地业务数据'),
+        h('p', { style: 'margin-bottom: 6px; line-height: 1.7;' }, '确认后会删除当前账户下的事件、对账、冻结区账本记录和事件覆盖，并把账户余额重置为 0。'),
+        h('p', { style: 'margin: 0; line-height: 1.7; color: #7f1d1d;' }, '账户本身会保留，但需要重新做首次对账。这个操作不会影响其他账户。'),
+      ]),
+      h('div', { style: 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
+        h('div', `目标账户：${targetAccount.name}`),
+        h('div', `将删除事件：${eventCount}`),
+        h('div', `将删除对账：${reconciliationCount}`),
+        h('div', `将删除账本记录：${ledgerEntryCount}`),
+        h('div', `将删除覆盖记录：${overrideCount}`),
+        h('div', `清空后账户初始余额：0`),
+      ]),
       h('p', { style: 'margin-bottom: 8px;' }, '请输入"清空当前账户"以确认：'),
       h('input', {
         type: 'text',

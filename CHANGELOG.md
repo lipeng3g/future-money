@@ -124,3 +124,5 @@
 - ux(event-form): monthly 31 日会在预演里直接展示短月实际落点（如 2/28），yearly 2/29 会明确展示平年回退到 2/28，降低日期语义理解门槛
 - test(event-form): 扩展 event-form 回归测试，覆盖 monthly 31 日预演、yearly 2/29 平年回退，以及 disabled / invalid 规则不展示预演
 
+- ux(account-danger): 清空账户数据确认框现在会展示真实删除范围摘要（事件/对账/账本/覆盖记录数量、余额归零、仅影响当前账户），不再沿用过时的“事件和快照”描述，降低本地危险操作误判风险
+- test(account-danger): 扩展 AppHeader 组件级回归，覆盖清空当前账户的真实摘要展示、错误确认拦截，以及确认后事件/对账/账本/覆盖记录与余额的实际重置

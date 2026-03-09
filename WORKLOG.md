@@ -244,3 +244,6 @@
 [2026-03-09 20:49:00] task: 收口自治验证后的工作区噪音，避免 Vite preview 探活生成的时间戳模块污染 git 状态
 [2026-03-09 20:49:00] deliverables: `.gitignore` 新增 `vite.config.ts.timestamp-*.mjs`；重新执行 npm install / test / type-check / build / smoke / preview+curl，确认不引入新依赖也能保持完整本地验证闭环
 [2026-03-09 20:49:00] verification: npm install ✅, npm test ✅ (154), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175 + curl -I ✅；当前运行环境仍缺 playwright，因此 browser smoke 继续保留为草稿脚本，未宣称已自动化接入
+[2026-03-10 01:29:00] task: 校正文案与真实行为不一致的账户清空危险操作确认，避免用户误以为只会删事件/快照而低估影响范围
+[2026-03-10 01:29:00] deliverables: AppHeader 的清空当前账户确认框改为展示真实删除范围摘要（事件/对账/账本/覆盖记录数量、余额归零、仅影响当前账户）；同步更新 AccountManageModal 中该危险操作说明，明确会删除账本与覆盖记录并重置余额；扩展 AppHeader 组件级回归，覆盖错误确认拦截、真实摘要展示与确认后 state 清空
+[2026-03-10 01:29:00] verification: npm test ✅ (182), npm run type-check ✅, npm run build ✅, npm run dev -- --host 127.0.0.1 + curl -I/http body smoke ✅；宿主无可用浏览器，未做 GUI 浏览器自动化，但已确认 dev server 返回首页 HTML 200

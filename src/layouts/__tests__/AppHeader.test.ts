@@ -596,6 +596,75 @@ describe('AppHeader', () => {
     expect(modalConfirm).not.toHaveBeenCalled();
   });
 
+  it('清空当前账户前会展示真实删除范围摘要，并在确认后重置当前账户数据', async () => {
+    const store = useFinanceStore();
+    const targetId = store.currentAccount.id;
+
+    const eventResult = store.addEvent({
+      name: '工资',
+      amount: 5000,
+      category: 'income',
+      type: 'monthly',
+      startDate: '2026-01-01',
+      monthlyDay: 10,
+      enabled: true,
+    });
+    expect(eventResult.success).toBe(true);
+    if (!eventResult.success) {
+      throw new Error('expected event to be created');
+    }
+
+    const createdEvent = eventResult.event;
+    const reconciliation = store.reconcile('2026-03-05', 6000, [
+      {
+        ruleId: createdEvent.id,
+        name: '工资',
+        amount: 5000,
+        category: 'income',
+        date: '2026-03-05',
+        source: 'rule',
+      },
+    ], '当前对账');
+
+    store.addEventOverride(createdEvent.id, '2026-04', 'modified', { amount: 5200, name: '工资补发' });
+
+    const wrapper = mountHeader();
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+    await wrapper.find('button.trigger-clear').trigger('click');
+    await flushPromises();
+
+    expect(modalConfirm).toHaveBeenCalledTimes(1);
+    const config = modalConfirm.mock.calls[0][0];
+    const contentText = extractText(config.content);
+    expect(config.title).toBe(`确定清空账户「${store.currentAccount.name}」的数据？`);
+    expect(contentText).toContain('危险操作：会重置当前账户的本地业务数据');
+    expect(contentText).toContain(`目标账户：${store.currentAccount.name}`);
+    expect(contentText).toContain('将删除事件：1');
+    expect(contentText).toContain('将删除对账：1');
+    expect(contentText).toContain(`将删除账本记录：${store.ledgerEntries.filter((item) => item.accountId === targetId).length}`);
+    expect(contentText).toContain('将删除覆盖记录：1');
+    expect(contentText).toContain('清空后账户初始余额：0');
+
+    await expect(config.onOk()).rejects.toBeUndefined();
+    expect(messageError).toHaveBeenCalledWith('输入的文字不正确，操作已取消');
+    expect(store.events.filter((item) => item.accountId === targetId)).toHaveLength(1);
+    expect(store.reconciliations.filter((item) => item.accountId === targetId)).toHaveLength(1);
+    expect(store.ledgerEntries.filter((item) => item.accountId === targetId)).toHaveLength(reconciliation ? 2 : 0);
+    expect(store.eventOverrides.filter((item) => item.accountId === targetId)).toHaveLength(1);
+
+    const inputNode = config.content.children.at(-1);
+    inputNode.props.onInput({ target: { value: '清空当前账户' } });
+    await config.onOk();
+
+    expect(store.events.filter((item) => item.accountId === targetId)).toHaveLength(0);
+    expect(store.reconciliations.filter((item) => item.accountId === targetId)).toHaveLength(0);
+    expect(store.ledgerEntries.filter((item) => item.accountId === targetId)).toHaveLength(0);
+    expect(store.eventOverrides.filter((item) => item.accountId === targetId)).toHaveLength(0);
+    expect(store.currentAccount.initialBalance).toBe(0);
+    expect(messageSuccess).toHaveBeenCalledWith('当前账户数据已清空');
+  });
+
   it('恢复全部账户前会在确认框展示账户差异与数据规模变化摘要', async () => {
     const store = useFinanceStore();
 
@@ -1200,8 +1269,9 @@ describe('AppHeader', () => {
 
   it('账户管理里的清空当前账户会弹确认框并在确认后清空当前账户数据', async () => {
     const store = useFinanceStore();
+    const targetId = store.currentAccount.id;
 
-    store.addEvent({
+    const eventResult = store.addEvent({
       name: '工资',
       amount: 5000,
       category: 'income',
@@ -1210,36 +1280,60 @@ describe('AppHeader', () => {
       monthlyDay: 10,
       enabled: true,
     });
-    store.reconcile('2026-03-09', 8000, [], '首次对账');
-    expect(store.events).toHaveLength(1);
-    expect(store.reconciliations).toHaveLength(1);
+    expect(eventResult.success).toBe(true);
+    if (!eventResult.success) {
+      throw new Error('expected event to be created');
+    }
+
+    const createdEvent = eventResult.event;
+    store.reconcile('2026-03-09', 8000, [
+      {
+        ruleId: createdEvent.id,
+        name: '工资',
+        amount: 5000,
+        category: 'income',
+        date: '2026-03-09',
+        source: 'rule',
+      },
+    ], '首次对账');
+    store.addEventOverride(createdEvent.id, '2026-04', 'modified', { amount: 5200, name: '工资补发' });
+    expect(store.events.filter((item) => item.accountId === targetId)).toHaveLength(1);
+    expect(store.reconciliations.filter((item) => item.accountId === targetId)).toHaveLength(1);
 
     const wrapper = mountHeader();
     await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
     await nextTick();
 
     await wrapper.find('button.trigger-clear').trigger('click');
+    await flushPromises();
 
     expect(modalConfirm).toHaveBeenCalledTimes(1);
     const config = modalConfirm.mock.calls[0][0];
     const contentText = extractText(config.content);
 
-    expect(config.title).toBe('确定清空当前账户数据？');
-    expect(contentText).toContain('仅清空当前选中账户的所有事件和快照，此操作不可恢复');
+    expect(config.title).toBe('确定清空账户「现金 主账户」的数据？');
+    expect(contentText).toContain('危险操作：会重置当前账户的本地业务数据');
+    expect(contentText).toContain('确认后会删除当前账户下的事件、对账、冻结区账本记录和事件覆盖，并把账户余额重置为 0');
+    expect(contentText).toContain('目标账户：现金 主账户');
+    expect(contentText).toContain('将删除事件：1');
+    expect(contentText).toContain('将删除对账：1');
+    expect(contentText).toContain(`将删除账本记录：${store.ledgerEntries.filter((item) => item.accountId === targetId).length}`);
+    expect(contentText).toContain('将删除覆盖记录：1');
+    expect(contentText).toContain('清空后账户初始余额：0');
 
     await expect(config.onOk()).rejects.toBeUndefined();
     expect(messageError).toHaveBeenCalledWith('输入的文字不正确，操作已取消');
-    expect(store.events).toHaveLength(1);
-    expect(store.reconciliations).toHaveLength(1);
+    expect(store.events.filter((item) => item.accountId === targetId)).toHaveLength(1);
+    expect(store.reconciliations.filter((item) => item.accountId === targetId)).toHaveLength(1);
 
-    const inputNode = config.content.children[2];
+    const inputNode = config.content.children.at(-1);
     inputNode.props.onInput({ target: { value: '清空当前账户' } });
     await config.onOk();
 
-    expect(store.events).toHaveLength(0);
-    expect(store.reconciliations).toHaveLength(0);
-    expect(store.ledgerEntries).toHaveLength(0);
-    expect(store.eventOverrides).toHaveLength(0);
+    expect(store.events.filter((item) => item.accountId === targetId)).toHaveLength(0);
+    expect(store.reconciliations.filter((item) => item.accountId === targetId)).toHaveLength(0);
+    expect(store.ledgerEntries.filter((item) => item.accountId === targetId)).toHaveLength(0);
+    expect(store.eventOverrides.filter((item) => item.accountId === targetId)).toHaveLength(0);
     expect(store.currentAccount.initialBalance).toBe(0);
     expect(messageSuccess).toHaveBeenCalledWith('当前账户数据已清空');
   });
