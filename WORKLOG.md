@@ -3,6 +3,15 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-09
+- task: 给导入/恢复关键路径补一条可重复执行的本地 smoke 闭环，避免每轮只靠零散单测确认
+- implementation: 新增 `src/stores/__tests__/finance-smoke.test.ts`，直接通过 Pinia store + jsdom localStorage 验证“导出全部账户 → 清空当前账户 → 恢复全部账户 → 撤销恢复”；同时在 `package.json` 增加 `npm run smoke` 作为独立烟雾入口
+- task: AI 分析抽屉流式取消与过期写回防护
+- implementation: `streamChat` 支持 AbortSignal；AiAnalysisModal 在抽屉关闭、组件卸载、scope 变化时主动 abort 并清空流式态；用 requestId 屏蔽过期结果写回
+- tests: 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，补"关闭即中止""scope 变化不写回旧结果"组件级回归
+- verification: npm test ✅ (148), npm run type-check ✅, npm run build ✅
+- push: 已推送至 origin/main
+
+## 2026-03-09
 - task: 强化导入/恢复稳定性，给 `storage.importState()` 增加状态净化，防止断裂引用、重复 ID、跨账户脏数据进入本地状态
 - implementation: 在 `src/utils/storage.ts` 中补齐 preferences 默认值，并按账户 → 事件 → 对账 → 账本/覆盖 的引用链过滤非法记录
 - tests: 在 `src/utils/__tests__/storage.test.ts` 增加坏备份回归用例，覆盖缺失账户、重复记录、失效 ruleId / reconciliationId 的导入行为

@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "type-check": "vue-tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "smoke": "vitest run src/stores/__tests__/finance-smoke.test.ts"
   },
   "dependencies": {
     "ant-design-vue": "^4.2.5",
