@@ -11,6 +11,7 @@ export interface UpcomingItem {
   period?: string;
   overrideId?: string;
   overrideAction?: string;
+  accountId?: string;
 }
 
 export const DEFAULT_UPCOMING_ITEM_LIMIT = 18;
@@ -52,6 +53,7 @@ export const buildUpcomingItems = (
         period: event.period,
         overrideId: event.overrideId,
         overrideAction: event.overrideAction,
+        accountId: event.accountId,
       });
 
       if (items.length >= limit) {

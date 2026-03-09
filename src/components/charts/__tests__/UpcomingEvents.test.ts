@@ -185,4 +185,52 @@ describe('UpcomingEvents', () => {
     const wrapper = mountUpcomingEvents(timeline);
     expect(wrapper.find('.event-actions').exists()).toBe(false);
   });
+
+  it('多账户视图下展示来源账户标签，避免即将发生列表看不出是哪张卡', () => {
+    const store = useFinanceStore();
+    store.setSimulatedToday('2025-01-10');
+    const accountA = store.currentAccount;
+    const accountB = store.addAccount({ name: '储蓄卡', initialBalance: 0, warningThreshold: 0 });
+    store.viewMode = 'multi';
+    store.multiAccountSelection = [accountA.id, accountB.id];
+
+    const timeline: DailySnapshot[] = [{
+      date: '2025-01-11',
+      balance: 0,
+      change: 0,
+      isWeekend: false,
+      isToday: false,
+      zone: 'projected',
+      events: [
+        { id: 'salary', eventId: 'salary', name: '工资', category: 'income', amount: 5000, date: '2025-01-11', period: '2025-01', accountId: accountA.id },
+        { id: 'rent', eventId: 'rent', name: '房租', category: 'expense', amount: 2800, date: '2025-01-11', period: '2025-01', accountId: accountB.id },
+      ],
+    }];
+
+    const wrapper = mountUpcomingEvents(timeline);
+    const tags = wrapper.findAll('.account-tag').map((node) => node.text());
+    expect(tags).toContain(accountA.name);
+    expect(tags).toContain('储蓄卡');
+  });
+
+  it('单账户视图下不额外展示账户标签，避免重复噪音', () => {
+    const store = useFinanceStore();
+    store.setSimulatedToday('2025-01-10');
+    store.viewMode = 'single';
+
+    const timeline: DailySnapshot[] = [{
+      date: '2025-01-11',
+      balance: 0,
+      change: 0,
+      isWeekend: false,
+      isToday: false,
+      zone: 'projected',
+      events: [
+        { id: 'salary', eventId: 'salary', name: '工资', category: 'income', amount: 5000, date: '2025-01-11', period: '2025-01', accountId: store.currentAccount.id },
+      ],
+    }];
+
+    const wrapper = mountUpcomingEvents(timeline);
+    expect(wrapper.find('.account-tag').exists()).toBe(false);
+  });
 });

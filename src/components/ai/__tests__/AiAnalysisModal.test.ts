@@ -297,7 +297,7 @@ describe('AiAnalysisModal', () => {
     });
 
     const store = useFinanceStore();
-    const scopeAccountIds = [store.accounts[0].id, store.accounts[1].id];
+    const scopeAccountIds = [store.accounts[0].id, store.accounts[1].id].sort();
 
     const wrapper = await mountModal();
     await wrapper.find('textarea.a-textarea').setValue('分析双账户');

@@ -8,6 +8,10 @@
             <div class="event-header">
               <span class="event-indicator"></span>
               <strong class="event-name">{{ item.name }}</strong>
+              <span v-if="showAccountTag && item.accountLabel" class="account-tag">
+                <span class="account-dot" :style="{ background: item.accountColor }"></span>
+                {{ item.accountLabel }}
+              </span>
             </div>
             <span class="event-date">{{ item.date }}</span>
             <span v-if="item.overrideAction" class="override-badge" :class="item.overrideAction">
@@ -35,7 +39,6 @@
     </template>
     <p v-else class="empty">未来 60 天暂无记录。</p>
 
-    <!-- 修改金额弹窗 -->
     <a-modal
       :open="modifyOpen"
       title="修改事件金额"
@@ -74,7 +77,18 @@ const modifyOpen = ref(false);
 const modifyAmount = ref<number | null>(null);
 const modifyTarget = ref<{ eventId: string; period: string } | null>(null);
 
-const items = computed<UpcomingItem[]>(() => buildUpcomingItems(props.timeline, store.todayStr));
+const accountMap = computed(() => new Map(store.accounts.map((account) => [account.id, account])));
+const showAccountTag = computed(() => store.isMultiAccountView);
+const items = computed<Array<UpcomingItem & { accountLabel?: string; accountColor?: string }>>(() => (
+  buildUpcomingItems(props.timeline, store.todayStr).map((item) => {
+    const account = item.accountId ? accountMap.value.get(item.accountId) : undefined;
+    return {
+      ...item,
+      accountLabel: account?.name ?? item.accountId ?? '',
+      accountColor: account?.color ?? '#64748b',
+    };
+  })
+));
 
 const overrideLabel = (action: string) => {
   switch (action) {
@@ -176,6 +190,7 @@ li {
   border-bottom: 1px solid var(--fm-border-subtle);
   transition: all 0.2s ease;
   position: relative;
+  gap: 12px;
 }
 
 li:last-child {
@@ -212,12 +227,14 @@ li.expense .event-amount {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .event-header {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .event-indicator {
@@ -233,16 +250,34 @@ li.expense .event-amount {
   color: var(--fm-text-primary);
 }
 
+.account-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: var(--fm-surface-muted);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  color: var(--fm-text-secondary);
+}
+
+.account-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
 .event-date {
   color: var(--fm-text-secondary);
   font-size: 0.8rem;
-  margin-left: 16px; /* Align with text, bypassing indicator */
+  margin-left: 16px;
 }
 
 .event-right {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .event-amount {

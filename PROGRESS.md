@@ -17,3 +17,6 @@
 - Chose a second local UX-stability task for this round: harden AI analysis drawer interaction semantics around keyboard send and preset quick actions.
 - Expanded `src/components/ai/__tests__/AiAnalysisModal.test.ts` with two higher-value component regressions: Enter vs Shift+Enter send semantics, and preset-triggered analysis preserving the current scoped draft instead of silently wiping it.
 - Cleaned a stray patch marker from the AI modal test file so the repository keeps a clean, copy-safe test source while preserving existing passing behavior.
+- Chose a third local product-polish task for this pass: make the Upcoming Events sidebar readable in multi-account mode instead of forcing users to guess which account each future income/expense belongs to.
+- Updated `src/utils/upcoming-items.ts` to preserve `accountId` from aggregated timeline events, and upgraded `src/components/charts/UpcomingEvents.vue` to render account tags only in multi-account view so single-account mode stays clean.
+- Expanded `src/utils/__tests__/upcoming-items.test.ts` and `src/components/charts/__tests__/UpcomingEvents.test.ts` with regressions that lock account-source preservation plus “show in multi / hide in single” rendering semantics.

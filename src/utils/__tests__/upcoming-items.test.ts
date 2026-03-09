@@ -71,4 +71,22 @@ describe('buildUpcomingItems', () => {
     const items = buildUpcomingItems(timeline, '2025-02-01', { limit: 10 });
     expect(items.map((item) => item.name)).toEqual(['房租', '咖啡', '工资']);
   });
+
+  it('保留多账户聚合事件的 accountId，供侧栏展示来源账户', () => {
+    const timeline: DailySnapshot[] = [{
+      date: '2025-02-03',
+      balance: 0,
+      change: 0,
+      events: [
+        { id: 'salary', eventId: 'salary', name: '工资', category: 'income', amount: 5000, date: '2025-02-03', accountId: 'acc-salary' },
+        { id: 'rent', eventId: 'rent', name: '房租', category: 'expense', amount: 2800, date: '2025-02-03', accountId: 'acc-cash' },
+      ],
+      isWeekend: false,
+      isToday: false,
+      zone: 'projected',
+    }];
+
+    const items = buildUpcomingItems(timeline, '2025-02-01', { limit: 10 });
+    expect(items.map((item) => item.accountId)).toEqual(['acc-cash', 'acc-salary']);
+  });
 });
