@@ -256,7 +256,7 @@ const handleSubmit = (values: EventFormValues) => {
       message.success('已添加事件');
       closeModal();
     } else {
-      submitError.value = result.errors?.join('；') ?? '添加失败';
+      submitError.value = result.errors?.join('；') ?? result.message ?? '添加失败';
       message.error(submitError.value);
     }
   }

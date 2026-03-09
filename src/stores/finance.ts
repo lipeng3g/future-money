@@ -297,7 +297,9 @@ export const useFinanceStore = defineStore('finance', () => {
     events.value = [...events.value].sort((a, b) => a.startDate.localeCompare(b.startDate));
   };
 
-  const addEvent = (payload: NewCashFlowEvent) => {
+  const addEvent = (payload: NewCashFlowEvent):
+    | { success: true; event: CashFlowEvent }
+    | { success: false; errors?: string[]; message?: string } => {
     const withAccount: NewCashFlowEvent = {
       ...payload,
       accountId: payload.accountId ?? account.value.id,

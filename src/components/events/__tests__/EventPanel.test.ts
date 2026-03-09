@@ -114,6 +114,36 @@ const EventFormModalStub = defineComponent({
       >
         提交非法编辑
       </button>
+      <button
+        type="button"
+        class="submit-create"
+        @click="$emit('submit', {
+          name: '兼职收入',
+          amount: 1800,
+          category: 'income',
+          type: 'monthly',
+          startDate: '2026-04-01',
+          monthlyDay: 18,
+          enabled: true,
+        })"
+      >
+        提交新增
+      </button>
+      <button
+        type="button"
+        class="submit-invalid-create"
+        @click="$emit('submit', {
+          name: '',
+          amount: 1800,
+          category: 'income',
+          type: 'monthly',
+          startDate: '2026-04-01',
+          monthlyDay: 18,
+          enabled: true,
+        })"
+      >
+        提交非法新增
+      </button>
       <button type="button" class="cancel-edit" @click="$emit('cancel')">取消</button>
     </div>
   `,
@@ -285,6 +315,48 @@ describe('EventPanel', () => {
     expect(wrapper.find('.event-form-modal-stub').exists()).toBe(true);
     expect(wrapper.find('.submit-error').text()).toContain('事件名称不能为空');
     expect(wrapper.find('.editing-name').text()).toBe('房租');
+  });
+
+  it('新增失败时会保留弹窗并展示明确错误', async () => {
+    const store = useFinanceStore();
+    const wrapper = mountPanel();
+
+    const actionButtons = wrapper.findAll('.panel-actions button');
+    const addButton = actionButtons.find((button) => button.text() === '添加事件');
+    await addButton?.trigger('click');
+    await nextTick();
+
+    expect(wrapper.find('.event-form-modal-stub').exists()).toBe(true);
+    expect(wrapper.find('.editing-name').text()).toBe('new');
+
+    await wrapper.find('.submit-invalid-create').trigger('click');
+    await nextTick();
+
+    expect(store.events).toHaveLength(2);
+    expect(messageError).toHaveBeenCalledWith('事件名称不能为空');
+    expect(wrapper.find('.event-form-modal-stub').exists()).toBe(true);
+    expect(wrapper.find('.submit-error').text()).toContain('事件名称不能为空');
+    expect(wrapper.find('.editing-name').text()).toBe('new');
+  });
+
+  it('新增成功时会写入 store 并关闭弹窗', async () => {
+    const store = useFinanceStore();
+    const wrapper = mountPanel();
+
+    const actionButtons = wrapper.findAll('.panel-actions button');
+    const addButton = actionButtons.find((button) => button.text() === '添加事件');
+    await addButton?.trigger('click');
+    await nextTick();
+
+    await wrapper.find('.submit-create').trigger('click');
+    await nextTick();
+
+    const created = store.events.find((event) => event.name === '兼职收入');
+    expect(created).toBeTruthy();
+    expect(created?.category).toBe('income');
+    expect(created?.monthlyDay).toBe(18);
+    expect(messageSuccess).toHaveBeenCalledWith('已添加事件');
+    expect(wrapper.find('.event-form-modal-stub').exists()).toBe(false);
   });
 
   it('会在切换启用状态时真正更新 store', async () => {

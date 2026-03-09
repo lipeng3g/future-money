@@ -7,6 +7,8 @@
 - implementation: 新增 `src/components/events/__tests__/EventCard.test.ts`，覆盖账户/频率/金额摘要、图表定位入口、暂停状态、开关/编辑/删除事件透传，以及父层显式 `readonly` 传入时的“开关禁用 + 编辑/删除隐藏”真实组件语义
 - verification: 已纳入本轮完整验证队列（npm install / test / type-check / build / smoke / preview+curl）；待结果回填
 [2026-03-10 00:45:00] task: 收口事件新增/编辑失败时的本地可恢复体验，确保失败后弹窗保留、错误有内联落点，并完成完整验证/提交/push
+[2026-03-10 00:52:00] deliverables: EventPanel 新增失败提示统一优先透传 store.message；扩展 EventPanel 组件级回归覆盖“新增失败保留弹窗+内联错误”与“新增成功真实写入 store 并关窗”，把失败保护从仅编辑场景补齐到新增场景
+[2026-03-10 00:57:00] follow-up: 补齐 finance store 的 addEvent 显式返回类型，保证 UI 统一读取 errors/message 时 TypeScript 不再因失败分支联合类型过窄而报错
 
 ## 2026-03-10
 - task: 把高风险导入 smoke 从“单账户导入”继续扩到“恢复全部账户”，避免整库恢复/撤销闭环继续主要依赖普通组件测试与手工预览
