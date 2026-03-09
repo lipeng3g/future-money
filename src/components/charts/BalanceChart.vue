@@ -49,11 +49,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { ECElementEvent } from 'echarts/core';
 import VChart from 'vue-echarts';
 import type { DailySnapshot } from '@/types/timeline';
-import { createAsyncChartRuntime } from '@/utils/chart-runtime';
+import { useChartRuntime } from '@/utils/use-chart-runtime';
 import {
   buildBalanceChartFocusInsight,
   buildBalanceChartFocusTargets,
@@ -84,13 +84,9 @@ const emit = defineEmits<{
   (e: 'select-date', date: string): void;
 }>();
 
-const chartRuntime = createAsyncChartRuntime(() => import('@/utils/echarts-balance'));
+const chartRuntime = useChartRuntime(() => import('@/utils/echarts-balance'));
 const chartRuntimeReady = chartRuntime.ready;
 const chartRuntimeError = chartRuntime.error;
-
-onMounted(() => {
-  void chartRuntime.ensureReady();
-});
 
 const retryChartRuntime = () => chartRuntime.retry();
 

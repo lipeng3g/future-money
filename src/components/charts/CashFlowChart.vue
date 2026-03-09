@@ -16,21 +16,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import VChart from 'vue-echarts';
 import type { MonthlySnapshot } from '@/types/analytics';
 import { buildCashFlowChartOption } from '@/utils/chart-options-cashflow';
-import { createAsyncChartRuntime } from '@/utils/chart-runtime';
+import { useChartRuntime } from '@/utils/use-chart-runtime';
 
 const props = defineProps<{ months: MonthlySnapshot[] }>();
 
-const chartRuntime = createAsyncChartRuntime(() => import('@/utils/echarts-cashflow'));
+const chartRuntime = useChartRuntime(() => import('@/utils/echarts-cashflow'));
 const chartRuntimeReady = chartRuntime.ready;
 const chartRuntimeError = chartRuntime.error;
-
-onMounted(() => {
-  void chartRuntime.ensureReady();
-});
 
 const retryChartRuntime = () => chartRuntime.retry();
 

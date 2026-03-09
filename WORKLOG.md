@@ -3,6 +3,11 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-10
+- task: 收口图表 runtime 共享加载接线，并把失败后重试的回归补到公共层/组件层，减少两张图各自散落维护异步加载逻辑的成本
+- implementation: 新增 `src/utils/use-chart-runtime.ts`，把 `onMounted -> ensureReady()` 的组合式接线从 `BalanceChart` / `CashFlowChart` 抽成共享 hook；两张图改为直接复用该 hook，避免重复写 mounted 生命周期与 runtime 状态胶水代码。同步新增 `src/utils/__tests__/use-chart-runtime.test.ts` 覆盖“挂载即触发加载”，并在 `src/components/charts/__tests__/CashFlowChart.test.ts` 补“runtime 失败 -> 错误态 -> 重试恢复”的组件级回归，继续锁住本地图表 chunk 失败后的可恢复体验
+- tests: `npm test -- src/components/charts/__tests__/BalanceChart.test.ts src/components/charts/__tests__/CashFlowChart.test.ts src/utils/__tests__/chart-runtime.test.ts src/utils/__tests__/use-chart-runtime.test.ts`
+
+## 2026-03-10
 - task: 给 `MainLayout` 补一条真实事件管理接线回归，减少“图表定位 → 抽屉 → 真实表单新增”继续只靠纯函数或大面积 stub 兜底的风险
 - decision: 不再碰用户刚稳定下来的 vendor/chunk 策略，也先跳过任何登录/云端方向；优先补本地高风险交互链的真实组件接线，收益更高、回归更稳
 - implementation: 先尝试新增 `src/layouts/__tests__/MainLayout.test.ts` 覆盖“图表定位 → 抽屉 → 快速添加”真实接线，但当前 `MainLayout` 通过 `defineAsyncComponent` 组织子组件，现有 test harness 下异步模块替身接管成本过高、稳定性不够；已主动撤回该草稿，避免把不稳测试带进主线，并改做更稳的事件聚合边界回归

@@ -39,6 +39,34 @@ beforeEach(() => {
 });
 
 describe('CashFlowChart', () => {
+  it('runtime 加载失败时会展示错误态，并允许重试恢复', async () => {
+    cashflowRuntimeHook
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce(undefined);
+
+    const wrapper = mount(CashFlowChart, {
+      props: {
+        months,
+      },
+    });
+
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.find('.chart-runtime-error').exists()).toBe(true);
+    expect(wrapper.text()).toContain('图表暂时没加载出来');
+    expect(wrapper.text()).toContain('图表引擎加载失败，请稍后重试。');
+    expect(wrapper.find('.v-chart').exists()).toBe(false);
+
+    await wrapper.find('.retry-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(cashflowRuntimeHook).toHaveBeenCalledTimes(2);
+    expect(wrapper.find('.chart-runtime-error').exists()).toBe(false);
+    expect(wrapper.find('.v-chart').exists()).toBe(true);
+  });
+
   it('空月度数据时展示空态而不是图表容器', () => {
     const wrapper = mount(CashFlowChart, {
       props: {

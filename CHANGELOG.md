@@ -2,6 +2,8 @@
 
 ## 2026-03-10
 
+- refactor(chart-runtime): 新增 `src/utils/use-chart-runtime.ts`，把图表组件里重复的 `onMounted -> ensureReady()` 异步加载接线抽成共享组合式 hook；余额图 / 月度图继续复用既有 `createAsyncChartRuntime()` 状态机，但 mounted 生命周期与加载胶水代码不再散落在两个组件里，后续若继续调整图表 runtime 初始化策略只需改一处。
+- test(chart-runtime): 新增 `src/utils/__tests__/use-chart-runtime.test.ts`，覆盖“组件挂载后会自动触发 runtime 加载”的共享接线语义；同时扩展 `src/components/charts/__tests__/CashFlowChart.test.ts`，补齐“runtime 首次失败时展示错误态，点击重试后恢复渲染”回归，继续锁住本地图表 chunk 失败后的自恢复体验。
 - test(event-list): 新增 `src/components/events/__tests__/EventList.test.ts`，把事件列表从父层 stub 回归补到 `EventList + EventCard` 真组件组合：现在会直接锁住高亮样式、图表定位入口、只读态开关禁用/编辑删除隐藏，以及可编辑态下 `toggle / edit / delete` 的真实冒泡，避免事件面板测试只验证父层事件名，却漏掉子卡片实际语义回退。
 - ux(import-preview): 单账户导入与整库恢复的确认框现在会额外展示 `sanitize 过滤统计`，直接列出账户 / 事件 / 对账 / 账本 / 覆盖记录在“原始备份 → sanitize 后”各自被过滤了多少，以及常见过滤原因；用户在确认前就能看见坏字段、断裂引用或脏数据到底丢了多少，不再只知道“系统会过滤”却不知道影响范围。
 - test(import-preview): 扩展 `src/utils/__tests__/import-preview.test.ts` 与 `src/layouts/__tests__/AppHeader.test.ts`，补 `sanitize 过滤统计` 的纯函数与确认框接线回归，锁住单账户导入 / 整库恢复两条高风险 UI 链路的摘要一致性。
