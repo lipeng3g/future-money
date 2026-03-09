@@ -3,6 +3,12 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-09
+- task: 给首页图表延迟挂载补“观察器失效时的超时兜底揭示”，避免后台标签页/兼容性异常场景下永久停留在骨架屏
+- implementation: `src/components/charts/ChartArea.vue` 为余额图/月度图各自增加 fallback timer；IntersectionObserver 正常命中时会取消对应定时器，若观察器迟迟不回调，则在 1.8s / 2.6s 后按顺序自动揭示图表，兼顾首屏让路与最终可达性；卸载时统一清理 observer 与 timer
+- tests: 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“observer 不触发时按兜底定时器逐步加载图表”组件级回归
+- verification: npm install ✅, npm test -- src/components/charts/__tests__/ChartArea.test.ts ✅, npm test ✅ (160), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175 + curl -I ✅；构建仍保留既有 `vendor-date <-> vendor-antd` circular chunk 提示与 `chart-balance-runtime ~556kB` / `vendor-antd ~715kB` 大 chunk 告警，本轮未触碰用户已验证的 vendor-antd 合并修复
+
+## 2026-03-09
 - task: 给图表 runtime 补统一异步状态机与失败可恢复兜底，避免余额图 / 月度图 chunk 加载失败时静默白屏
 - implementation: 新增 `src/utils/chart-runtime.ts`，收口 `ensureReady / retry / error / ready`；`BalanceChart.vue` 与 `CashFlowChart.vue` 接入统一 runtime 状态，并在失败时展示错误卡片与“重试加载”按钮
 - tests: 新增 `src/utils/__tests__/chart-runtime.test.ts`，覆盖并发加载去重与失败后 retry 恢复；组件级测试继续锁住“先加载态、后挂图表”的真实 UI 语义

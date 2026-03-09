@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, nextTick } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
@@ -105,9 +105,14 @@ const mountChartArea = () => mount(ChartArea, {
 
 describe('ChartArea', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     setActivePinia(createPinia());
     observerInstances = [];
     vi.stubGlobal('IntersectionObserver', MockIntersectionObserver as unknown as typeof IntersectionObserver);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('图表进入视口前先展示骨架，占位不立即加载重图表', async () => {
@@ -132,6 +137,25 @@ describe('ChartArea', () => {
     expect(wrapper.find('.cashflow-chart-stub').exists()).toBe(false);
 
     observerInstances[1]?.callback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+    await flushAsyncComponents();
+
+    expect(wrapper.find('.cashflow-chart-stub').exists()).toBe(true);
+  });
+
+  it('观察器迟迟不触发时，会按兜底定时器逐步加载图表，避免永久骨架', async () => {
+    const wrapper = mountChartArea();
+    await nextTick();
+
+    expect(wrapper.find('.balance-chart-stub').exists()).toBe(false);
+    expect(wrapper.find('.cashflow-chart-stub').exists()).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1800);
+    await flushAsyncComponents();
+
+    expect(wrapper.find('.balance-chart-stub').exists()).toBe(true);
+    expect(wrapper.find('.cashflow-chart-stub').exists()).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(800);
     await flushAsyncComponents();
 
     expect(wrapper.find('.cashflow-chart-stub').exists()).toBe(true);

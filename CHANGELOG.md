@@ -1,6 +1,10 @@
 # Changelog
 
 ## 2026-03-09
+- chart: 为首页图表延迟挂载补“超时兜底加载”机制；即使 `IntersectionObserver` 在后台标签页、低功耗模式或兼容性异常场景下迟迟不触发，余额图与月度图也会按顺序自动揭示，避免用户永久停留在骨架屏
+- test: 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，覆盖 observer 正常触发与 fallback 定时器兜底两条路径，锁住“先让出首屏交互、但不允许永久白骨架”的真实语义
+
+## 2026-03-09
 
 - stability(chart-runtime): 抽出 `src/utils/chart-runtime.ts` 统一管理图表 runtime 的异步加载状态；余额图 / 月度图现在具备一致的“加载中 → 成功”状态机基础能力，并为后续 UI 级失败兜底 / 重试保留了可测试的共享落点，避免 runtime 处理继续散落在各个组件里
 - test(chart-runtime): 新增 `src/utils/__tests__/chart-runtime.test.ts`，覆盖“并发 ensureReady 只触发一次真实加载”“首次失败后允许 retry 恢复”两条回归；同时保留 `BalanceChart` / `CashFlowChart` 组件级测试对“runtime ready 前先显示加载态、完成后再挂图表”的真实 UI 语义覆盖

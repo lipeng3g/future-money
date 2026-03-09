@@ -151,9 +151,32 @@ const cashflowChartCardRef = ref<HTMLElement | null>(null);
 const shouldRenderBalanceChart = ref(false);
 const shouldRenderCashFlowChart = ref(false);
 
+const BALANCE_CHART_FALLBACK_DELAY = 1800;
+const CASHFLOW_CHART_FALLBACK_DELAY = 2600;
 const chartObservers: IntersectionObserver[] = [];
+const chartFallbackTimers: number[] = [];
 
 const canUseIntersectionObserver = () => typeof window !== 'undefined' && 'IntersectionObserver' in window;
+
+const clearChartFallbackTimer = (timerId?: number) => {
+  if (timerId === undefined || typeof window === 'undefined') return;
+  window.clearTimeout(timerId);
+  const index = chartFallbackTimers.indexOf(timerId);
+  if (index >= 0) {
+    chartFallbackTimers.splice(index, 1);
+  }
+};
+
+const scheduleChartFallbackReveal = (type: 'balance' | 'cashflow') => {
+  if (typeof window === 'undefined') return undefined;
+  const delay = type === 'balance' ? BALANCE_CHART_FALLBACK_DELAY : CASHFLOW_CHART_FALLBACK_DELAY;
+  const timerId = window.setTimeout(() => {
+    revealChart(type);
+    clearChartFallbackTimer(timerId);
+  }, delay);
+  chartFallbackTimers.push(timerId);
+  return timerId;
+};
 
 const revealChart = (type: 'balance' | 'cashflow') => {
   if (type === 'balance') {
@@ -179,8 +202,10 @@ const observeDeferredChart = (
     return;
   }
 
+  const fallbackTimerId = scheduleChartFallbackReveal(type);
   const observer = new window.IntersectionObserver((entries) => {
     if (!entries.some((entry) => entry.isIntersecting)) return;
+    clearChartFallbackTimer(fallbackTimerId);
     revealChart(type);
     observer.disconnect();
   }, {
@@ -238,6 +263,11 @@ onMounted(() => {
 onBeforeUnmount(() => {
   chartObservers.forEach((observer) => observer.disconnect());
   chartObservers.length = 0;
+  chartFallbackTimers.splice(0).forEach((timerId) => {
+    if (typeof window !== 'undefined') {
+      window.clearTimeout(timerId);
+    }
+  });
 });
 </script>
 
