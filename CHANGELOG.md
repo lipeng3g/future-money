@@ -3,7 +3,7 @@
 ## 2026-03-09
 
 - perf(chart-runtime): 余额图 / 月度图现在会在组件挂载后再异步加载各自的 ECharts 注册模块，而不是在图表组件求值阶段就静态引入；这样首页未滚动到图表区、或图表仍处于空态时，不会被 `chart-balance-runtime` / `chart-cashflow-runtime` 提前拖入当前渲染路径，图表组件自身异步壳体也进一步收轻
-- test(chart-runtime): 调整 `src/components/charts/__tests__/BalanceChart.test.ts`，显式等待图表 runtime ready 后再断言点击行为，补齐“运行时异步初始化”这一层真实组件语义，避免后续把 ECharts 注册重新绑回同步顶层 import 时无人发现
+- test(chart-runtime): 调整 `src/components/charts/__tests__/BalanceChart.test.ts`，并新增 `src/components/charts/__tests__/CashFlowChart.test.ts`，显式覆盖“runtime ready 前先显示轻量加载态、完成后再挂真实图表”的组件语义，避免后续把 ECharts 注册重新绑回同步顶层 import 时无人发现
 - note(build): 本轮重新验证后确认 `dist/assets/BalanceChart-*.js` 已收口到约 `11.8kB`，但 `chart-balance-runtime` 仍约 `556kB`；结论是当前大块主要来自 ECharts runtime 本体而非余额图 UI/option 代码，下一轮若继续拆分应优先研究 runtime 级按需能力，而不是再继续切自家业务组件
 - chore(gitignore): 将 `vite.config.ts.timestamp-*.mjs` 加入 `.gitignore`，避免本地 `vite preview` / 探活验证后生成的 Vite 临时时间戳模块污染工作区，降低自治验证与用户手工开发之间的噪音
 - test(validation): 再次完整执行 `npm install`、`npm test`、`npm run type-check`、`npm run build`、`npm run smoke` 与 `npm run preview -- --host 127.0.0.1 --port 4175 + curl -I`，确认当前导入/恢复与 UI 回归链路在不新增依赖的前提下仍可重复通过

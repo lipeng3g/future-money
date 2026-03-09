@@ -16,3 +16,4 @@
 1. 把 browser smoke 从“单账户导入”继续扩展到“恢复全部账户”，覆盖旧备份预警、账户 diff、按账户数据变化与撤销入口
 2. 评估是否需要把页面级 smoke 进一步收口成可一键执行的本地自动化；若引入新依赖，需先单独评估稳定性与维护成本
 3. 继续处理构建性能余项：在不回退用户 vendor-antd 修复的前提下，优先研究 `chart-balance-runtime` 的 runtime 级安全拆分点（如确认 `echarts/components` / renderer / chart type 是否还能进一步按使用路径收口），不要再把精力浪费在继续细拆已经很小的业务壳体上
+4. 若继续迭代图表稳定性，下一轮优先补 `ChartArea` 与真实异步图表组件之间的联动 smoke，确认“延迟挂载 + runtime 异步注册 + focus 联动”三层组合在页面级也不回退
