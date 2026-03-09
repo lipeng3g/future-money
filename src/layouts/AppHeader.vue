@@ -177,10 +177,11 @@ import { computed, defineAsyncComponent, ref, h } from 'vue';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { Modal, message } from 'ant-design-vue';
-import type { AppState, PersistedStateEnvelope } from '@/types';
+import type { PersistedStateEnvelope } from '@/types';
 import type { UserPreferences } from '@/types/account';
 import { useFinanceStore } from '@/stores/finance';
 import { formatLocalISODate } from '@/utils/date';
+import { createStateRepository } from '@/utils/storage';
 import {
   buildImportAccountDataDeltaSummary,
   buildImportAccountDiffSummary,
@@ -207,6 +208,7 @@ interface LatestReconciliationBrief {
 }
 
 const store = useFinanceStore();
+const previewStateRepository = createStateRepository();
 const preferencesOpen = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const fileActionMode = ref<ImportExportMode>('current');
@@ -316,9 +318,13 @@ const validateImportMode = (mode: ImportExportMode, content: string) => {
 };
 
 const confirmImportAll = (content: string, fileName: string) => {
-  const summary = validateImportMode('all', content);
+  validateImportMode('all', content);
   const parsed = JSON.parse(content) as PersistedStateEnvelope;
-  const incomingState = parsed.state as AppState;
+  const incomingState = previewStateRepository.importState(content);
+  const backupSummary = parseImportPreview(JSON.stringify({
+    ...parsed,
+    state: incomingState,
+  }));
   const currentState = {
     accounts: store.accounts,
     events: store.events,
@@ -326,19 +332,19 @@ const confirmImportAll = (content: string, fileName: string) => {
     ledgerEntries: store.ledgerEntries,
     eventOverrides: store.eventOverrides,
   };
-  const risk = buildImportRiskSummary(summary, currentState);
-  const accountDiff = buildImportAccountDiffSummary(summary, store.accounts);
-  const dataDelta = buildImportDataDeltaSummary(summary, currentState);
+  const risk = buildImportRiskSummary(backupSummary, currentState);
+  const accountDiff = buildImportAccountDiffSummary(backupSummary, store.accounts);
+  const dataDelta = buildImportDataDeltaSummary(backupSummary, currentState);
   const accountDataDelta = buildImportAccountDataDeltaSummary(incomingState, currentState);
   const accountEventDiff = buildImportAccountEventDiffSummary(incomingState, currentState);
   const dateRange = buildImportDateRangeSummary(incomingState, currentState);
   const freshness = buildImportFreshnessSummary(incomingState, currentState);
   let inputValue = '';
   const confirmText = '恢复全部账户';
-  const backupTime = summary.timestamp
-    ? new Date(summary.timestamp).toLocaleString('zh-CN', { hour12: false })
+  const backupTime = backupSummary.timestamp
+    ? new Date(backupSummary.timestamp).toLocaleString('zh-CN', { hour12: false })
     : '未知';
-  const accountNames = summary.accountNames.length ? summary.accountNames.join('、') : '未识别账户名';
+  const accountNames = backupSummary.accountNames.length ? backupSummary.accountNames.join('、') : '未识别账户名';
   const riskColor = risk.level === 'high' ? '#b91c1c' : '#b45309';
   const riskBackground = risk.level === 'high' ? '#fef2f2' : '#fff7ed';
   const riskBorder = risk.level === 'high' ? '#fecaca' : '#fdba74';
@@ -387,12 +393,12 @@ const confirmImportAll = (content: string, fileName: string) => {
       ]),
       h('div', { style: 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
         h('div', `备份文件：${fileName}`),
-        h('div', `文件类型：${getScopeLabel(summary.scope)}`),
+        h('div', `文件类型：${getScopeLabel(backupSummary.scope)}`),
         h('div', `备份时间：${backupTime}`),
-        h('div', `备份内账户：${summary.accountsCount}（${accountNames}）`),
-        h('div', `备份内事件 / 对账 / 账本：${summary.eventsCount} / ${summary.reconciliationsCount} / ${summary.ledgerEntriesCount}`),
-        h('div', `备份内覆盖记录：${summary.eventOverridesCount}`),
-        h('div', `备份版本：${summary.stateVersion}`),
+        h('div', `备份内账户：${backupSummary.accountsCount}（${accountNames}）`),
+        h('div', `备份内事件 / 对账 / 账本：${backupSummary.eventsCount} / ${backupSummary.reconciliationsCount} / ${backupSummary.ledgerEntriesCount}`),
+        h('div', `备份内覆盖记录：${backupSummary.eventOverridesCount}`),
+        h('div', `备份版本：${backupSummary.stateVersion}`),
       ]),
       accountDiffRows.length
         ? h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [

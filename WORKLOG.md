@@ -178,3 +178,6 @@
 [2026-03-09 19:49:00] task: 扩展导入值级净化回归，把坏备份脏值覆盖到更多真实枚举/空白字段组合
 [2026-03-09 19:49:00] deliverables: 扩展 src/utils/__tests__/storage.test.ts，新增空白账户名、异常事件 category、异常 snapshot source、异常 ledger source、异常 override action 等值级坏数据回归，确保 sanitize 链路继续只保留可安全落地的数据
 [2026-03-09 19:49:00] verification: npm test -- src/utils/__tests__/storage.test.ts ✅ (10), npm test ✅, npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview + curl -I ✅；预览探活返回 200，组合命令末尾因主动收尾 preview 进程触发 SIGTERM，不影响实际 smoke 结果
+[2026-03-09 20:10:00] task: 打通“坏整库备份 → sanitize 后确认摘要 → 实际恢复 → 撤销回滚”的 UI 级闭环，避免确认框仍按原始脏 JSON 展示，和真实落地结果不一致
+[2026-03-09 20:10:00] deliverables: AppHeader 的恢复全部账户确认框改为基于 storage.importState() 净化后的 incoming state 生成账户/事件/账本/覆盖摘要；扩展 src/layouts/__tests__/AppHeader.test.ts，新增坏备份 sanitize 后预览、恢复成功、撤销回滚的一条组件级闭环回归
+[2026-03-09 20:10:00] verification: npm install ✅, npm test ✅ (152), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175 + curl -I ✅；构建仍有既有 circular chunk 提示（vendor-date <-> vendor-antd）与大 chunk 告警（vendor-antd / chart-balance-runtime），本轮未改用户构建修复策略

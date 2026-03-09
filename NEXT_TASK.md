@@ -10,7 +10,7 @@
 - 本地分支 `auto/2026-03-09-import-read-error` 领先 origin/main 3 commits，验证全部通过，准备推送
 
 ## 下一轮优先级
-1. **导入/恢复 UI 端到端闭环**：继续补"坏备份 + 用户确认 + 导入完成 + 撤销回滚"的组件级回归，重点把 storage 净化后的结果和确认框摘要 / toast / 实际 store 落地做同源校验
+1. **浏览器级 smoke 自动化**：在现有 store / 组件测试闭环之外，再补预览态真实页面脚本，覆盖文件选择、确认框输入、toast 与撤销入口的真实浏览器接线
 2. **字段级数据校验**：继续给导入路径加更细的结构/值校验，例如异常 recurrence 组合、非法 createdAt/updatedAt、空白 note/name 的统一降级策略
 3. **浏览器级 smoke 自动化**：在现有 `npm run smoke` 的 store 闭环之上，再补预览态真实页面导入/撤销脚本，覆盖文件选择、确认框与 toast 接线
 4. **构建性能余项**：继续审视 `vendor-antd` / `chart-balance-runtime` 告警与 `vendor-date -> vendor-antd` circular chunk，优先找不回退用户修复前提下的安全拆分点
