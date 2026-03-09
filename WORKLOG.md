@@ -3,6 +3,11 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-09
+- task: 给事件面板补高风险 UI 接线回归，避免编辑/删除/启停/载入示例这些真实操作继续主要靠 store 逻辑或手工回归兜底
+- implementation: 重写 `src/components/events/__tests__/EventPanel.test.ts` 的测试桩，新增可触发 edit/delete/toggle 的 `EventList` stub 与可提交 payload 的 `EventFormModal` stub；补齐“编辑事件写回 store 并关闭弹窗”“切换启停真正更新 store”“删除确认后清掉 store 与当前焦点”“载入示例口令错误不覆盖 / 正确才覆盖并清掉当前焦点”四类组件级回归，同时保留原有图表定位日期 chip / 上下切换能力断言
+- docs: 更新 `CHANGELOG.md` 与 `NEXT_TASK.md`，把事件面板本轮补测范围与后续未补齐边界写入仓库，保留真实进度痕迹
+
+## 2026-03-09
 - task: 把高风险导入/撤销从手册 smoke 再推进到可执行的 UI 级自动 smoke，避免本地导入链路继续主要依赖 OpenClaw/browser 手工回归
 - implementation: 新增 `src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts`，直接挂载真实 `AppHeader + Pinia store`，走“账户管理 → 导入当前账户 → 校验 sanitize 后确认摘要与事件规则 diff → 确认导入 → 再次打开账户管理 → 撤销上次导入”的整条 DOM 级闭环；同时把 `package.json` 的 `npm run smoke` 扩到同时执行 store 级 smoke 与这条 UI 级 smoke
 - docs: 更新 `README.md`、`CHANGELOG.md`、`NEXT_TASK.md`，把新的 smoke 覆盖范围和后续缺口写进仓库真实文件，保留本轮进度痕迹

@@ -43,6 +43,33 @@ const EventListStub = defineComponent({
       >
         {{ event.name }}
       </button>
+      <button
+        v-for="event in events"
+        :key="'edit-' + event.id"
+        type="button"
+        class="edit-trigger"
+        @click="$emit('edit', event)"
+      >
+        编辑 {{ event.name }}
+      </button>
+      <button
+        v-for="event in events"
+        :key="'delete-' + event.id"
+        type="button"
+        class="delete-trigger"
+        @click="$emit('delete', event)"
+      >
+        删除 {{ event.name }}
+      </button>
+      <button
+        v-for="event in events"
+        :key="'toggle-' + event.id"
+        type="button"
+        class="toggle-trigger"
+        @click="$emit('toggle', { id: event.id, enabled: !event.enabled })"
+      >
+        切换 {{ event.name }}
+      </button>
       <div class="highlighted">{{ highlightedEventIds?.join(',') }}</div>
       <div class="chart-focused">{{ chartFocusedEventId }}</div>
     </div>
@@ -51,7 +78,29 @@ const EventListStub = defineComponent({
 
 const EventFormModalStub = defineComponent({
   name: 'EventFormModal',
-  template: '<div class="event-form-modal-stub"></div>',
+  props: ['open', 'event'],
+  emits: ['submit', 'cancel'],
+  template: `
+    <div v-if="open" class="event-form-modal-stub">
+      <div class="editing-name">{{ event?.name ?? 'new' }}</div>
+      <button
+        type="button"
+        class="submit-edit"
+        @click="$emit('submit', {
+          name: '更新后的房租',
+          amount: 3200,
+          category: 'expense',
+          type: 'monthly',
+          startDate: '2026-01-01',
+          monthlyDay: 12,
+          enabled: true,
+        })"
+      >
+        提交编辑
+      </button>
+      <button type="button" class="cancel-edit" @click="$emit('cancel')">取消</button>
+    </div>
+  `,
 });
 
 const AButtonStub = defineComponent({
@@ -79,6 +128,16 @@ const baseEvent = (overrides: Partial<CashFlowEvent> = {}): CashFlowEvent => ({
   enabled: overrides.enabled ?? true,
   createdAt: overrides.createdAt ?? '2026-01-01T00:00:00.000Z',
   updatedAt: overrides.updatedAt ?? '2026-01-01T00:00:00.000Z',
+});
+
+const mountPanel = () => mount(EventPanel, {
+  global: {
+    stubs: {
+      EventList: EventListStub,
+      EventFormModal: EventFormModalStub,
+      AButton: AButtonStub,
+    },
+  },
 });
 
 describe('EventPanel', () => {
@@ -131,15 +190,7 @@ describe('EventPanel', () => {
   });
 
   it('会在图表定位横幅中展示全部发生日，并支持直接切换到指定日期', async () => {
-    const wrapper = mount(EventPanel, {
-      global: {
-        stubs: {
-          EventList: EventListStub,
-          EventFormModal: EventFormModalStub,
-          AButton: AButtonStub,
-        },
-      },
-    });
+    const wrapper = mountPanel();
 
     await wrapper.find('.focus-chart-trigger').trigger('click');
     await nextTick();
@@ -161,15 +212,7 @@ describe('EventPanel', () => {
   });
 
   it('仍保留上一个/下一个日期切换能力', async () => {
-    const wrapper = mount(EventPanel, {
-      global: {
-        stubs: {
-          EventList: EventListStub,
-          EventFormModal: EventFormModalStub,
-          AButton: AButtonStub,
-        },
-      },
-    });
+    const wrapper = mountPanel();
 
     await wrapper.find('.focus-chart-trigger').trigger('click');
     await nextTick();
@@ -186,5 +229,112 @@ describe('EventPanel', () => {
 
     expect(wrapper.emitted('focus-chart-date')?.at(-1)).toEqual(['2026-05-10']);
     expect(wrapper.text()).toContain('图表已跳到 2026-05-10（第 3 / 12 次发生');
+  });
+
+  it('会把事件编辑结果真正写回 store，并提示成功', async () => {
+    const store = useFinanceStore();
+    const wrapper = mountPanel();
+
+    await wrapper.find('.edit-trigger').trigger('click');
+    await nextTick();
+
+    expect(wrapper.find('.event-form-modal-stub').exists()).toBe(true);
+    expect(wrapper.find('.editing-name').text()).toBe('房租');
+
+    await wrapper.find('.submit-edit').trigger('click');
+    await nextTick();
+
+    const updated = store.events.find((event) => event.id === 'evt-rent');
+    expect(updated?.name).toBe('更新后的房租');
+    expect(updated?.amount).toBe(3200);
+    expect(updated?.monthlyDay).toBe(12);
+    expect(messageSuccess).toHaveBeenCalledWith('已更新事件');
+    expect(wrapper.find('.event-form-modal-stub').exists()).toBe(false);
+  });
+
+  it('会在切换启用状态时真正更新 store', async () => {
+    const store = useFinanceStore();
+    const wrapper = mountPanel();
+
+    expect(store.events.find((event) => event.id === 'evt-rent')?.enabled).toBe(true);
+
+    await wrapper.find('.toggle-trigger').trigger('click');
+    await nextTick();
+
+    expect(store.events.find((event) => event.id === 'evt-rent')?.enabled).toBe(false);
+  });
+
+  it('删除事件时会走确认框，并在确认后清掉 store 与当前焦点', async () => {
+    const store = useFinanceStore();
+    const wrapper = mountPanel();
+
+    await wrapper.find('.focus-chart-trigger').trigger('click');
+    await nextTick();
+    expect(wrapper.text()).toContain('已定位到「房租」');
+
+    await wrapper.find('.delete-trigger').trigger('click');
+    expect(modalConfirm).toHaveBeenCalledTimes(1);
+
+    const confirmOptions = modalConfirm.mock.calls[0]?.[0] as { title: string; onOk: () => void };
+    expect(confirmOptions.title).toContain('删除「房租」？');
+
+    confirmOptions.onOk();
+    await nextTick();
+
+    expect(store.events.some((event) => event.id === 'evt-rent')).toBe(false);
+    expect(messageSuccess).toHaveBeenCalledWith('已删除事件');
+    expect(wrapper.text()).not.toContain('已定位到「房租」');
+    expect(wrapper.emitted('clear-focus')).toBeTruthy();
+  });
+
+  it('载入示例时会要求正确口令，错误输入不覆盖本地事件', async () => {
+    const store = useFinanceStore();
+    const originalNames = store.events.map((event) => event.name);
+    const wrapper = mountPanel();
+
+    const actionButtons = wrapper.findAll('.panel-actions button');
+    const loadSamplesButton = actionButtons.find((button) => button.text() === '载入示例');
+    await loadSamplesButton?.trigger('click');
+
+    expect(modalConfirm).toHaveBeenCalledTimes(1);
+    const confirmOptions = modalConfirm.mock.calls[0]?.[0] as {
+      content: { children?: Array<{ props?: { onInput?: (event: Event) => void } }> };
+      onOk: () => Promise<unknown>;
+    };
+
+    const inputNode = confirmOptions.content.children?.[2];
+    inputNode?.props?.onInput?.({ target: { value: '不是口令' } } as unknown as Event);
+
+    await expect(confirmOptions.onOk()).rejects.toBeUndefined();
+    expect(messageError).toHaveBeenCalledWith('输入的文字不正确，操作已取消');
+    expect(store.events.map((event) => event.name)).toEqual(originalNames);
+  });
+
+  it('载入示例在口令正确时会覆盖当前事件并提示成功', async () => {
+    const store = useFinanceStore();
+    const wrapper = mountPanel();
+
+    await wrapper.find('.focus-chart-trigger').trigger('click');
+    await nextTick();
+
+    const actionButtons = wrapper.findAll('.panel-actions button');
+    const loadSamplesButton = actionButtons.find((button) => button.text() === '载入示例');
+    await loadSamplesButton?.trigger('click');
+
+    const confirmOptions = modalConfirm.mock.calls[0]?.[0] as {
+      content: { children?: Array<{ props?: { onInput?: (event: Event) => void } }> };
+      onOk: () => void;
+    };
+
+    const inputNode = confirmOptions.content.children?.[2];
+    inputNode?.props?.onInput?.({ target: { value: '载入示例' } } as unknown as Event);
+    confirmOptions.onOk();
+    await nextTick();
+
+    expect(messageSuccess).toHaveBeenCalledWith('已载入示例数据');
+    expect(store.events.length).toBeGreaterThan(2);
+    expect(store.events.some((event) => event.name === '房租')).toBe(false);
+    expect(wrapper.text()).not.toContain('已定位到「房租」');
+    expect(wrapper.emitted('clear-focus')).toBeTruthy();
   });
 });

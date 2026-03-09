@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-03-09
+- test(event-panel): 扩展 `src/components/events/__tests__/EventPanel.test.ts`，把事件面板的高风险 UI 接线从“只测图表定位”补到“编辑事件写回 store、启停开关真正生效、删除确认会清理焦点、载入示例口令错误不覆盖/正确才覆盖”整条组件级闭环，避免事件管理核心操作继续只靠 store 逻辑或手工回归兜底
 - smoke(ui-import): 新增 `src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts`，把“账户管理 → 导入当前账户 → 检查 sanitize 后确认摘要与事件规则 diff → 确认导入 → 撤销上次导入”收口成可重复执行的 DOM 级烟雾测试；不引入 Playwright 也能自动覆盖最脆弱的高风险 UI 链路
 - smoke(script): `npm run smoke` 现在同时执行 store 级 smoke 与 AppHeader UI 级 smoke，避免导入/撤销只在手册或零散组件断言里验证，后续每轮都能一键回归本地高风险导入路径
 - docs(validation): README 增补本地验证章节，明确 `npm test / npm run type-check / npm run build / npm run smoke` 的推荐验证顺序与 smoke 覆盖范围
