@@ -317,7 +317,7 @@ describe('AppHeader', () => {
     expect(store.events.filter((event) => event.accountId === secondary.id)).toHaveLength(1);
   });
 
-  it('导入当前账户前会先展示 sanitize 后摘要，并在确认后只覆盖当前账户', async () => {
+  it('导入当前账户前会先展示 sanitize 后摘要与事件规则 diff，并在确认后只覆盖当前账户', async () => {
     const store = useFinanceStore();
     const originalAccountId = store.currentAccount.id;
     const originalAccountName = store.currentAccount.name;
@@ -503,8 +503,9 @@ describe('AppHeader', () => {
     expect(contentText).toContain(`将覆盖当前账户：${originalAccountName}`);
     expect(contentText).toContain('导入后事件 / 对账 / 账本：1 / 1 / 1');
     expect(contentText).toContain('导入后覆盖记录：1');
-    expect(contentText).toContain('将导入的事件规则');
-    expect(contentText).toContain('新工资');
+    expect(contentText).toContain('当前账户事件规则 diff');
+    expect(contentText).toContain('将新增：新工资');
+    expect(contentText).toContain('将移除：原始工资');
     expect(contentText).not.toContain('坏分类');
 
     await expect(config.onOk()).rejects.toBeUndefined();

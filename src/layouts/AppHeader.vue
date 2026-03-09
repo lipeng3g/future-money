@@ -190,6 +190,7 @@ import {
   buildImportDateRangeSummary,
   buildImportFreshnessSummary,
   buildImportRiskSummary,
+  buildImportSingleAccountEventDiffSummary,
   buildRollbackPreview,
   parseImportPreview,
 } from '@/utils/import-preview';
@@ -481,11 +482,16 @@ const confirmImportCurrent = (content: string, fileName: string) => {
   const backupTime = summary.timestamp
     ? new Date(summary.timestamp).toLocaleString('zh-CN', { hour12: false })
     : '未知';
-  const importedEventNames = incomingState.events
-    .filter((event) => event.accountId === incomingState.account.id)
-    .map((event) => event.name.trim())
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b, 'zh-CN'));
+  const incomingEvents = incomingState.events
+    .filter((event) => event.accountId === incomingState.account.id);
+  const currentEvents = store.events
+    .filter((event) => event.accountId === targetAccount.id);
+  const eventDiff = buildImportSingleAccountEventDiffSummary(incomingEvents, currentEvents);
+  const eventDiffRows = [
+    eventDiff.addedEventNames.length ? `将新增：${eventDiff.addedEventNames.join('、')}` : null,
+    eventDiff.removedEventNames.length ? `将移除：${eventDiff.removedEventNames.join('、')}` : null,
+    eventDiff.keptEventNames.length ? `保持存在：${eventDiff.keptEventNames.join('、')}` : null,
+  ].filter((row): row is string => !!row);
   let inputValue = '';
   const confirmText = '导入当前账户';
 
@@ -508,10 +514,10 @@ const confirmImportCurrent = (content: string, fileName: string) => {
         h('div', `导入后覆盖记录：${summary.eventOverridesCount}`),
         h('div', `备份版本：${summary.stateVersion}`),
       ]),
-      importedEventNames.length
+      eventDiffRows.length
         ? h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
-          h('div', { style: 'font-weight: 600; margin-bottom: 6px; color: #0f172a;' }, '将导入的事件规则'),
-          h('div', importedEventNames.join('、')),
+          h('div', { style: 'font-weight: 600; margin-bottom: 6px; color: #0f172a;' }, '当前账户事件规则 diff'),
+          ...eventDiffRows.map((row) => h('div', row)),
         ])
         : h('div', { style: 'background: #fff7ed; border: 1px dashed #fdba74; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7; color: #9a3412;' }, '这份单账户备份里没有可导入的事件；确认后会把当前账户替换为空事件状态。'),
       h('p', { style: 'margin-bottom: 8px;' }, `请输入“${confirmText}”以继续：`),

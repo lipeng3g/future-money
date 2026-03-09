@@ -2,6 +2,8 @@
 
 ## 2026-03-09
 
+- safety(import-current): 单账户导入确认框现在会直接展示“当前账户事件规则 diff”，按规则名列出将新增 / 移除 / 保持存在的事件，避免用户只看到导入后总量和备份规则清单，却看不出当前账户本地哪些规则会被替掉
+- test(import-current): 扩展 `src/utils/__tests__/import-preview.test.ts` 与 `src/layouts/__tests__/AppHeader.test.ts`，补单账户事件规则 diff 的纯函数回归与确认框接线断言
 - test(import): 扩展 `src/utils/__tests__/storage.test.ts`，把导入值级净化回归从“非法日期 / NaN”继续补到“空白账户名、异常事件分类、异常快照来源、异常账本来源、异常 override 动作”等更贴近真实坏备份的脏值组合，确保本地导入只保留可安全落地的数据
 - test(smoke): 新增 `src/stores/__tests__/finance-smoke.test.ts` 与 `npm run smoke`，把“导出全部账户 → 清空当前账户 → 恢复全部账户 → 撤销恢复”的本地闭环收口成可重复执行的 CLI 级烟雾验证，后续每轮都能快速确认导入/恢复关键路径未被回归破坏
 - fix(ai): AI 分析抽屉现在会在关闭抽屉、组件卸载或账户范围变化时主动中止流式请求，并通过 requestId 屏蔽旧请求的过期回灌；避免用户已经切走上下文后，旧响应仍把内容写回当前本地对话

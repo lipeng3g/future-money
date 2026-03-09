@@ -3,6 +3,9 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-09
+- task: 单账户导入确认框补“当前账户事件规则 diff”，减少只看总量和导入清单却不知道会替掉哪些本地规则的风险
+- implementation: `src/utils/import-preview.ts` 新增 `buildImportSingleAccountEventDiffSummary`，按规则名去重/trim 后输出新增、移除、保留三类事件；`src/layouts/AppHeader.vue` 将单账户导入确认框从“导入清单”升级为“当前账户事件规则 diff”摘要
+- tests: 扩展 `src/utils/__tests__/import-preview.test.ts` 与 `src/layouts/__tests__/AppHeader.test.ts`，覆盖单账户规则 diff 纯函数与确认框接线
 - task: 给导入/恢复关键路径补一条可重复执行的本地 smoke 闭环，避免每轮只靠零散单测确认
 - implementation: 新增 `src/stores/__tests__/finance-smoke.test.ts`，直接通过 Pinia store + jsdom localStorage 验证“导出全部账户 → 清空当前账户 → 恢复全部账户 → 撤销恢复”；同时在 `package.json` 增加 `npm run smoke` 作为独立烟雾入口
 - task: AI 分析抽屉流式取消与过期写回防护

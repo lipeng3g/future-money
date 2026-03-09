@@ -54,6 +54,12 @@ export interface ImportAccountEventDiffItem {
   removedEventNames: string[];
 }
 
+export interface ImportSingleAccountEventDiffSummary {
+  addedEventNames: string[];
+  removedEventNames: string[];
+  keptEventNames: string[];
+}
+
 export interface ImportDateRangeSummary {
   currentRangeLabel: string;
   incomingRangeLabel: string;
@@ -362,6 +368,27 @@ export const buildImportAccountEventDiffSummary = (
     })
     .filter((item) => item.addedEventNames.length || item.removedEventNames.length)
     .sort((a, b) => a.accountName.localeCompare(b.accountName, 'zh-CN'));
+};
+
+export const buildImportSingleAccountEventDiffSummary = (
+  incomingEvents: Array<{ name?: string | null }> | undefined,
+  currentEvents: Array<{ name?: string | null }> | undefined,
+): ImportSingleAccountEventDiffSummary => {
+  const normalizeNames = (items: Array<{ name?: string | null }> | undefined) => Array.from(new Set((items ?? [])
+    .map((item) => item.name?.trim() ?? '')
+    .filter(Boolean)))
+    .sort((a, b) => a.localeCompare(b, 'zh-CN'));
+
+  const incomingNames = normalizeNames(incomingEvents);
+  const currentNames = normalizeNames(currentEvents);
+  const currentSet = new Set(currentNames);
+  const incomingSet = new Set(incomingNames);
+
+  return {
+    addedEventNames: incomingNames.filter((name) => !currentSet.has(name)),
+    removedEventNames: currentNames.filter((name) => !incomingSet.has(name)),
+    keptEventNames: incomingNames.filter((name) => currentSet.has(name)),
+  };
 };
 
 const formatRangeBoundary = (value?: string | null) => value?.trim() || '';

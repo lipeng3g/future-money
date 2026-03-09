@@ -7,6 +7,7 @@ import {
   buildImportDateRangeSummary,
   buildImportFreshnessSummary,
   buildImportRiskSummary,
+  buildImportSingleAccountEventDiffSummary,
   parseImportPreview,
 } from '@/utils/import-preview';
 
@@ -387,6 +388,25 @@ describe('parseImportPreview', () => {
       currentLatestDate: '2026-03-31',
       incomingLatestDate: '2026-04-09',
       lagDays: 0,
+    });
+  });
+
+  it('会给单账户导入生成事件规则增删 diff，便于确认当前账户会替掉哪些规则', () => {
+    const diff = buildImportSingleAccountEventDiffSummary([
+      { name: ' 工资 ' },
+      { name: '奖金' },
+      { name: '奖金' },
+      { name: ' ' },
+    ], [
+      { name: '工资' },
+      { name: '房租' },
+      { name: '  ' },
+    ]);
+
+    expect(diff).toEqual({
+      addedEventNames: ['奖金'],
+      removedEventNames: ['房租'],
+      keptEventNames: ['工资'],
     });
   });
 });
