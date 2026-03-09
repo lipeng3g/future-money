@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-03-10
+- test(ai-input): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“Enter 直接发送、Shift+Enter 仅换行不触发发送”的组件级回归，锁住 AI 抽屉最常用输入语义，避免后续替换 AntD 输入框或重构事件接线时把回车发送手感悄悄弄坏。
+- test(ai-preset): 补“点击预设会直接发起分析，但不会清空当前 scope 草稿输入框”的回归，确保快捷提问与用户暂存草稿可以共存，不会因为点了预设把本地未发送内容静默抹掉。
+- chore(test-hygiene): 清理 `AiAnalysisModal` 测试文件中的残留 patch 标记字符，保持仓库测试源码可直接复制/编辑，避免后续人工合并或脚本处理时踩到脏文本。
 - 给首页“预测范围”继续补组件级防回归：新增 `TimeRangeControl` 独立测试，锁住 6/12/24/36 个月选项、向上发出的数值类型，以及底层 segmented 若意外吐出非法值时的显式 `NaN` 语义
 - 扩展 `ChartArea` 容器回归，新增“预测范围控件发出非法值时回退到默认 12 个月并同步持久化”的测试，避免后续 UI 接线重构只保住 happy path
 - test(ai-export): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“空对话导出只提示暂无内容、不误触发导出”和“清空对话只清当前 scope 的历史/草稿，不误伤其它 scope”两条组件级回归，继续锁住 AI 抽屉在多账户上下文下的本地数据边界

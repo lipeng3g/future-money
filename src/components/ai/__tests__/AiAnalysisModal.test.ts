@@ -330,6 +330,51 @@ describe('AiAnalysisModal', () => {
     expect(messageSuccess).not.toHaveBeenCalled();
   });
 
+  it('Enter 会直接发送，Shift+Enter 仅保留输入且不触发发送', async () => {
+    streamChatMock.mockImplementation(async function* () {
+      yield { type: 'content', text: '回车发送成功' };
+    });
+
+    const wrapper = await mountModal();
+    const textarea = wrapper.find('textarea.a-textarea');
+
+    await textarea.setValue('按回车发送');
+    await textarea.trigger('keydown.enter', { shiftKey: true });
+    await nextTick();
+
+    expect(streamChatMock).not.toHaveBeenCalled();
+    expect((textarea.element as HTMLTextAreaElement).value).toBe('按回车发送');
+
+    await textarea.trigger('keydown.enter');
+    await flushPromises();
+    await nextTick();
+
+    expect(streamChatMock).toHaveBeenCalledTimes(1);
+    expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('');
+    expect(wrapper.text()).toContain('回车发送成功');
+  });
+
+  it('点击预设会直接发起分析，但不会清掉当前草稿输入框', async () => {
+    streamChatMock.mockImplementation(async function* () {
+      yield { type: 'content', text: '预设分析结果' };
+    });
+
+    const store = useFinanceStore();
+    const scopeKey = createChatDraftScopeKey({ accountIds: [store.accounts[0].id, store.accounts[1].id] });
+    const wrapper = await mountModal();
+
+    await wrapper.find('textarea.a-textarea').setValue('稍后再问的草稿');
+    await wrapper.find('button.preset-item').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(streamChatMock).toHaveBeenCalledTimes(1);
+    expect(wrapper.findAll('.msg-row')[0]?.text()).toContain('请分析我的财务状况');
+    expect(wrapper.text()).toContain('预设分析结果');
+    expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('稍后再问的草稿');
+    expect(localStorage.getItem(scopeKey)).toBe('稍后再问的草稿');
+  });
+
   it('清空对话只会清掉当前 scope 的历史与草稿，不影响其它 scope', async () => {
     const store = useFinanceStore();
     const [accountA, accountB] = store.accounts;
@@ -337,7 +382,7 @@ describe('AiAnalysisModal', () => {
     const singleScopeKey = `fm-ai-chat:${accountA.id}`;
     const multiDraftKey = createChatDraftScopeKey({ accountIds: [accountA.id, accountB.id] });
     const singleDraftKey = createChatDraftScopeKey({ accountIds: [accountA.id] });
-+
+
     localStorage.setItem(multiScopeKey, JSON.stringify([
       { role: 'user', content: '多账户问题' },
       { role: 'assistant', content: '多账户回答' },

@@ -283,6 +283,9 @@
 [2026-03-10 01:29:00] task: 校正文案与真实行为不一致的账户清空危险操作确认，避免用户误以为只会删事件/快照而低估影响范围
 [2026-03-10 01:29:00] deliverables: AppHeader 的清空当前账户确认框改为展示真实删除范围摘要（事件/对账/账本/覆盖记录数量、余额归零、仅影响当前账户）；同步更新 AccountManageModal 中该危险操作说明，明确会删除账本与覆盖记录并重置余额；扩展 AppHeader 组件级回归，覆盖错误确认拦截、真实摘要展示与确认后 state 清空
 [2026-03-10 01:29:00] verification: npm test ✅ (182), npm run type-check ✅, npm run build ✅, npm run dev -- --host 127.0.0.1 + curl -I/http body smoke ✅；宿主无可用浏览器，未做 GUI 浏览器自动化，但已确认 dev server 返回首页 HTML 200
+[2026-03-10 05:30:00] task: 给 AI 分析抽屉补输入/预设交互回归，锁住 Enter 发送语义与预设提问不清草稿的本地体验
+[2026-03-10 05:30:00] deliverables: 扩展 src/components/ai/__tests__/AiAnalysisModal.test.ts，新增“Shift+Enter 不发送、Enter 才发送”“点击预设后分析正常发起但当前 scope 草稿继续保留”两条组件级回归；顺手清理测试文件内残留 patch 标记字符，避免脏文本继续混在仓库里
+[2026-03-10 05:30:00] verification: npm install ✅, npm test -- --run src/components/ai/__tests__/AiAnalysisModal.test.ts ✅ (11), npm test ✅ (213), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175（端口占用后自动漂移到 4197）+ curl -I/curl body ✅；额外检查 package-lock.json / package.json / 配置未发现 mirrors.tencentyun.com、私有 registry 或内网 registry 源
 
 ## 2026-03-10
 - 收口事件管理成功/失败反馈一致性：在已有 delete/toggle 失败提示基础上，`EventPanel` 的事件启停现在也会在成功后给出明确 toast（已暂停 / 已启用），避免用户点击开关后只能靠视觉状态变化猜测操作是否真正生效。
