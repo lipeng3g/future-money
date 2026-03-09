@@ -506,6 +506,11 @@ describe('AppHeader', () => {
     expect(contentText).toContain('当前账户事件规则 diff');
     expect(contentText).toContain('将新增：新工资');
     expect(contentText).toContain('将移除：原始工资');
+    expect(contentText).toContain('sanitize 过滤统计');
+    expect(contentText).toContain('账户：原始 2 → sanitize 后 1（过滤 1）');
+    expect(contentText).toContain('事件：原始 2 → sanitize 后 1（过滤 1）');
+    expect(contentText).toContain('账本记录：原始 2 → sanitize 后 1（过滤 1）');
+    expect(contentText).toContain('覆盖记录：原始 2 → sanitize 后 1（过滤 1）');
     expect(contentText).not.toContain('坏分类');
 
     await expect(config.onOk()).rejects.toBeUndefined();
@@ -1065,6 +1070,11 @@ describe('AppHeader', () => {
     expect(restoreContentText).toContain('备份内账户：1（导入主账户）');
     expect(restoreContentText).toContain('备份内事件 / 对账 / 账本：1 / 1 / 1');
     expect(restoreContentText).toContain('备份内覆盖记录：1');
+    expect(restoreContentText).toContain('sanitize 过滤统计');
+    expect(restoreContentText).toContain('账户：原始 2 → sanitize 后 1（过滤 1）');
+    expect(restoreContentText).toContain('事件：原始 2 → sanitize 后 1（过滤 1）');
+    expect(restoreContentText).toContain('账本记录：原始 2 → sanitize 后 1（过滤 1）');
+    expect(restoreContentText).toContain('覆盖记录：原始 2 → sanitize 后 1（过滤 1）');
     expect(restoreContentText).not.toContain('acc-blank');
     const restoreInputNode = restoreConfig.content.children.at(-1);
     restoreInputNode.props.onInput({ target: { value: '恢复全部账户' } });

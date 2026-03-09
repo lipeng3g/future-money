@@ -2,6 +2,8 @@
 
 ## 2026-03-10
 
+- ux(import-preview): 单账户导入与整库恢复的确认框现在会额外展示 `sanitize 过滤统计`，直接列出账户 / 事件 / 对账 / 账本 / 覆盖记录在“原始备份 → sanitize 后”各自被过滤了多少，以及常见过滤原因；用户在确认前就能看见坏字段、断裂引用或脏数据到底丢了多少，不再只知道“系统会过滤”却不知道影响范围。
+- test(import-preview): 扩展 `src/utils/__tests__/import-preview.test.ts` 与 `src/layouts/__tests__/AppHeader.test.ts`，补 `sanitize 过滤统计` 的纯函数与确认框接线回归，锁住单账户导入 / 整库恢复两条高风险 UI 链路的摘要一致性。
 - stability(import): 导入/恢复流程在预览前先做统一 envelope 解析，非法 JSON 与缺少 `state` 的备份会返回稳定、可读的错误提示，不再依赖底层 `JSON.parse` 原始异常文案。
 - test(import): 为 storage 与 AppHeader 导入 smoke 补充坏 JSON、缺少 state 的回归覆盖，确保错误发生时不会误弹确认框。
 

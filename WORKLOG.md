@@ -3,6 +3,11 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-10
+- task: 给导入确认框补 sanitize 过滤统计，减少用户只看到“会过滤坏字段”却看不清到底丢了多少数据的盲区
+- implementation: `src/utils/import-preview.ts` 新增 `buildImportSanitizeDiscardSummary`，按账户/事件/对账/账本/覆盖记录汇总原始计数、sanitize 后计数、过滤数与常见原因；`src/layouts/AppHeader.vue` 在“导入当前账户 / 恢复全部账户”确认框接入该统计区块，并修正预览摘要沿用原始 envelope scope，避免单账户备份在确认阶段被误显示成 legacy
+- tests: 扩展 `src/utils/__tests__/import-preview.test.ts` 与 `src/layouts/__tests__/AppHeader.test.ts`，覆盖过滤统计纯函数与两条高风险导入确认流接线
+
+## 2026-03-10
 - task: 收口导入/恢复流程在预览前的 envelope 预校验与错误文案，避免坏 JSON 或缺少 `state` 的备份直接把底层解析异常暴露给用户
 - implementation: `src/utils/storage.ts` 新增 `parseImportedEnvelope` 统一处理导入 JSON / state 校验，`src/layouts/AppHeader.vue` 改为基于 sanitize 后 state 生成预览摘要，不再二次裸 `JSON.parse`
 - tests: 扩展 `src/utils/__tests__/storage.test.ts` 与 `src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts`，新增“非法 JSON / 缺少 state 时给出可读错误且不弹确认框”回归

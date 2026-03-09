@@ -181,7 +181,6 @@ import type { PersistedStateEnvelope } from '@/types';
 import type { UserPreferences } from '@/types/account';
 import { useFinanceStore } from '@/stores/finance';
 import { formatLocalISODate } from '@/utils/date';
-import { APP_VERSION } from '@/utils/defaults';
 import { createStateRepository } from '@/utils/storage';
 import {
   buildImportAccountDataDeltaSummary,
@@ -191,6 +190,7 @@ import {
   buildImportDateRangeSummary,
   buildImportFreshnessSummary,
   buildImportRiskSummary,
+  buildImportSanitizeDiscardSummary,
   buildImportSingleAccountEventDiffSummary,
   buildRollbackPreview,
   parseImportPreview,
@@ -320,14 +320,27 @@ const validateImportMode = (mode: ImportExportMode, content: string) => {
 };
 
 const buildImportPreviewState = (content: string) => {
+  const parsedPreview = parseImportPreview(content);
   const incomingState = previewStateRepository.importState(content);
-  const summary = parseImportPreview(JSON.stringify({
-    version: APP_VERSION,
-    timestamp: new Date().toISOString(),
-    state: incomingState,
-  } satisfies PersistedStateEnvelope));
+  const rawEnvelope = JSON.parse(content) as PersistedStateEnvelope;
+  const summary = {
+    ...parsedPreview,
+    stateVersion: incomingState.version || parsedPreview.stateVersion,
+    accountsCount: incomingState.accounts.length,
+    eventsCount: incomingState.events.length,
+    reconciliationsCount: incomingState.reconciliations.length,
+    ledgerEntriesCount: incomingState.ledgerEntries.length,
+    eventOverridesCount: incomingState.eventOverrides.length,
+    accountNames: incomingState.accounts
+      .map((account) => account?.name?.trim())
+      .filter((name): name is string => !!name),
+  };
+  const rawState = rawEnvelope?.state && typeof rawEnvelope.state === 'object'
+    ? rawEnvelope.state
+    : undefined;
+  const sanitizeDiscards = buildImportSanitizeDiscardSummary(rawState, incomingState);
 
-  return { incomingState, summary };
+  return { incomingState, summary, sanitizeDiscards };
 };
 
 const currentImportPreviewState = () => ({
@@ -340,7 +353,7 @@ const currentImportPreviewState = () => ({
 
 const confirmImportAll = (content: string, fileName: string) => {
   validateImportMode('all', content);
-  const { incomingState, summary: backupSummary } = buildImportPreviewState(content);
+  const { incomingState, summary: backupSummary, sanitizeDiscards } = buildImportPreviewState(content);
   const currentState = currentImportPreviewState();
   const risk = buildImportRiskSummary(backupSummary, currentState);
   const accountDiff = buildImportAccountDiffSummary(backupSummary, store.accounts);
@@ -391,6 +404,9 @@ const confirmImportAll = (content: string, fileName: string) => {
     `当前本地日期覆盖：${dateRange.currentRangeLabel}`,
     `备份文件日期覆盖：${dateRange.incomingRangeLabel}`,
   ];
+  const sanitizeDiscardRows = sanitizeDiscards.map((item) => (
+    `${item.label}：原始 ${item.rawCount} → sanitize 后 ${item.sanitizedCount}（过滤 ${item.discardedCount}）` + (item.reason ? `；${item.reason}` : '')
+  ));
 
   Modal.confirm({
     title: '恢复全部账户并覆盖当前本地数据？',
@@ -432,6 +448,12 @@ const confirmImportAll = (content: string, fileName: string) => {
         ? h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
           h('div', { style: 'font-weight: 600; margin-bottom: 6px; color: #0f172a;' }, '按账户的事件规则变化'),
           ...accountEventDiffRows.map((row) => h('div', row)),
+        ])
+        : null,
+      sanitizeDiscardRows.length
+        ? h('div', { style: 'background: #fff7ed; border: 1px dashed #fdba74; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7; color: #9a3412;' }, [
+          h('div', { style: 'font-weight: 600; margin-bottom: 6px;' }, 'sanitize 过滤统计'),
+          ...sanitizeDiscardRows.map((row) => h('div', row)),
         ])
         : null,
       freshness
@@ -477,7 +499,7 @@ const confirmImportAll = (content: string, fileName: string) => {
 
 const confirmImportCurrent = (content: string, fileName: string) => {
   validateImportMode('current', content);
-  const { incomingState, summary } = buildImportPreviewState(content);
+  const { incomingState, summary, sanitizeDiscards } = buildImportPreviewState(content);
   const targetAccount = store.currentAccount;
   const sourceAccountName = summary.accountNames[0] ?? '未识别账户';
   const backupTime = summary.timestamp
@@ -493,6 +515,9 @@ const confirmImportCurrent = (content: string, fileName: string) => {
     eventDiff.removedEventNames.length ? `将移除：${eventDiff.removedEventNames.join('、')}` : null,
     eventDiff.keptEventNames.length ? `保持存在：${eventDiff.keptEventNames.join('、')}` : null,
   ].filter((row): row is string => !!row);
+  const sanitizeDiscardRows = sanitizeDiscards.map((item) => (
+    `${item.label}：原始 ${item.rawCount} → sanitize 后 ${item.sanitizedCount}（过滤 ${item.discardedCount}）` + (item.reason ? `；${item.reason}` : '')
+  ));
   let inputValue = '';
   const confirmText = '导入当前账户';
 
@@ -521,6 +546,12 @@ const confirmImportCurrent = (content: string, fileName: string) => {
           ...eventDiffRows.map((row) => h('div', row)),
         ])
         : h('div', { style: 'background: #fff7ed; border: 1px dashed #fdba74; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7; color: #9a3412;' }, '这份单账户备份里没有可导入的事件；确认后会把当前账户替换为空事件状态。'),
+      sanitizeDiscardRows.length
+        ? h('div', { style: 'background: #fff7ed; border: 1px dashed #fdba74; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7; color: #9a3412;' }, [
+          h('div', { style: 'font-weight: 600; margin-bottom: 6px;' }, 'sanitize 过滤统计'),
+          ...sanitizeDiscardRows.map((row) => h('div', row)),
+        ])
+        : null,
       h('p', { style: 'margin-bottom: 8px;' }, `请输入“${confirmText}”以继续：`),
       h('input', {
         type: 'text',

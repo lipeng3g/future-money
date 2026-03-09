@@ -76,12 +76,25 @@ export interface ImportFreshnessSummary {
   lagDays: number | null;
 }
 
+export interface ImportSanitizeDiscardItem {
+  label: string;
+  rawCount: number;
+  sanitizedCount: number;
+  discardedCount: number;
+  reason: string;
+}
+
 const ensureState = (parsed: unknown): AppState => {
-  if (!parsed || typeof parsed !== 'object' || !(parsed as PersistedStateEnvelope).state) {
-    throw new Error('导入文件格式不正确');
+  if (!parsed || typeof parsed !== 'object' || !('state' in (parsed as Record<string, unknown>))) {
+    throw new Error('导入文件格式不正确：缺少 state 数据');
   }
 
-  return (parsed as PersistedStateEnvelope).state;
+  const state = (parsed as PersistedStateEnvelope).state;
+  if (!state || typeof state !== 'object') {
+    throw new Error('导入文件格式不正确：state 内容无效');
+  }
+
+  return state;
 };
 
 const detectImportScope = (
@@ -389,6 +402,57 @@ export const buildImportSingleAccountEventDiffSummary = (
     removedEventNames: currentNames.filter((name) => !incomingSet.has(name)),
     keptEventNames: incomingNames.filter((name) => currentSet.has(name)),
   };
+};
+
+export const buildImportSanitizeDiscardSummary = (
+  rawState: Partial<Pick<AppState, 'accounts' | 'events' | 'reconciliations' | 'ledgerEntries' | 'eventOverrides'>> | undefined,
+  sanitizedState: Pick<AppState, 'accounts' | 'events' | 'reconciliations' | 'ledgerEntries' | 'eventOverrides'>,
+): ImportSanitizeDiscardItem[] => {
+  const rawAccounts = Array.isArray(rawState?.accounts) ? rawState.accounts.length : 0;
+  const rawEvents = Array.isArray(rawState?.events) ? rawState.events.length : 0;
+  const rawReconciliations = Array.isArray(rawState?.reconciliations) ? rawState.reconciliations.length : 0;
+  const rawLedgerEntries = Array.isArray(rawState?.ledgerEntries) ? rawState.ledgerEntries.length : 0;
+  const rawOverrides = Array.isArray(rawState?.eventOverrides) ? rawState.eventOverrides.length : 0;
+
+  const items: ImportSanitizeDiscardItem[] = [
+    {
+      label: '账户',
+      rawCount: rawAccounts,
+      sanitizedCount: sanitizedState.accounts.length,
+      discardedCount: Math.max(0, rawAccounts - sanitizedState.accounts.length),
+      reason: '空白账户名、缺少 id 的账户，或重复账户会被过滤。',
+    },
+    {
+      label: '事件',
+      rawCount: rawEvents,
+      sanitizedCount: sanitizedState.events.length,
+      discardedCount: Math.max(0, rawEvents - sanitizedState.events.length),
+      reason: '非法日期、金额/分类异常，或找不到所属账户的事件会被过滤。',
+    },
+    {
+      label: '对账',
+      rawCount: rawReconciliations,
+      sanitizedCount: sanitizedState.reconciliations.length,
+      discardedCount: Math.max(0, rawReconciliations - sanitizedState.reconciliations.length),
+      reason: '非法日期/余额，或找不到所属账户的对账记录会被过滤。',
+    },
+    {
+      label: '账本记录',
+      rawCount: rawLedgerEntries,
+      sanitizedCount: sanitizedState.ledgerEntries.length,
+      discardedCount: Math.max(0, rawLedgerEntries - sanitizedState.ledgerEntries.length),
+      reason: '断裂的 ruleId / reconciliationId、非法分类/来源/日期，或缺少所属账户的记录会被过滤。',
+    },
+    {
+      label: '覆盖记录',
+      rawCount: rawOverrides,
+      sanitizedCount: sanitizedState.eventOverrides.length,
+      discardedCount: Math.max(0, rawOverrides - sanitizedState.eventOverrides.length),
+      reason: '非法 period / action、缺少 ruleId，或找不到所属账户/事件的覆盖记录会被过滤。',
+    },
+  ];
+
+  return items.filter((item) => item.discardedCount > 0);
 };
 
 const formatRangeBoundary = (value?: string | null) => value?.trim() || '';

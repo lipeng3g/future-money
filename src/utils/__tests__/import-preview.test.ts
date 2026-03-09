@@ -7,6 +7,7 @@ import {
   buildImportDateRangeSummary,
   buildImportFreshnessSummary,
   buildImportRiskSummary,
+  buildImportSanitizeDiscardSummary,
   buildImportSingleAccountEventDiffSummary,
   parseImportPreview,
 } from '@/utils/import-preview';
@@ -408,5 +409,52 @@ describe('parseImportPreview', () => {
       removedEventNames: ['房租'],
       keptEventNames: ['工资'],
     });
+  });
+
+  it('会汇总 sanitize 过滤统计，提示各类数据被丢弃的数量与原因', () => {
+    const discards = buildImportSanitizeDiscardSummary({
+      accounts: [{ id: 'a' }, { id: 'b' }],
+      events: [{ id: 'e1' }, { id: 'e2' }, { id: 'e3' }],
+      reconciliations: [{ id: 'r1' }],
+      ledgerEntries: [{ id: 'l1' }, { id: 'l2' }],
+      eventOverrides: [{ id: 'o1' }, { id: 'o2' }],
+    } as never, {
+      accounts: [{ id: 'a' }],
+      events: [{ id: 'e1' }],
+      reconciliations: [{ id: 'r1' }],
+      ledgerEntries: [{ id: 'l1' }],
+      eventOverrides: [],
+    } as never);
+
+    expect(discards).toEqual([
+      {
+        label: '账户',
+        rawCount: 2,
+        sanitizedCount: 1,
+        discardedCount: 1,
+        reason: '空白账户名、缺少 id 的账户，或重复账户会被过滤。',
+      },
+      {
+        label: '事件',
+        rawCount: 3,
+        sanitizedCount: 1,
+        discardedCount: 2,
+        reason: '非法日期、金额/分类异常，或找不到所属账户的事件会被过滤。',
+      },
+      {
+        label: '账本记录',
+        rawCount: 2,
+        sanitizedCount: 1,
+        discardedCount: 1,
+        reason: '断裂的 ruleId / reconciliationId、非法分类/来源/日期，或缺少所属账户的记录会被过滤。',
+      },
+      {
+        label: '覆盖记录',
+        rawCount: 2,
+        sanitizedCount: 0,
+        discardedCount: 2,
+        reason: '非法 period / action、缺少 ruleId，或找不到所属账户/事件的覆盖记录会被过滤。',
+      },
+    ]);
   });
 });
