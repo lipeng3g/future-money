@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-03-09
+- absorb(build): 已吸收并保留用户在 `origin/main` 的两次构建修复：`909d43c` 先把 `@ant-design/icons-vue` 并回 antd 主 chunk，`2f918d8` 再把全部 `ant-design-vue` / `@ant-design/icons-vue` 合并到单一 `vendor-antd`，用于消除子 chunk 间 ESM 循环依赖导致的运行时未初始化崩溃；本轮开发未回退该修复边界
+- fix(import-ui): 账户管理里的“恢复全部账户 / 导入当前账户”现在对 `FileReader.onerror` 做了显式兜底；当浏览器读取备份文件失败时，会立即给出对应模式的错误提示，并统一重置导入模式与 input 状态，避免后续操作串到错误模式
+- test(import-ui): 扩展 `src/layouts/__tests__/AppHeader.test.ts`，补“恢复全部账户读取失败”“导入当前账户读取失败”两条组件级回归，确保读取失败时不会误弹确认框，也不会残留错误导入状态
 - ux(ai): AI 分析抽屉现在会按当前账户范围单独保存未发送草稿；单账户、多账户组合各自恢复自己的输入内容，减少切换视图或中途关闭抽屉后重新组织问题的成本，也避免不同账户上下文把半成品问题串在一起
 - safety(ai): AI 流式分析进行中会临时锁定账户范围切换，并在账户栏明确提示“当前上下文已锁定”；避免请求已经基于一组账户发出后，用户又把勾选范围切走，导致界面显示范围与本次分析上下文不一致
 - test(ai): 新增 `src/components/ai/__tests__/AiAnalysisModal.test.ts` 组件级回归，覆盖“按 scope 恢复草稿”“清空对话时同步清空草稿”“流式中锁定账户范围并在结束后恢复”三条关键交互；同时扩展 `src/utils/__tests__/ai-chat-history.test.ts`，补草稿 scope key、旧版全局草稿兼容与空白草稿不落盘回归

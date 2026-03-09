@@ -151,3 +151,8 @@
 [2026-03-09 09:16:00] deliverables: 扩展 src/layouts/__tests__/AppHeader.test.ts；新增“导入当前账户误选整库备份拦截不污染本地状态”与“导出当前/全部账户走对模式并生成对应文件名”两条组件级测试；顺手统一了测试里的账户名断言，避免被前序状态污染
 [2026-03-09 10:18:00] task: 收口账户管理文件导入的失败分支，给 FileReader onerror 真正补 UI 级回归，避免读取失败时悄悄卡在错误模式
 [2026-03-09 10:18:00] deliverables: AppHeader 的 handleFileChange 增加 reader.onerror 与统一 resetImportState；扩展 src/layouts/__tests__/AppHeader.test.ts，覆盖“恢复全部账户/导入当前账户在文件读取失败时分别提示错误，且不会误弹确认框”的组件级回归；同步更新 CHANGELOG
+
+[2026-03-09 13:58:00] task: 吸收用户在 origin/main 上的两次 ant-design-vue 构建修复后，补账户管理中文件读取失败分支的 UI 级回归与状态复位保护
+[2026-03-09 13:58:00] absorb(user-fix): 已学习 909d43c / 2f918d8；确认问题根因是 ant-design-vue 与 @ant-design/icons-vue 及其内部子模块拆 chunk 后形成 ESM 循环依赖，导致运行时访问未初始化变量；本轮开发严格保留用户把相关依赖并回单一 vendor-antd chunk 的修复，不再触碰该构建拆分策略
+[2026-03-09 13:58:00] deliverables: AppHeader 为 FileReader 增加 onerror 处理并统一 resetImportState，避免“恢复全部账户 / 导入当前账户”遇到读取失败时卡在错误模式或残留后续流程；扩展 AppHeader 组件级测试覆盖 current/all 两条读取失败路径
+[2026-03-09 13:58:00] verification: npm install ✅, npm test ✅ (146), npm run type-check ✅, npm run build ✅；npm run preview -- --host 127.0.0.1 --port 4175 + curl -I http://127.0.0.1:4175/ ✅；产物检查仍见既有 vendor-antd ~715kB / chart-balance-runtime ~556kB 告警，其中 vendor-antd 与用户为消除循环依赖所做的安全合并一致，本轮未回退
