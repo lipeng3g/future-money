@@ -10,6 +10,7 @@ import {
   buildImportSanitizeDiscardSummary,
   buildImportSingleAccountEventDiffSummary,
   parseImportPreview,
+  safeParseImportPreview,
 } from '@/utils/import-preview';
 
 describe('parseImportPreview', () => {
@@ -96,6 +97,41 @@ describe('parseImportPreview', () => {
   it('对非法 JSON 和非法结构抛出友好错误', () => {
     expect(() => parseImportPreview('{')).toThrow(/合法的 JSON/);
     expect(() => parseImportPreview(JSON.stringify({ nope: true }))).toThrow(/格式不正确/);
+  });
+
+  it('提供无抛错的安全预览解析结果，便于 UI 预校验直接返回用户可读错误', () => {
+    expect(safeParseImportPreview('{')).toEqual({
+      ok: false,
+      error: '导入文件不是合法的 JSON',
+    });
+
+    expect(safeParseImportPreview(JSON.stringify({ nope: true }))).toEqual({
+      ok: false,
+      error: '导入文件格式不正确：缺少 state 数据',
+    });
+
+    expect(safeParseImportPreview(JSON.stringify({
+      version: '2.0.0',
+      scope: 'current',
+      state: {
+        version: '2.0.0',
+        account: { id: 'acc-a', name: '现金账户' },
+        accounts: [{ id: 'acc-a', name: '现金账户' }],
+        events: [],
+        preferences: {},
+        snapshots: [],
+        reconciliations: [],
+        ledgerEntries: [],
+        eventOverrides: [],
+      },
+    }))).toMatchObject({
+      ok: true,
+      summary: {
+        scope: 'current',
+        accountsCount: 1,
+        accountNames: ['现金账户'],
+      },
+    });
   });
 
   it('会为整库恢复生成高风险提示，并带上当前本地将被替换的范围', () => {

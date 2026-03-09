@@ -39,10 +39,10 @@
 - tests: 扩展 `src/utils/__tests__/import-preview.test.ts` 与 `src/layouts/__tests__/AppHeader.test.ts`，覆盖过滤统计纯函数与两条高风险导入确认流接线
 
 ## 2026-03-10
-- task: 收口导入/恢复流程在预览前的 envelope 预校验与错误文案，避免坏 JSON 或缺少 `state` 的备份直接把底层解析异常暴露给用户
-- implementation: `src/utils/storage.ts` 新增 `parseImportedEnvelope` 统一处理导入 JSON / state 校验，`src/layouts/AppHeader.vue` 改为基于 sanitize 后 state 生成预览摘要，不再二次裸 `JSON.parse`
-- tests: 扩展 `src/utils/__tests__/storage.test.ts` 与 `src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts`，新增“非法 JSON / 缺少 state 时给出可读错误且不弹确认框”回归
-- verification: 已纳入本轮完整验证队列（npm install / test / type-check / build / smoke / preview+curl）
+- task: 收口导入预览阶段的无抛错解析结果，减少 UI 预期错误路径里的异常噪音，同时保持用户看到的中文错误文案不变
+- implementation: `src/utils/import-preview.ts` 新增 `safeParseImportPreview()`，把“合法 JSON / state 结构缺失”等预校验统一改成结构化 `{ ok, summary | error }` 返回；`src/layouts/AppHeader.vue` 的导入模式校验与确认摘要构建改为先消费安全结果，再进入 sanitize 后的预览/确认流；保留原 `parseImportPreview()` 供纯函数调用方继续使用抛错语义
+- tests: 扩展 `src/utils/__tests__/import-preview.test.ts` 覆盖安全解析成功/失败分支；同时修正 `src/components/ai/__tests__/AiAnalysisModal.test.ts` 的导出用例，改为按真实发送后再导出，避免依赖脆弱的预置 localStorage/按钮定位假设
+- verification: `npm test` ✅ (209), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅；构建仍保留既有 `vendor-date <-> vendor-antd` circular chunk 提示与大 chunk 告警，本轮未触碰用户已验证的构建策略
 [2026-03-10 00:45:00] task: 收口事件新增/编辑失败时的本地可恢复体验，确保失败后弹窗保留、错误有内联落点，并完成完整验证/提交/push
 [2026-03-10 00:52:00] deliverables: EventPanel 新增失败提示统一优先透传 store.message；扩展 EventPanel 组件级回归覆盖“新增失败保留弹窗+内联错误”与“新增成功真实写入 store 并关窗”，把失败保护从仅编辑场景补齐到新增场景
 [2026-03-10 00:57:00] follow-up: 补齐 finance store 的 addEvent 显式返回类型，保证 UI 统一读取 errors/message 时 TypeScript 不再因失败分支联合类型过窄而报错

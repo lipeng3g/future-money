@@ -193,7 +193,7 @@ import {
   buildImportSanitizeDiscardSummary,
   buildImportSingleAccountEventDiffSummary,
   buildRollbackPreview,
-  parseImportPreview,
+  safeParseImportPreview,
 } from '@/utils/import-preview';
 import type { ImportExportMode } from '@/types/storage';
 
@@ -306,7 +306,12 @@ const rollbackSummary = computed(() => {
 });
 
 const validateImportMode = (mode: ImportExportMode, content: string) => {
-  const summary = buildImportPreviewState(content).summary;
+  const preview = buildImportPreviewState(content);
+  if (!preview.ok) {
+    throw new Error(preview.error);
+  }
+
+  const summary = preview.summary;
 
   if (mode === 'current' && summary.scope === 'all') {
     throw new Error('你选择的是“恢复当前账户”，但文件看起来是“全部账户备份”。请改用“恢复全部账户”，避免误把整库备份塞进单账户。');
@@ -320,12 +325,16 @@ const validateImportMode = (mode: ImportExportMode, content: string) => {
 };
 
 const buildImportPreviewState = (content: string) => {
-  const parsedPreview = parseImportPreview(content);
+  const parsedPreview = safeParseImportPreview(content);
+  if (!parsedPreview.ok) {
+    return parsedPreview;
+  }
+
   const incomingState = previewStateRepository.importState(content);
   const rawEnvelope = JSON.parse(content) as PersistedStateEnvelope;
   const summary = {
-    ...parsedPreview,
-    stateVersion: incomingState.version || parsedPreview.stateVersion,
+    ...parsedPreview.summary,
+    stateVersion: incomingState.version || parsedPreview.summary.stateVersion,
     accountsCount: incomingState.accounts.length,
     eventsCount: incomingState.events.length,
     reconciliationsCount: incomingState.reconciliations.length,
@@ -340,7 +349,7 @@ const buildImportPreviewState = (content: string) => {
     : undefined;
   const sanitizeDiscards = buildImportSanitizeDiscardSummary(rawState, incomingState);
 
-  return { incomingState, summary, sanitizeDiscards };
+  return { ok: true as const, incomingState, summary, sanitizeDiscards };
 };
 
 const currentImportPreviewState = () => ({
@@ -353,7 +362,12 @@ const currentImportPreviewState = () => ({
 
 const confirmImportAll = (content: string, fileName: string) => {
   validateImportMode('all', content);
-  const { incomingState, summary: backupSummary, sanitizeDiscards } = buildImportPreviewState(content);
+  const preview = buildImportPreviewState(content);
+  if (!preview.ok) {
+    throw new Error(preview.error);
+  }
+
+  const { incomingState, summary: backupSummary, sanitizeDiscards } = preview;
   const currentState = currentImportPreviewState();
   const risk = buildImportRiskSummary(backupSummary, currentState);
   const accountDiff = buildImportAccountDiffSummary(backupSummary, store.accounts);
@@ -499,7 +513,12 @@ const confirmImportAll = (content: string, fileName: string) => {
 
 const confirmImportCurrent = (content: string, fileName: string) => {
   validateImportMode('current', content);
-  const { incomingState, summary, sanitizeDiscards } = buildImportPreviewState(content);
+  const preview = buildImportPreviewState(content);
+  if (!preview.ok) {
+    throw new Error(preview.error);
+  }
+
+  const { incomingState, summary, sanitizeDiscards } = preview;
   const targetAccount = store.currentAccount;
   const sourceAccountName = summary.accountNames[0] ?? '未识别账户';
   const backupTime = summary.timestamp

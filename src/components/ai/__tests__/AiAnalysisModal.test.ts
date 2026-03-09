@@ -291,23 +291,30 @@ describe('AiAnalysisModal', () => {
   });
 
   it('导出对话会带上当前 scope 的消息并给出成功提示', async () => {
+    streamChatMock.mockImplementation(async function* () {
+      yield { type: 'thinking', text: '先看现金流' };
+      yield { type: 'content', text: '这是分析结果' };
+    });
+
     const store = useFinanceStore();
     const scopeAccountIds = [store.accounts[0].id, store.accounts[1].id];
-    const scopedMessages: ChatRecord[] = [
+
+    const wrapper = await mountModal();
+    await wrapper.find('textarea.a-textarea').setValue('分析双账户');
+    await wrapper.find('button.a-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    const expectedMessages: ChatRecord[] = [
       { role: 'user', content: '分析双账户' },
       { role: 'assistant', content: '这是分析结果', thinking: '先看现金流' },
     ];
-    localStorage.setItem(`fm-ai-chat:${scopeAccountIds.join(',')}`, JSON.stringify(scopedMessages));
 
-    const wrapper = await mountModal();
-    await flushPromises();
-    await nextTick();
-    await nextTick();
+    const exportButton = wrapper.findAll('button.icon-btn').find((node) => node.attributes('title') === '导出对话');
+    expect(exportButton?.exists()).toBe(true);
+    await exportButton!.trigger('click');
 
-    const exportButton = wrapper.find('button.icon-btn[title="导出对话"]');
-    await exportButton.trigger('click');
-
-    expect(exportChatHistoryMock).toHaveBeenCalledWith(scopedMessages, { accountIds: scopeAccountIds });
+    expect(exportChatHistoryMock).toHaveBeenCalledWith(expectedMessages, { accountIds: scopeAccountIds });
     expect(messageSuccess).toHaveBeenCalledWith('当前账户组合对话已导出');
   });
 });

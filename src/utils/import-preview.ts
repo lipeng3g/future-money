@@ -84,6 +84,10 @@ export interface ImportSanitizeDiscardItem {
   reason: string;
 }
 
+export type ImportPreviewResult =
+  | { ok: true; summary: ImportPreviewSummary }
+  | { ok: false; error: string };
+
 const ensureState = (parsed: unknown): AppState => {
   if (!parsed || typeof parsed !== 'object' || !('state' in (parsed as Record<string, unknown>))) {
     throw new Error('导入文件格式不正确：缺少 state 数据');
@@ -119,34 +123,53 @@ const detectImportScope = (
 };
 
 export const parseImportPreview = (content: string): ImportPreviewSummary => {
+  const result = safeParseImportPreview(content);
+  if (!result.ok) {
+    throw new Error(result.error);
+  }
+
+  return result.summary;
+};
+
+export const safeParseImportPreview = (content: string): ImportPreviewResult => {
   let parsed: PersistedStateEnvelope;
   try {
     parsed = JSON.parse(content) as PersistedStateEnvelope;
   } catch {
-    throw new Error('导入文件不是合法的 JSON');
+    return { ok: false, error: '导入文件不是合法的 JSON' };
   }
 
-  const state = ensureState(parsed);
-  const accounts = Array.isArray(state.accounts)
-    ? state.accounts
-    : state.account
-      ? [state.account]
-      : [];
+  try {
+    const state = ensureState(parsed);
+    const accounts = Array.isArray(state.accounts)
+      ? state.accounts
+      : state.account
+        ? [state.account]
+        : [];
 
-  return {
-    envelopeVersion: parsed.version || APP_VERSION,
-    stateVersion: state.version || parsed.version || APP_VERSION,
-    timestamp: typeof parsed.timestamp === 'string' ? parsed.timestamp : null,
-    scope: detectImportScope(parsed, state),
-    accountsCount: accounts.length,
-    eventsCount: Array.isArray(state.events) ? state.events.length : 0,
-    reconciliationsCount: Array.isArray(state.reconciliations) ? state.reconciliations.length : 0,
-    ledgerEntriesCount: Array.isArray(state.ledgerEntries) ? state.ledgerEntries.length : 0,
-    eventOverridesCount: Array.isArray(state.eventOverrides) ? state.eventOverrides.length : 0,
-    accountNames: accounts
-      .map((account) => account?.name?.trim())
-      .filter((name): name is string => !!name),
-  };
+    return {
+      ok: true,
+      summary: {
+        envelopeVersion: parsed.version || APP_VERSION,
+        stateVersion: state.version || parsed.version || APP_VERSION,
+        timestamp: typeof parsed.timestamp === 'string' ? parsed.timestamp : null,
+        scope: detectImportScope(parsed, state),
+        accountsCount: accounts.length,
+        eventsCount: Array.isArray(state.events) ? state.events.length : 0,
+        reconciliationsCount: Array.isArray(state.reconciliations) ? state.reconciliations.length : 0,
+        ledgerEntriesCount: Array.isArray(state.ledgerEntries) ? state.ledgerEntries.length : 0,
+        eventOverridesCount: Array.isArray(state.eventOverrides) ? state.eventOverrides.length : 0,
+        accountNames: accounts
+          .map((account) => account?.name?.trim())
+          .filter((name): name is string => !!name),
+      },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : '导入文件格式不正确',
+    };
+  }
 };
 
 export const buildRollbackPreview = (snapshot: RollbackSnapshot): RollbackPreviewSummary => {
