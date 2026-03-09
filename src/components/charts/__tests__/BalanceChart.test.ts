@@ -13,9 +13,15 @@ vi.mock('vue-echarts', () => ({
   }),
 }));
 
-vi.mock('@/utils/echarts-balance', () => ({}));
+const balanceRuntimeHook = vi.fn();
+vi.mock('@/utils/echarts-balance', async () => {
+  await balanceRuntimeHook();
+  return {};
+});
 
 beforeEach(() => {
+  balanceRuntimeHook.mockReset();
+  balanceRuntimeHook.mockResolvedValue(undefined);
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
     cb(0);
     return 1;
@@ -108,8 +114,28 @@ describe('BalanceChart', () => {
     expect(wrapper.find('.v-chart').exists()).toBe(false);
   });
 
+  it('runtime 就绪前先展示加载态，完成后再渲染图表', async () => {
+    let resolveLoader: (() => void) | null = null;
+    balanceRuntimeHook.mockImplementationOnce(() => new Promise<void>((resolve) => {
+      resolveLoader = resolve;
+    }));
+
+    const wrapper = mountChart();
+    expect(wrapper.text()).toContain('正在加载图表引擎');
+    expect(wrapper.find('.v-chart').exists()).toBe(false);
+
+    resolveLoader?.();
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.find('.chart-loading-state').exists()).toBe(false);
+    expect(wrapper.find('.v-chart').exists()).toBe(true);
+  });
+
   it('会渲染快速定位条，并在切换后更新焦点解释卡', async () => {
     const wrapper = mountChart();
+    await flushPromises();
+    await nextTick();
 
     const chips = wrapper.findAll('.focus-chip');
     expect(chips.map((node) => node.text())).toEqual(['最新区间', '今天', '首次预警', '最低点', '最高点', '最近对账']);
@@ -128,6 +154,8 @@ describe('BalanceChart', () => {
 
   it('会响应外部 focusKey 和 focusDate 联动，优先显示指定日期解释', async () => {
     const wrapper = mountChart({ focusKey: 'reconciliation' });
+    await flushPromises();
+    await nextTick();
 
     expect(wrapper.find('.focus-chip.active').text()).toBe('最近对账');
     expect(wrapper.find('.focus-insight').text()).toContain('最近一次对账锚点');

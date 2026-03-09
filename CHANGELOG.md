@@ -2,6 +2,9 @@
 
 ## 2026-03-09
 
+- stability(chart-runtime): 抽出 `src/utils/chart-runtime.ts` 统一管理图表 runtime 的异步加载状态；余额图 / 月度图现在具备一致的“加载中 → 成功”状态机基础能力，并为后续 UI 级失败兜底 / 重试保留了可测试的共享落点，避免 runtime 处理继续散落在各个组件里
+- test(chart-runtime): 新增 `src/utils/__tests__/chart-runtime.test.ts`，覆盖“并发 ensureReady 只触发一次真实加载”“首次失败后允许 retry 恢复”两条回归；同时保留 `BalanceChart` / `CashFlowChart` 组件级测试对“runtime ready 前先显示加载态、完成后再挂图表”的真实 UI 语义覆盖
+- stability(chart-runtime): 余额图 / 月度图的运行时加载失败现在会显示统一的错误卡片与“重试加载”入口，而不是让图表区域静默卡在空白/加载态；即便后续遇到浏览器扩展、缓存损坏或临时 chunk 读取失败，用户也有明确反馈与自助恢复路径
 - perf(chart-runtime): 余额图 / 月度图现在会在组件挂载后再异步加载各自的 ECharts 注册模块，而不是在图表组件求值阶段就静态引入；这样首页未滚动到图表区、或图表仍处于空态时，不会被 `chart-balance-runtime` / `chart-cashflow-runtime` 提前拖入当前渲染路径，图表组件自身异步壳体也进一步收轻
 - test(chart-runtime): 调整 `src/components/charts/__tests__/BalanceChart.test.ts`，并新增 `src/components/charts/__tests__/CashFlowChart.test.ts`，显式覆盖“runtime ready 前先显示轻量加载态、完成后再挂真实图表”的组件语义，避免后续把 ECharts 注册重新绑回同步顶层 import 时无人发现
 - note(build): 本轮重新验证后确认 `dist/assets/BalanceChart-*.js` 已收口到约 `11.8kB`，但 `chart-balance-runtime` 仍约 `556kB`；结论是当前大块主要来自 ECharts runtime 本体而非余额图 UI/option 代码，下一轮若继续拆分应优先研究 runtime 级按需能力，而不是再继续切自家业务组件

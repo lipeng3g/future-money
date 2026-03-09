@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, nextTick } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import CashFlowChart from '@/components/charts/CashFlowChart.vue';
@@ -12,7 +12,11 @@ vi.mock('vue-echarts', () => ({
   }),
 }));
 
-vi.mock('@/utils/echarts-cashflow', () => ({}));
+const cashflowRuntimeHook = vi.fn();
+vi.mock('@/utils/echarts-cashflow', async () => {
+  await cashflowRuntimeHook();
+  return {};
+});
 
 const months: MonthlySnapshot[] = [
   {
@@ -29,6 +33,11 @@ const months: MonthlySnapshot[] = [
   },
 ];
 
+beforeEach(() => {
+  cashflowRuntimeHook.mockReset();
+  cashflowRuntimeHook.mockResolvedValue(undefined);
+});
+
 describe('CashFlowChart', () => {
   it('空月度数据时展示空态而不是图表容器', () => {
     const wrapper = mount(CashFlowChart, {
@@ -43,6 +52,11 @@ describe('CashFlowChart', () => {
   });
 
   it('runtime 就绪前先展示加载态，完成后再渲染图表', async () => {
+    let resolveLoader: (() => void) | null = null;
+    cashflowRuntimeHook.mockImplementationOnce(() => new Promise<void>((resolve) => {
+      resolveLoader = resolve;
+    }));
+
     const wrapper = mount(CashFlowChart, {
       props: {
         months,
@@ -52,10 +66,12 @@ describe('CashFlowChart', () => {
     expect(wrapper.text()).toContain('正在加载图表引擎');
     expect(wrapper.find('.v-chart').exists()).toBe(false);
 
+    resolveLoader?.();
     await flushPromises();
     await nextTick();
 
     expect(wrapper.find('.chart-loading-state').exists()).toBe(false);
     expect(wrapper.find('.v-chart').exists()).toBe(true);
   });
+
 });

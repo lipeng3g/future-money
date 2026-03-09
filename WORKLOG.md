@@ -3,6 +3,12 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-09
+- task: 给图表 runtime 补统一异步状态机与失败可恢复兜底，避免余额图 / 月度图 chunk 加载失败时静默白屏
+- implementation: 新增 `src/utils/chart-runtime.ts`，收口 `ensureReady / retry / error / ready`；`BalanceChart.vue` 与 `CashFlowChart.vue` 接入统一 runtime 状态，并在失败时展示错误卡片与“重试加载”按钮
+- tests: 新增 `src/utils/__tests__/chart-runtime.test.ts`，覆盖并发加载去重与失败后 retry 恢复；组件级测试继续锁住“先加载态、后挂图表”的真实 UI 语义
+- verification: npm install ✅, npm test ✅ (159), npm run type-check ✅, npm run build ✅, npm run smoke ✅，预览探活已启动；当前构建仍保留既有 `chart-balance-runtime ~556kB` / `vendor-antd ~715kB` 告警与 `vendor-date <-> vendor-antd` circular chunk 提示，本轮未回退用户已验证的 vendor-antd 合并策略
+
+## 2026-03-09
 - task: 继续验证并收紧图表首开加载链路，确认 `chart-balance-runtime` 的真实瓶颈到底在业务代码还是 ECharts runtime 本体
 - implementation: `src/components/charts/BalanceChart.vue` / `CashFlowChart.vue` 改为在 `onMounted` 后异步 `import('@/utils/echarts-balance')` / `import('@/utils/echarts-cashflow')`，并在 runtime ready 前展示轻量加载态；这样图表组件自身不再因为顶层静态 import 过早绑定 ECharts 注册模块
 - tests: 调整 `src/components/charts/__tests__/BalanceChart.test.ts`，并新增 `src/components/charts/__tests__/CashFlowChart.test.ts`，显式等待 runtime 初始化完成后再断言图表挂载，锁住新的异步初始化语义

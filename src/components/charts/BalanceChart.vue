@@ -38,6 +38,11 @@
       </div>
 
       <VChart v-if="chartRuntimeReady" :option="chartOption" autoresize class="chart" @click="handleChartClick" />
+      <div v-else-if="chartRuntimeError" class="chart-runtime-error" role="alert">
+        <strong>图表暂时没加载出来</strong>
+        <p>{{ chartRuntimeError }}</p>
+        <button type="button" class="retry-button" @click="retryChartRuntime">重试加载</button>
+      </div>
       <div v-else class="chart-loading-state">正在加载图表引擎…</div>
     </template>
   </div>
@@ -48,6 +53,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import type { ECElementEvent } from 'echarts/core';
 import VChart from 'vue-echarts';
 import type { DailySnapshot } from '@/types/timeline';
+import { createAsyncChartRuntime } from '@/utils/chart-runtime';
 import {
   buildBalanceChartFocusInsight,
   buildBalanceChartFocusTargets,
@@ -78,12 +84,15 @@ const emit = defineEmits<{
   (e: 'select-date', date: string): void;
 }>();
 
-const chartRuntimeReady = ref(false);
+const chartRuntime = createAsyncChartRuntime(() => import('@/utils/echarts-balance'));
+const chartRuntimeReady = chartRuntime.ready;
+const chartRuntimeError = chartRuntime.error;
 
-onMounted(async () => {
-  await import('@/utils/echarts-balance');
-  chartRuntimeReady.value = true;
+onMounted(() => {
+  void chartRuntime.ensureReady();
 });
+
+const retryChartRuntime = () => chartRuntime.retry();
 
 const focusButtons = computed(() => buildBalanceChartFocusTargets(
   props.timeline,
@@ -232,6 +241,58 @@ const handleChartClick = (params: ECElementEvent) => {
   color: var(--fm-text-secondary);
   background: var(--fm-surface-muted);
   font-size: 0.9rem;
+}
+
+.chart-runtime-error {
+  min-height: 380px;
+  border: 1px dashed rgba(239, 68, 68, 0.28);
+  border-radius: 14px;
+  background: rgba(254, 242, 242, 0.9);
+  color: #991b1b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 24px;
+}
+
+.chart-runtime-error strong {
+  font-size: 1rem;
+}
+
+.chart-runtime-error p {
+  margin: 0;
+  max-width: 360px;
+  line-height: 1.6;
+  font-size: 0.88rem;
+}
+
+.retry-button {
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  background: #fff;
+  color: #b91c1c;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+.retry-button:active {
+  transform: translateY(1px);
+}
+
+.retry-button:focus-visible {
+  outline: 2px solid rgba(220, 38, 38, 0.2);
+  outline-offset: 2px;
 }
 
 .chart-toolbar {
