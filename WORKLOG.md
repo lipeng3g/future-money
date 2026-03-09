@@ -293,3 +293,8 @@
 - task: 给首页“预测范围”补容器级接线回归，锁住 TimeRangeControl -> ChartArea -> store -> BalanceChart timeline 这条首页关键链路
 - implementation: 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“切换预测范围会真实更新 `viewMonths/defaultViewMonths`，并让余额图拿到更长 timeline”回归；避免后续 segmented 控件或容器接线改动时出现“按钮看着切了，但图表其实没收到新范围”的静默回退
 - verification: `npm install` ✅, `npm test` ✅ (202), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅, `npm run preview -- --host 127.0.0.1 --port 4175` + `curl -I` ✅
+
+## 2026-03-10
+- task: 给首页统计卡片 -> 余额图聚焦补容器级接线回归，锁住 StatisticsPanel -> ChartArea -> BalanceChart 的 focus-key / focus-date 互斥联动
+- implementation: 扩展 ChartArea 测试中的 StatisticsPanel stub，使其可真实发出 focus-chart；新增“统计卡片点击 warning/min 会把 focusKey 传给 BalanceChart，并清掉旧 focusDate”回归；顺手把 AiAnalysisModal 导出测试从依赖按钮下标改为按 title 精准选择，消除既有脆弱失败
+- verification: npm install ✅, npm test ✅ (208), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175 + curl -I ✅；构建仍保留既有 vendor-date <-> vendor-antd circular chunk 提示与 vendor-charts ~560kB / vendor-antd ~715kB 告警，本轮未触碰用户已验证的构建修复策略

@@ -1,7 +1,8 @@
 - [ ] 继续压缩大体积前端 chunk（当前 build 仍提示 chart-balance-runtime / vendor-antd 超 500 kB），优先从图表 runtime 与 Ant Design 组件级拆分入手。
-- [ ] 继续给首页统计卡片 / 图表聚焦补更贴近真实 AntD 交互的容器级回归，尤其是 `StatisticsPanel → ChartArea → BalanceChart` 的 focus-key / focus-date 联动，避免后续重构只保住 store 层却把页面操作手感弄坏。
+- [x] 继续给首页统计卡片 / 图表聚焦补更贴近真实 AntD 交互的容器级回归，尤其是 `StatisticsPanel → ChartArea → BalanceChart` 的 focus-key / focus-date 联动，避免后续重构只保住 store 层却把页面操作手感弄坏。
 
 ## 刚完成
+- 已给 `StatisticsPanel → ChartArea → BalanceChart` 补容器级焦点联动回归：统计卡片触发 `focus-chart` 时，`ChartArea` 现在有测试明确锁住“把 `focusKey` 传给余额图，并清掉先前事件定位的 `focusDate`”，避免首页统计卡片点击后仍残留旧日期定位态
 - `npm run smoke` 已从“单账户导入 → 撤销”扩到同时覆盖“恢复全部账户 → 确认摘要 → 真恢复 → 撤销回滚”的 UI 闭环；`src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts` 现在会验证 sanitize 后摘要、账户/事件差异提示、整库恢复真实落地与回滚复原，降低高风险本地恢复链路继续只靠普通组件测试兜底的风险
 - 图表 runtime 的异步加载状态已抽成 `src/utils/chart-runtime.ts`，余额图 / 月度图现统一具备“加载中 / 成功 / 失败可重试”的共享状态机与 UI 兜底，不再各自散落处理 chunk 加载生命周期
 - 图表组件已改为“挂载后再异步加载 ECharts runtime 注册模块”，避免余额图 / 月度图在组件求值阶段就静态绑住 runtime；同时补齐 BalanceChart 组件测试对这层异步初始化语义的覆盖

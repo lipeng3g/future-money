@@ -304,7 +304,8 @@ describe('AiAnalysisModal', () => {
     await nextTick();
     await nextTick();
 
-    await wrapper.findAll('button.icon-btn')[0].trigger('click');
+    const exportButton = wrapper.find('button.icon-btn[title="导出对话"]');
+    await exportButton.trigger('click');
 
     expect(exportChatHistoryMock).toHaveBeenCalledWith(scopedMessages, { accountIds: scopeAccountIds });
     expect(messageSuccess).toHaveBeenCalledWith('当前账户组合对话已导出');

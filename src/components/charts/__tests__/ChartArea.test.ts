@@ -58,7 +58,12 @@ const StatisticsPanelStub = defineComponent({
   name: 'StatisticsPanel',
   props: ['analytics'],
   emits: ['focus-chart'],
-  template: '<div class="statistics-panel-stub" />',
+  template: `
+    <div class="statistics-panel-stub">
+      <button class="stats-focus-warning" @click="$emit('focus-chart', 'warning')">warning</button>
+      <button class="stats-focus-min" @click="$emit('focus-chart', 'min')">min</button>
+    </div>
+  `,
 });
 
 const UpcomingEventsStub = defineComponent({
@@ -255,6 +260,36 @@ describe('ChartArea', () => {
     await flushAsyncComponents();
 
     balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
+    expect(balanceChart.props('focusDate')).toBeUndefined();
+  });
+
+  it('统计卡片触发 focus-chart 时，容器会把焦点 key 传给余额图，并退出先前的日期定位态', async () => {
+    const wrapper = mountChartArea({
+      props: {
+        focusDate: '2026-03-20',
+        focusNonce: 1,
+      },
+    });
+    await nextTick();
+
+    observerInstances[0]?.callback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+    await flushAsyncComponents();
+
+    let balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
+    expect(balanceChart.props('focusDate')).toBe('2026-03-20');
+
+    await wrapper.find('.stats-focus-warning').trigger('click');
+    await flushAsyncComponents();
+
+    balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
+    expect(balanceChart.props('focusKey')).toBe('warning');
+    expect(balanceChart.props('focusDate')).toBeUndefined();
+
+    await wrapper.find('.stats-focus-min').trigger('click');
+    await flushAsyncComponents();
+
+    balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
+    expect(balanceChart.props('focusKey')).toBe('min');
     expect(balanceChart.props('focusDate')).toBeUndefined();
   });
 });
