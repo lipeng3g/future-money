@@ -120,7 +120,10 @@ const AccountManageModalStub = defineComponent({
     <div class="account-manage-modal-stub">
       <div class="undo-summary">{{ undoSummary }}</div>
       <div class="can-undo">{{ canUndoImport ? 'yes' : 'no' }}</div>
+      <button class="trigger-import-current" @click="$emit('import', 'current')">导入当前账户</button>
       <button class="trigger-import-all" @click="$emit('import', 'all')">恢复全部账户</button>
+      <button class="trigger-export-current" @click="$emit('export', 'current')">导出当前账户</button>
+      <button class="trigger-export-all" @click="$emit('export', 'all')">导出全部账户</button>
       <button class="trigger-undo" @click="$emit('undo-import')">撤销上次导入</button>
       <button class="trigger-clear" @click="$emit('clear')">清空当前账户</button>
       <button class="trigger-delete" @click="$emit('delete')">删除账户</button>
@@ -164,6 +167,14 @@ const extractText = (node: any): string => {
 };
 
 describe('AppHeader', () => {
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+  const originalCreateElement = document.createElement.bind(document);
+  let createObjectURLMock: ReturnType<typeof vi.fn>;
+  let revokeObjectURLMock: ReturnType<typeof vi.fn>;
+  let anchorClickMock: ReturnType<typeof vi.fn>;
+  let createdAnchors: Array<{ href: string; download: string; click: ReturnType<typeof vi.fn> }>;
+
   beforeEach(() => {
     window.localStorage.clear();
     setActivePinia(createPinia());
@@ -172,6 +183,159 @@ describe('AppHeader', () => {
     messageError.mockReset();
     messageInfo.mockReset();
     messageWarning.mockReset();
+    createObjectURLMock = vi.fn(() => 'blob:future-money-test');
+    revokeObjectURLMock = vi.fn();
+    anchorClickMock = vi.fn();
+    createdAnchors = [];
+    URL.createObjectURL = createObjectURLMock;
+    URL.revokeObjectURL = revokeObjectURLMock;
+    vi.spyOn(document, 'createElement').mockImplementation(((tagName: string) => {
+      if (tagName.toLowerCase() === 'a') {
+        const anchor = {
+          href: '',
+          download: '',
+          click: anchorClickMock,
+        };
+        createdAnchors.push(anchor);
+        return anchor as unknown as HTMLAnchorElement;
+      }
+      return originalCreateElement(tagName);
+    }) as typeof document.createElement);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+  });
+
+  it('账户管理里的导入当前账户会阻止误选整库备份，并保留现有本地数据', async () => {
+    const store = useFinanceStore();
+    const originalAccountId = store.currentAccount.id;
+
+    store.addEvent({
+      name: '原始工资',
+      amount: 5000,
+      category: 'income',
+      type: 'monthly',
+      startDate: '2026-01-01',
+      monthlyDay: 10,
+      enabled: true,
+    });
+    const secondary = store.addAccount({ name: '旅行基金', warningThreshold: 300 });
+    store.addEvent({
+      accountId: secondary.id,
+      name: '副账户收入',
+      amount: 800,
+      category: 'income',
+      type: 'monthly',
+      startDate: '2026-01-01',
+      monthlyDay: 5,
+      enabled: true,
+    });
+    store.currentAccountId = originalAccountId;
+
+    const wrapper = mountHeader();
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+
+    await wrapper.find('button.trigger-import-current').trigger('click');
+
+    const allBackup = {
+      version: '2.0.0',
+      timestamp: '2026-03-09T01:00:00.000Z',
+      scope: 'all',
+      state: {
+        version: '2.0.0',
+        account: {
+          id: 'cash',
+          name: '现金账户',
+          typeLabel: '现金',
+          initialBalance: 3000,
+          currency: '¥',
+          warningThreshold: 800,
+          color: '#3b82f6',
+          iconKey: 'wallet',
+          createdAt: '2026-03-01T00:00:00.000Z',
+          updatedAt: '2026-03-01T00:00:00.000Z',
+        },
+        accounts: [
+          {
+            id: 'cash',
+            name: '现金账户',
+            typeLabel: '现金',
+            initialBalance: 3000,
+            currency: '¥',
+            warningThreshold: 800,
+            color: '#3b82f6',
+            iconKey: 'wallet',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+          {
+            id: 'card',
+            name: '信用卡',
+            typeLabel: '负债',
+            initialBalance: -1200,
+            currency: '¥',
+            warningThreshold: 200,
+            color: '#ef4444',
+            iconKey: 'card',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+        events: [],
+        preferences: store.preferences,
+        snapshots: [],
+        reconciliations: [],
+        ledgerEntries: [],
+        eventOverrides: [],
+      },
+    };
+
+    const fileInput = wrapper.find('input.file-input').element as HTMLInputElement;
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [{ name: 'wrong-scope-all.json', __text: JSON.stringify(allBackup) }],
+    });
+    await wrapper.find('input.file-input').trigger('change');
+    await flushPromises();
+
+    expect(modalConfirm).not.toHaveBeenCalled();
+    expect(messageError).toHaveBeenCalledWith('你选择的是“恢复当前账户”，但文件看起来是“全部账户备份”。请改用“恢复全部账户”，避免误把整库备份塞进单账户。');
+    expect(store.accounts).toHaveLength(2);
+    expect(store.currentAccountId).toBe(originalAccountId);
+    expect(store.events.filter((event) => event.accountId === originalAccountId)).toHaveLength(1);
+    expect(store.events.filter((event) => event.accountId === secondary.id)).toHaveLength(1);
+  });
+
+  it('账户管理里的导出按钮会按 current/all 模式生成对应文件名', async () => {
+    const store = useFinanceStore();
+    store.currentAccount.name = '现金 主账户';
+
+    const wrapper = mountHeader();
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+
+    await wrapper.find('button.trigger-export-current').trigger('click');
+    expect(anchorClickMock).toHaveBeenCalledTimes(1);
+    expect(createObjectURLMock).toHaveBeenCalledTimes(1);
+    const currentBlob = createObjectURLMock.mock.calls[0][0] as Blob;
+    expect(currentBlob).toBeInstanceOf(Blob);
+    expect(messageSuccess).toHaveBeenCalledWith('已导出当前账户数据');
+
+    expect(createdAnchors[0]?.download).toMatch(/^future-money-现金-主账户-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:future-money-test');
+
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+    await wrapper.find('button.trigger-export-all').trigger('click');
+
+    expect(anchorClickMock).toHaveBeenCalledTimes(2);
+    expect(createObjectURLMock).toHaveBeenCalledTimes(2);
+    expect(messageSuccess).toHaveBeenCalledWith('已导出全部账户数据');
+    expect(createdAnchors[1]?.download).toMatch(/^future-money-all-accounts-\d{4}-\d{2}-\d{2}\.json$/);
   });
 
   it('恢复全部账户前会在确认框展示账户差异与数据规模变化摘要', async () => {
@@ -323,7 +487,7 @@ describe('AppHeader', () => {
     expect(config.title).toBe('恢复全部账户并覆盖当前本地数据？');
     expect(contentText).toContain('账户差异速览');
     expect(contentText).toContain('恢复后会新增：现金账户、信用卡');
-    expect(contentText).toContain('恢复后会移除：主账户、旅行基金');
+    expect(contentText).toContain('恢复后会移除：现金 主账户、旅行基金');
     expect(contentText).toContain('数据规模变化');
     expect(contentText).not.toContain('账户：当前 2 → 备份 2');
     expect(contentText).toContain('事件：当前 1 → 备份 2（增加 +1）');
@@ -607,7 +771,7 @@ describe('AppHeader', () => {
     const config = modalConfirm.mock.calls[0][0];
     const contentText = extractText(config.content);
 
-    expect(config.title).toBe('确定删除账户「主账户」？');
+    expect(config.title).toBe('确定删除账户「现金 主账户」？');
     expect(contentText).toContain('该账户及其所有数据将被永久删除，不可恢复');
 
     await expect(config.onOk()).rejects.toBeUndefined();
@@ -615,7 +779,7 @@ describe('AppHeader', () => {
     expect(store.accounts.map((account) => account.id)).toContain(originalAccountId);
 
     const inputNode = config.content.children[2];
-    inputNode.props.onInput({ target: { value: '主账户' } });
+    inputNode.props.onInput({ target: { value: '现金 主账户' } });
     await config.onOk();
 
     expect(store.accounts.map((account) => account.id)).not.toContain(originalAccountId);
