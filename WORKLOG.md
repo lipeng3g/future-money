@@ -3,6 +3,11 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-10
+- task: 把高风险导入 smoke 从“单账户导入”继续扩到“恢复全部账户”，避免整库恢复/撤销闭环继续主要依赖普通组件测试与手工预览
+- implementation: 扩展 `src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts`，新增“恢复全部账户 → sanitize 后确认摘要 → 真恢复 → 撤销回滚”UI 级 smoke；测试夹具覆盖账户差异、事件规则变化、脏账户/坏事件/断裂引用被过滤后的摘要与真实落地结果
+- verification: `npm install` ✅, `npm test` ✅ (170), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅ (3), `npm run preview -- --host 127.0.0.1 --port 4175` + `curl -I` ✅（返回 200；组合命令收尾时 `kill` 写法触发 shell 用法提示，不影响探活结果）；构建仍保留既有 `vendor-date <-> vendor-antd` circular chunk 提示与 `chart-balance-runtime ~556kB` / `vendor-antd ~715kB` 大 chunk 告警，本轮未触碰用户已验证的构建合并策略
+
+## 2026-03-10
 - task: 收口事件编辑失败时的本地可恢复体验，避免用户提交失败后只看到全局 toast，却不知道弹窗是否还能继续修、也看不到稳定的错误落点
 - implementation: `src/components/events/EventPanel.vue` 新增 `submitError`，在新增/编辑失败时保留弹窗并把 store 返回的错误直接透传给 `EventFormModal`；`src/components/events/EventFormModal.vue` 在表单底部新增内联错误提示区，成功提交/取消/重新打开时会清空旧错误
 - tests: 扩展 `src/components/events/__tests__/EventPanel.test.ts`，新增“编辑失败时弹窗保持打开且展示错误”的组件级回归，验证失败不会改写 store、不会关窗，且错误文案会稳定显示在弹窗内部

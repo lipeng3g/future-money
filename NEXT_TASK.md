@@ -1,5 +1,6 @@
 
 ## 刚完成
+- `npm run smoke` 已从“单账户导入 → 撤销”扩到同时覆盖“恢复全部账户 → 确认摘要 → 真恢复 → 撤销回滚”的 UI 闭环；`src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts` 现在会验证 sanitize 后摘要、账户/事件差异提示、整库恢复真实落地与回滚复原，降低高风险本地恢复链路继续只靠普通组件测试兜底的风险
 - 图表 runtime 的异步加载状态已抽成 `src/utils/chart-runtime.ts`，余额图 / 月度图现统一具备“加载中 / 成功 / 失败可重试”的共享状态机与 UI 兜底，不再各自散落处理 chunk 加载生命周期
 - 图表组件已改为“挂载后再异步加载 ECharts runtime 注册模块”，避免余额图 / 月度图在组件求值阶段就静态绑住 runtime；同时补齐 BalanceChart 组件测试对这层异步初始化语义的覆盖
 - 重新 build 后确认 `BalanceChart` 业务壳体已缩到约 11.8kB，但 `chart-balance-runtime` 仍约 556kB，说明当前构建大块主要是 ECharts runtime 本体，不是余额图自身 option/UI 逻辑

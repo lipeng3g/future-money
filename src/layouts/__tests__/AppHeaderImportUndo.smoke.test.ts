@@ -98,6 +98,7 @@ const AccountManageModalStub = defineComponent({
       <div class="undo-summary">{{ undoSummary }}</div>
       <div class="can-undo">{{ canUndoImport ? 'yes' : 'no' }}</div>
       <button class="trigger-import-current" @click="$emit('import', 'current')">导入当前账户</button>
+      <button class="trigger-import-all" @click="$emit('import', 'all')">恢复全部账户</button>
       <button class="trigger-undo" @click="$emit('undo-import')">撤销上次导入</button>
     </div>
   `,
@@ -341,6 +342,280 @@ describe('AppHeader import/undo smoke', () => {
     expect(persisted?.state?.events?.filter((event: { accountId: string }) => event.accountId === originalAccountId)).toHaveLength(1);
     expect(window.localStorage.getItem('futureMoney.rollback')).toBeNull();
     expect(messageSuccess).toHaveBeenCalledWith('已导入当前账户数据，可在账户管理中撤销上次导入');
+    expect(messageSuccess).toHaveBeenCalledWith('已撤销上次导入/恢复');
+  });
+
+  it('can restore all accounts via UI confirm dialog and then undo back to the original local state', async () => {
+    const store = useFinanceStore();
+    const originalAccountId = store.currentAccount.id;
+    const originalAccountName = store.currentAccount.name;
+
+    store.addEvent({
+      name: '现有工资',
+      amount: 5000,
+      category: 'income',
+      type: 'monthly',
+      startDate: '2026-01-01',
+      monthlyDay: 10,
+      enabled: true,
+    });
+    store.reconcile('2026-03-05', 6000, [], '当前对账');
+    const secondary = store.addAccount({ name: '旅行基金', warningThreshold: 300 });
+    store.addEvent({
+      accountId: secondary.id,
+      name: '副账户收入',
+      amount: 800,
+      category: 'income',
+      type: 'monthly',
+      startDate: '2026-01-01',
+      monthlyDay: 5,
+      enabled: true,
+    });
+    store.currentAccountId = originalAccountId;
+
+    const wrapper = mountHeader();
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+    await wrapper.find('button.trigger-import-all').trigger('click');
+
+    const noisyAllBackup = {
+      version: '2.0.0',
+      timestamp: '2026-03-09T12:30:00.000Z',
+      scope: 'all',
+      state: {
+        version: '2.0.0',
+        account: {
+          id: 'missing-current',
+          name: '坏当前账户',
+          typeLabel: '现金',
+          initialBalance: 1234,
+          currency: '¥',
+          warningThreshold: 600,
+          color: '#14b8a6',
+          iconKey: 'wallet',
+          createdAt: '2026-03-01T00:00:00.000Z',
+          updatedAt: '2026-03-01T00:00:00.000Z',
+        },
+        accounts: [
+          {
+            id: 'acc-main',
+            name: '  导入主账户  ',
+            typeLabel: '现金',
+            initialBalance: 3200,
+            currency: '¥',
+            warningThreshold: 700,
+            color: '#14b8a6',
+            iconKey: 'wallet',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+          {
+            id: 'acc-card',
+            name: '信用卡',
+            typeLabel: '负债',
+            initialBalance: -1500,
+            currency: '¥',
+            warningThreshold: 300,
+            color: '#ef4444',
+            iconKey: 'card',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+          {
+            id: 'ignored-blank',
+            name: '   ',
+            typeLabel: '脏账户',
+            initialBalance: 10,
+            currency: '¥',
+            warningThreshold: 0,
+            color: '#64748b',
+            iconKey: 'wallet',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+        preferences: store.preferences,
+        events: [
+          {
+            id: 'event-salary',
+            accountId: 'acc-main',
+            name: '  导入工资  ',
+            amount: 9000,
+            category: 'income',
+            type: 'monthly',
+            startDate: '2026-03-01',
+            monthlyDay: 10,
+            enabled: true,
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+          {
+            id: 'event-repay',
+            accountId: 'acc-card',
+            name: '还款',
+            amount: 1200,
+            category: 'expense',
+            type: 'monthly',
+            startDate: '2026-03-01',
+            monthlyDay: 8,
+            enabled: true,
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+          {
+            id: 'event-bad',
+            accountId: 'acc-main',
+            name: '坏分类事件',
+            amount: 100,
+            category: 'transfer',
+            type: 'monthly',
+            startDate: '2026-03-01',
+            monthlyDay: 1,
+            enabled: true,
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+        snapshots: [],
+        reconciliations: [
+          {
+            id: 'recon-main',
+            accountId: 'acc-main',
+            date: '2026-03-09',
+            balance: 7200,
+            note: '  导入主账户对账  ',
+            createdAt: '2026-03-09T00:00:00.000Z',
+          },
+          {
+            id: 'recon-card',
+            accountId: 'acc-card',
+            date: '2026-03-09',
+            balance: -800,
+            note: '信用卡对账',
+            createdAt: '2026-03-09T00:00:00.000Z',
+          },
+        ],
+        ledgerEntries: [
+          {
+            id: 'ledger-main',
+            accountId: 'acc-main',
+            reconciliationId: 'recon-main',
+            ruleId: 'event-salary',
+            date: '2026-03-09',
+            amount: 9000,
+            category: 'income',
+            source: 'rule',
+            name: '  导入工资入账  ',
+            createdAt: '2026-03-09T00:00:00.000Z',
+          },
+          {
+            id: 'ledger-card',
+            accountId: 'acc-card',
+            reconciliationId: 'recon-card',
+            ruleId: 'event-repay',
+            date: '2026-03-09',
+            amount: -1200,
+            category: 'expense',
+            source: 'rule',
+            name: '信用卡还款',
+            createdAt: '2026-03-09T00:00:00.000Z',
+          },
+          {
+            id: 'ledger-bad',
+            accountId: 'acc-main',
+            reconciliationId: 'recon-main',
+            ruleId: 'event-missing',
+            date: '2026-03-09',
+            amount: -1,
+            category: 'expense',
+            source: 'rule',
+            name: '断裂引用',
+            createdAt: '2026-03-09T00:00:00.000Z',
+          },
+        ],
+        eventOverrides: [
+          {
+            id: 'override-main',
+            accountId: 'acc-main',
+            ruleId: 'event-salary',
+            period: '2026-03',
+            action: 'modified',
+            amount: 9200,
+            name: '  手调工资  ',
+            createdAt: '2026-03-09T00:00:00.000Z',
+          },
+          {
+            id: 'override-bad',
+            accountId: 'acc-main',
+            ruleId: 'event-salary',
+            period: 'bad-period',
+            action: 'modified',
+            amount: 9300,
+            createdAt: '2026-03-09T00:00:00.000Z',
+          },
+        ],
+      },
+    };
+
+    const fileInput = wrapper.find('input.file-input').element as HTMLInputElement;
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [{ name: 'tmp-browser-restore-all.json', __text: JSON.stringify(noisyAllBackup) }],
+    });
+    await wrapper.find('input.file-input').trigger('change');
+    await flushPromises();
+
+    expect(modalConfirm).toHaveBeenCalledTimes(1);
+    const restoreConfig = modalConfirm.mock.calls[0][0];
+    const restoreContentText = extractText(restoreConfig.content);
+    expect(restoreConfig.title).toBe('恢复全部账户并覆盖当前本地数据？');
+    expect(restoreContentText).toContain('账户差异速览');
+    expect(restoreContentText).toContain('恢复后会新增：导入主账户、信用卡');
+    expect(restoreContentText).toContain(`恢复后会移除：${originalAccountName}、旅行基金`);
+    expect(restoreContentText).toContain('按账户的事件规则变化');
+    expect(restoreContentText).toContain('导入主账户：新增事件：导入工资');
+    expect(restoreContentText).toContain('信用卡：新增事件：还款');
+    expect(restoreContentText).toContain(`${originalAccountName}：移除事件：现有工资`);
+    expect(restoreContentText).toContain('备份内账户：2（导入主账户、信用卡）');
+    expect(restoreContentText).toContain('备份内事件 / 对账 / 账本：2 / 2 / 2');
+    expect(restoreContentText).toContain('备份内覆盖记录：1');
+    expect(restoreContentText).not.toContain('坏分类事件');
+    expect(restoreContentText).not.toContain('断裂引用');
+
+    const restoreInput = restoreConfig.content.children.at(-1);
+    restoreInput.props.onInput({ target: { value: '恢复全部账户' } });
+    await restoreConfig.onOk();
+
+    expect(store.accounts.map((account) => account.name)).toEqual(['导入主账户', '信用卡']);
+    expect(store.currentAccountId).toBe('acc-main');
+    expect(store.currentAccount.name).toBe('导入主账户');
+    expect(store.events.map((event) => event.name)).toEqual(['导入工资', '还款']);
+    expect(store.reconciliations).toHaveLength(2);
+    expect(store.ledgerEntries).toHaveLength(2);
+    expect(store.eventOverrides).toHaveLength(1);
+
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+    expect(wrapper.find('.can-undo').text()).toBe('yes');
+    expect(wrapper.find('.undo-summary').text()).toContain('恢复全部账户 · tmp-browser-restore-all.json');
+    await wrapper.find('button.trigger-undo').trigger('click');
+    await flushPromises();
+
+    expect(modalConfirm).toHaveBeenCalledTimes(2);
+    const undoConfig = modalConfirm.mock.calls[1][0];
+    const undoContentText = extractText(undoConfig.content);
+    expect(undoConfig.title).toBe('撤销上次导入/恢复？');
+    expect(undoContentText).toContain('恢复全部账户前快照');
+    expect(undoContentText).toContain('tmp-browser-restore-all.json');
+    await undoConfig.onOk();
+
+    expect(store.currentAccountId).toBe(originalAccountId);
+    expect(store.currentAccount.name).toBe(originalAccountName);
+    expect(store.accounts).toHaveLength(2);
+    expect(store.events.filter((event) => event.accountId === originalAccountId).map((event) => event.name)).toEqual(['现有工资']);
+    expect(store.events.filter((event) => event.accountId === secondary.id).map((event) => event.name)).toEqual(['副账户收入']);
+    expect(window.localStorage.getItem('futureMoney.rollback')).toBeNull();
+    expect(messageSuccess).toHaveBeenCalledWith('已恢复全部账户数据，可在账户管理中撤销上次恢复');
     expect(messageSuccess).toHaveBeenCalledWith('已撤销上次导入/恢复');
   });
 });
