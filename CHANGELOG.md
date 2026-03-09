@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-03-10
+- ux(chart-focus): 余额图焦点解释卡现在会把当前日期的事件拆成可点击摘要 chips，直接展示事件名与正负金额；用户在图上定位到某个关键日期后，不用再先读一整行长文本、再去侧边事件抽屉里找，点摘要即可继续按该日期联动到事件列表。
+- test(chart-focus): 扩展 `src/components/charts/__tests__/BalanceChart.test.ts`，新增“焦点解释卡会展示事件摘要 chips，且点击 chips 也会触发 `select-date`”回归，锁住余额图从‘看见说明’到‘继续定位事件’这条本地浏览链路。
 - smoke(chart-preview): 新增 `scripts/browser-chart-smoke.mjs`，为真实预览站点生成两份首页图表 smoke 夹具：`tmp-browser-chart-smoke/empty-state.json`（空库/无图表数据）与 `tmp-browser-chart-smoke/seeded-state.json`（有时间线/有月度数据）。这样页面级验证不再需要手工在控制台拼 localStorage，可直接复用仓库内固定夹具检查空态与延迟加载两条高风险路径。
 - docs(chart-preview): 新增 `docs/browser-chart-smoke.md`，把首页图表的真实页面 smoke 收口成可重复执行的仓库内手册，明确验证“空库直出真实空态、不闪 deferred skeleton”以及“有数据时先 skeleton、再在视口/兜底后加载图表”两条组合语义。
 - chore(smoke): `npm run smoke` 现在会在现有 store/UI 烟雾回归之后，顺手生成首页图表页面级 smoke 所需夹具，减少每轮手工准备成本，也让仓库里的页面 smoke 资产和常规验证入口保持同步。

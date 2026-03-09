@@ -1,6 +1,11 @@
 # future-money 工作日志（非权威草稿）
 
 ## 2026-03-10
+- task: 给余额图焦点解释卡补可点击事件摘要 chips，把“图上关键日期 -> 事件抽屉”这条本地浏览链从纯文字说明推进到更直接的交互落点
+- implementation: `src/components/charts/BalanceChart.vue` 在焦点解释卡下新增事件摘要 chips，直接展示事件名与正负金额；当前焦点日期存在事件时可一键再次触发 `select-date`，减少用户读完说明后还要去图上重新点一次同日期的摩擦。同步扩展 `src/components/charts/__tests__/BalanceChart.test.ts`，锁住 chips 展示与点击联动。
+- tests: 计划执行 `npm install`、`npm test`、`npm run type-check`、`npm run build`、`npm run smoke`，并补 dev server + curl 运行时烟雾验证
+
+## 2026-03-10
 - task: 给首页图表补真实预览级 smoke 夹具与手册，收口“空库直出空态 / 有数据 deferred skeleton + runtime 加载”两条组合路径，避免当前优化只锁在组件测试层
 - implementation: 新增 `scripts/browser-chart-smoke.mjs`，生成 `tmp-browser-chart-smoke/empty-state.json` 与 `seeded-state.json` 两份页面级 localStorage 夹具；新增 `docs/browser-chart-smoke.md`，明确如何在 `vite preview` + OpenClaw/browser 下验证首页图表空态与延迟加载；并把夹具生成接入 `npm run smoke`，减少后续手工准备成本
 - tests: 本轮主要补真实预览 smoke 资产，不新增 Playwright；常规验证继续覆盖 `npm test` / `npm run type-check` / `npm run build` / `npm run smoke`，页面级验证通过仓库文档重复执行

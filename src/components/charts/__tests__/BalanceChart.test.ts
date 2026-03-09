@@ -132,7 +132,7 @@ describe('BalanceChart', () => {
     expect(wrapper.find('.v-chart').exists()).toBe(true);
   });
 
-  it('会渲染快速定位条，并在切换后更新焦点解释卡', async () => {
+  it('会渲染快速定位条，并在切换后更新焦点解释卡与事件摘要 chips', async () => {
     const wrapper = mountChart();
     await flushPromises();
     await nextTick();
@@ -141,6 +141,8 @@ describe('BalanceChart', () => {
     expect(chips.map((node) => node.text())).toEqual(['最新区间', '今天', '首次预警', '最低点', '最高点', '最近对账']);
     expect(wrapper.find('.toolbar-copy').text()).toContain('首次预警 · 2026-03-09');
     expect(wrapper.find('.focus-insight').text()).toContain('首次跌破预警线');
+    expect(wrapper.find('.focus-event-chip').text()).toContain('房租');
+    expect(wrapper.find('.focus-event-chip').text()).toContain('-¥2,300');
 
     await chips.find((node) => node.text() === '最高点')?.trigger('click');
     await nextTick();
@@ -150,6 +152,8 @@ describe('BalanceChart', () => {
     expect(wrapper.find('.focus-insight').classes()).toContain('success');
     expect(wrapper.find('.focus-insight').text()).toContain('达到当前视图最高余额');
     expect(wrapper.find('.focus-insight').text()).toContain('当日事件：奖金 +¥4,500');
+    expect(wrapper.find('.focus-event-chip').text()).toContain('奖金');
+    expect(wrapper.find('.focus-event-chip').text()).toContain('+¥4,500');
   });
 
   it('会响应外部 focusKey 和 focusDate 联动，并在外部定位清空后回到正常快速定位', async () => {
@@ -179,7 +183,7 @@ describe('BalanceChart', () => {
     expect(wrapper.find('.focus-insight').text()).not.toContain('当前选中事件在图表中的发生日期');
   });
 
-  it('点击含事件的数据点时才会发出 select-date', async () => {
+  it('点击含事件的数据点或焦点摘要里的事件 chips 时会发出 select-date', async () => {
     const wrapper = mountChart();
     await flushPromises();
     await nextTick();
@@ -187,10 +191,13 @@ describe('BalanceChart', () => {
     await wrapper.findComponent({ name: 'VChart' }).vm.$emit('click', { dataIndex: 1 });
     expect(wrapper.emitted('select-date')).toEqual([['2026-03-09']]);
 
+    await wrapper.find('.focus-event-chip').trigger('click');
+
     await wrapper.findComponent({ name: 'VChart' }).vm.$emit('click', { dataIndex: 99 });
     await wrapper.findComponent({ name: 'VChart' }).vm.$emit('click', { dataIndex: 0 });
 
     expect(wrapper.emitted('select-date')).toEqual([
+      ['2026-03-09'],
       ['2026-03-09'],
       ['2026-03-01'],
     ]);

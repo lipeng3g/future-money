@@ -35,6 +35,18 @@
         <p>{{ activeInsight.summary }}</p>
         <small>{{ activeInsight.detail }}</small>
         <small v-if="activeInsight.eventSummary" class="event-summary">{{ activeInsight.eventSummary }}</small>
+        <div v-if="activeFocusEvents.length" class="focus-event-list" aria-label="当前焦点日期事件摘要">
+          <button
+            v-for="event in activeFocusEvents"
+            :key="event.id"
+            type="button"
+            class="focus-event-chip"
+            @click="emit('select-date', event.date)"
+          >
+            <span class="event-chip-name">{{ event.name }}</span>
+            <span class="event-chip-amount" :class="event.category">{{ formatSignedAmount(event.category, event.amount) }}</span>
+          </button>
+        </div>
       </div>
 
       <VChart v-if="chartRuntimeReady" :option="chartOption" autoresize class="chart" @click="handleChartClick" />
@@ -52,7 +64,7 @@
 import { computed, ref, watch } from 'vue';
 import type { ECElementEvent } from 'echarts/core';
 import VChart from 'vue-echarts';
-import type { DailySnapshot } from '@/types/timeline';
+import type { DailySnapshot, EventOccurrence } from '@/types/timeline';
 import { useChartRuntime } from '@/utils/use-chart-runtime';
 import {
   buildBalanceChartFocusInsight,
@@ -205,7 +217,14 @@ const chartOption = computed(() => buildBalanceChartOption({
   focusDate: activeFocus.value?.date,
 }));
 
+const activeFocusEvents = computed<EventOccurrence[]>(() => {
+  const focusDate = activeFocus.value?.date;
+  if (!focusDate) return [];
+  return props.timeline.find((point) => point.date === focusDate)?.events ?? [];
+});
+
 const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
+const formatSignedAmount = (category: EventOccurrence['category'], amount: number) => `${category === 'income' ? '+' : '-'}${formatCurrency(amount)}`;
 
 const handleChartClick = (params: ECElementEvent) => {
   const index = typeof params.dataIndex === 'number' ? params.dataIndex : -1;
@@ -418,6 +437,53 @@ const handleChartClick = (params: ECElementEvent) => {
 
 .focus-insight .event-summary {
   color: var(--fm-text-primary);
+}
+
+.focus-event-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.focus-event-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--fm-border-subtle);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--fm-text-primary);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.focus-event-chip:hover {
+  border-color: rgba(67, 56, 202, 0.24);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
+.focus-event-chip:focus-visible {
+  outline: 2px solid rgba(67, 56, 202, 0.2);
+  outline-offset: 2px;
+}
+
+.event-chip-name {
+  font-weight: 600;
+}
+
+.event-chip-amount {
+  font-family: 'SF Pro Rounded', ui-monospace, sans-serif;
+}
+
+.event-chip-amount.income {
+  color: #047857;
+}
+
+.event-chip-amount.expense {
+  color: #be123c;
 }
 
 .chart-empty-state {
