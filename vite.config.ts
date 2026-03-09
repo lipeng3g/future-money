@@ -136,15 +136,7 @@ export default defineConfig({
           }
 
           if (id.includes('@ant-design/icons-vue') || id.includes('ant-design-vue')) {
-            if (/(?:^|\/)(?:message|notification|modal|drawer|popover|dropdown|menu)(?:\/|$)/.test(id)) {
-              return 'vendor-antd-feedback';
-            }
-
-            if (/(?:^|\/)(?:date-picker|form|input|input-number|select|checkbox|radio|switch|segmented|steps)(?:\/|$)/.test(id)) {
-              return 'vendor-antd-form';
-            }
-
-            return 'vendor-antd-core';
+            return 'vendor-antd';
           }
         },
       },
