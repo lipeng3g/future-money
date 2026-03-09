@@ -11,10 +11,10 @@
 ## 当前状态
 - 单账户导入确认框已补到 sanitize 后摘要 + 当前账户事件规则 diff
 - `scripts/browser-import-smoke.mjs` 已改为零依赖测试夹具生成脚本；配合 `docs/browser-import-smoke.md` 中的 OpenClaw/browser 操作手册，可重复执行真实页面级导入/撤销 smoke
-- 当前自动化验证闭环以 vitest/store smoke + preview 探活为主；页面级 browser smoke 已有仓库内标准步骤，但仍未纳入 npm 全自动脚本
+- `npm run smoke` 已纳入两条自动化烟雾：store 级整库恢复/撤销，以及 AppHeader UI 级“导入当前账户 → 确认 → 撤销”闭环；当前高风险本地导入链路已不再只靠手册验证
 
 ## 下一轮优先级
-1. 把 browser smoke 从“单账户导入”继续扩展到“恢复全部账户”，覆盖旧备份预警、账户 diff、按账户数据变化与撤销入口
-2. 评估是否需要把页面级 smoke 进一步收口成可一键执行的本地自动化；若引入新依赖，需先单独评估稳定性与维护成本
+1. 把自动 smoke 从“导入当前账户”继续扩展到“恢复全部账户”，覆盖旧备份预警、账户 diff、按账户数据变化与撤销入口
+2. 评估是否要把 `docs/browser-import-smoke.md` 的真实页面流程进一步半自动化；若引入新依赖，需先单独评估稳定性与维护成本
 3. 继续处理构建性能余项：在不回退用户 vendor-antd 修复的前提下，优先研究 `chart-balance-runtime` 的 runtime 级安全拆分点（如确认 `echarts/components` / renderer / chart type 是否还能进一步按使用路径收口），不要再把精力浪费在继续细拆已经很小的业务壳体上
 4. 在图表容器层继续补页面级/运行时 smoke，重点确认“IntersectionObserver 延迟挂载 + 超时兜底揭示 + runtime 异步注册 + focus 联动”四层组合在真实预览站点也不会卡成永久骨架

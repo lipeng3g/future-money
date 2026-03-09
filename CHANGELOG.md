@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-03-09
+- smoke(ui-import): 新增 `src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts`，把“账户管理 → 导入当前账户 → 检查 sanitize 后确认摘要与事件规则 diff → 确认导入 → 撤销上次导入”收口成可重复执行的 DOM 级烟雾测试；不引入 Playwright 也能自动覆盖最脆弱的高风险 UI 链路
+- smoke(script): `npm run smoke` 现在同时执行 store 级 smoke 与 AppHeader UI 级 smoke，避免导入/撤销只在手册或零散组件断言里验证，后续每轮都能一键回归本地高风险导入路径
+- docs(validation): README 增补本地验证章节，明确 `npm test / npm run type-check / npm run build / npm run smoke` 的推荐验证顺序与 smoke 覆盖范围
 - chart: 为首页图表延迟挂载补“超时兜底加载”机制；即使 `IntersectionObserver` 在后台标签页、低功耗模式或兼容性异常场景下迟迟不触发，余额图与月度图也会按顺序自动揭示，避免用户永久停留在骨架屏
 - test: 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，覆盖 observer 正常触发与 fallback 定时器兜底两条路径，锁住“先让出首屏交互、但不允许永久白骨架”的真实语义
 

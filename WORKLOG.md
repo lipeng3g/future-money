@@ -3,6 +3,9 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-09
+- task: 把高风险导入/撤销从手册 smoke 再推进到可执行的 UI 级自动 smoke，避免本地导入链路继续主要依赖 OpenClaw/browser 手工回归
+- implementation: 新增 `src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts`，直接挂载真实 `AppHeader + Pinia store`，走“账户管理 → 导入当前账户 → 校验 sanitize 后确认摘要与事件规则 diff → 确认导入 → 再次打开账户管理 → 撤销上次导入”的整条 DOM 级闭环；同时把 `package.json` 的 `npm run smoke` 扩到同时执行 store 级 smoke 与这条 UI 级 smoke
+- docs: 更新 `README.md`、`CHANGELOG.md`、`NEXT_TASK.md`，把新的 smoke 覆盖范围和后续缺口写进仓库真实文件，保留本轮进度痕迹
 - task: 给首页图表延迟挂载补“观察器失效时的超时兜底揭示”，避免后台标签页/兼容性异常场景下永久停留在骨架屏
 - implementation: `src/components/charts/ChartArea.vue` 为余额图/月度图各自增加 fallback timer；IntersectionObserver 正常命中时会取消对应定时器，若观察器迟迟不回调，则在 1.8s / 2.6s 后按顺序自动揭示图表，兼顾首屏让路与最终可达性；卸载时统一清理 observer 与 timer
 - tests: 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“observer 不触发时按兜底定时器逐步加载图表”组件级回归
