@@ -139,8 +139,12 @@ export default defineConfig({
             return 'vendor-markdown';
           }
 
-          if (id.includes('dayjs') || id.includes('date-fns')) {
+          if (id.includes('date-fns')) {
             return 'vendor-date';
+          }
+
+          if (id.includes('dayjs')) {
+            return 'vendor-antd';
           }
 
           if (id.includes('@ant-design/icons-vue') || id.includes('ant-design-vue')) {

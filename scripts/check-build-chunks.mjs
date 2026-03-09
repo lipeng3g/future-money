@@ -44,8 +44,17 @@ if (appEntry.size > appEntrySoftLimit) {
 }
 
 const vendorAntd = findChunk('vendor-antd-');
-if (vendorAntd && vendorCharts.size >= vendorAntd.size) {
-  throw new Error(`vendor-charts ${(vendorCharts.size / 1024).toFixed(1)}kB 不应大于或等于 vendor-antd ${(vendorAntd.size / 1024).toFixed(1)}kB，说明图表依赖可能被错误合并`);
+
+if (!vendorAntd) {
+  throw new Error('未找到 vendor-antd chunk；UI 依赖可能重新并回主包');
+}
+
+if (vendorCharts.size > 600 * 1024) {
+  throw new Error(`vendor-charts 体积回退到 ${(vendorCharts.size / 1024).toFixed(1)}kB，超过 600kB 软阈值`);
+}
+
+if (vendorAntd.size > 760 * 1024) {
+  throw new Error(`vendor-antd 体积回退到 ${(vendorAntd.size / 1024).toFixed(1)}kB，超过 760kB 软阈值`);
 }
 
 console.log('Build chunk summary:');
