@@ -317,4 +317,51 @@ describe('AiAnalysisModal', () => {
     expect(exportChatHistoryMock).toHaveBeenCalledWith(expectedMessages, { accountIds: scopeAccountIds });
     expect(messageSuccess).toHaveBeenCalledWith('当前账户组合对话已导出');
   });
+
+  it('空对话导出时不会误调用导出，而是提示暂无内容', async () => {
+    const wrapper = await mountModal();
+
+    const exportButton = wrapper.findAll('button.icon-btn').find((node) => node.attributes('title') === '导出对话');
+    expect(exportButton?.exists()).toBe(true);
+    await exportButton!.trigger('click');
+
+    expect(exportChatHistoryMock).not.toHaveBeenCalled();
+    expect(messageInfo).toHaveBeenCalledWith('暂无对话内容');
+    expect(messageSuccess).not.toHaveBeenCalled();
+  });
+
+  it('清空对话只会清掉当前 scope 的历史与草稿，不影响其它 scope', async () => {
+    const store = useFinanceStore();
+    const [accountA, accountB] = store.accounts;
+    const multiScopeKey = `fm-ai-chat:${[accountA.id, accountB.id].sort().join(',')}`;
+    const singleScopeKey = `fm-ai-chat:${accountA.id}`;
+    const multiDraftKey = createChatDraftScopeKey({ accountIds: [accountA.id, accountB.id] });
+    const singleDraftKey = createChatDraftScopeKey({ accountIds: [accountA.id] });
++
+    localStorage.setItem(multiScopeKey, JSON.stringify([
+      { role: 'user', content: '多账户问题' },
+      { role: 'assistant', content: '多账户回答' },
+    ] satisfies ChatRecord[]));
+    localStorage.setItem(singleScopeKey, JSON.stringify([
+      { role: 'user', content: '单账户问题' },
+      { role: 'assistant', content: '单账户回答' },
+    ] satisfies ChatRecord[]));
+    localStorage.setItem(multiDraftKey, '多账户草稿');
+    localStorage.setItem(singleDraftKey, '单账户草稿');
+
+    const wrapper = await mountModal();
+    expect(wrapper.text()).toContain('多账户问题');
+    expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('多账户草稿');
+
+    await wrapper.findAll('button.icon-btn')[1].trigger('click');
+    await nextTick();
+
+    expect(localStorage.getItem(multiScopeKey)).toBeNull();
+    expect(localStorage.getItem(multiDraftKey)).toBeNull();
+    expect(localStorage.getItem(singleScopeKey)).toContain('单账户问题');
+    expect(localStorage.getItem(singleDraftKey)).toBe('单账户草稿');
+    expect(wrapper.findAll('.msg-row')).toHaveLength(0);
+    expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('');
+    expect(messageSuccess).toHaveBeenCalledWith('当前账户组合对话与草稿已清空');
+  });
 });

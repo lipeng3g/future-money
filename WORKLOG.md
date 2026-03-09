@@ -8,6 +8,11 @@
 - tests: `npm test -- src/components/charts/__tests__/TimeRangeControl.test.ts src/components/charts/__tests__/ChartArea.test.ts`
 
 ## 2026-03-10
+- task: 继续补 AI 分析抽屉的本地高风险交互回归，锁住“空导出门禁 + 清空只作用于当前 scope”两条容易在多账户上下文下悄悄串数据的边界
+- implementation: 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“空对话导出时只提示暂无内容、不误触发 exportChatHistory”和“清空对话只会清掉当前 scope 的历史/草稿，其他 scope 保持不变”两条组件级回归；继续沿用真实 Pinia scope + localStorage key，避免 AI 抽屉的数据边界只在 utils 层有覆盖、真实按钮接线却回退
+- tests: `npm test -- src/components/ai/__tests__/AiAnalysisModal.test.ts`
+
+## 2026-03-10
 - task: 修复首页预测范围切换后刷新丢失的本地持久化缺口，避免用户把 12/24/36 个月切到新范围后只在当前会话生效、重开页面又默默回退
 - implementation: `src/stores/finance.ts` 的 `setViewMonths` 现在会在更新运行时 `viewMonths` 的同时，同步写回 `preferences.defaultViewMonths`，并对异常输入回退到默认值；扩展 `src/stores/__tests__/finance-import-export.test.ts`，新增“切换范围 → localStorage 持久化 → 通过持久化状态恢复后仍保留该范围”的回归，锁住首页时间窗的本地连续性
 - tests: `npm test -- src/stores/__tests__/finance-import-export.test.ts`
