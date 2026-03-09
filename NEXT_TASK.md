@@ -19,4 +19,4 @@
 2. 继续处理构建性能余项：在不回退用户 vendor-antd 修复的前提下，优先研究 `chart-balance-runtime` 的 runtime 级安全拆分点（如确认 `echarts/components` / renderer / chart type 是否还能进一步按使用路径收口），不要再把精力浪费在继续细拆已经很小的业务壳体上
 3. 在图表容器层继续补页面级/运行时 smoke，重点确认“IntersectionObserver 延迟挂载 + 超时兜底揭示 + runtime 异步注册 + focus 联动”四层组合在真实预览站点也不会卡成永久骨架
 4. 若后续继续打磨导入链路，可把 `sanitize 过滤统计` 再细化到“重复 ID / 非法枚举 / 断裂引用 / 空白字段”分组级原因，而不只是当前的大类说明
-5. 继续补事件管理的真组件接线回归缺口，优先看 `EventPanel` 是否要逐步减少对 `EventList` stub 的依赖，把更多聚焦/只读/排序语义收口到真实组合测试
+5. 继续补事件管理接线回归缺口；本轮先修了 `event-focus` 在脏 timeline 记录下会把无效 eventId 误计入账户摘要的问题，下一轮优先把 `EventPanel` 删除/启停/示例载入继续往更真实的组合测试推进，并再评估 `MainLayout` 异步子组件链路该如何低成本接线验证

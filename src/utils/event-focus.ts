@@ -65,8 +65,10 @@ export const buildEventListFocusState = (
     : `已定位 ${uniqueEventIds.length} 条事件发生记录`;
 
   const accountNameMap = new Map(accounts.map((account) => [account.id, account.name]));
+  const validEventIds = new Set(uniqueEventIds);
+
   const accountSummaries = accountIds.map((accountId) => {
-    const dayEvents = day.events.filter((event) => event.accountId === accountId);
+    const dayEvents = day.events.filter((event) => event.accountId === accountId && validEventIds.has(event.eventId));
     const income = dayEvents
       .filter((event) => event.category === 'income')
       .reduce((sum, event) => sum + event.amount, 0);

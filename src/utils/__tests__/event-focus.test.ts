@@ -100,6 +100,70 @@ describe('event-focus', () => {
     });
   });
 
+  it('会忽略时间线上缺少有效 eventId 的脏记录，避免把空关联事件算进账户摘要', () => {
+    const timeline = [
+      createDay({
+        date: '2025-02-05',
+        balance: 2100,
+        change: -900,
+        events: [
+          { id: 'occ-1', eventId: 'evt-rent', name: '房租', amount: 3000, category: 'expense', date: '2025-02-05', accountId: 'acc-cash' },
+          { id: 'occ-ghost', eventId: '', name: '坏记录', amount: 900, category: 'expense', date: '2025-02-05', accountId: 'acc-cash' },
+          { id: 'occ-ghost-2', name: '缺 ruleId', amount: 1200, category: 'expense', date: '2025-02-05', accountId: 'acc-shadow' },
+        ],
+      }),
+    ];
+
+    const events = [
+      createEvent({ id: 'evt-rent', accountId: 'acc-cash', name: '房租', amount: 3000, category: 'expense', type: 'monthly', startDate: '2025-01-01', enabled: true, createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z', monthlyDay: 5 }),
+    ];
+
+    expect(buildEventListFocusState(timeline, events, '2025-02-05', [
+      { id: 'acc-cash', name: '现金', typeLabel: '现金账户', initialBalance: 0, currency: 'CNY', warningThreshold: 1000, createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z' },
+      { id: 'acc-shadow', name: '影子账户', typeLabel: '现金账户', initialBalance: 0, currency: 'CNY', warningThreshold: 1000, createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z' },
+    ])).toEqual({
+      sourceDate: '2025-02-05',
+      eventIds: ['evt-rent'],
+      accountIds: ['acc-cash'],
+      title: '2025-02-05 对应规则事件',
+      summary: '已定位 1 条规则事件：房租',
+      detail: '涉及账户：现金 1 笔 · 支出 ¥3,000。当日余额变动 -¥900。',
+    });
+  });
+
+  it('同一账户同日存在多条规则事件时，会按账户聚合收入/支出并保留去重后的规则列表', () => {
+    const timeline = [
+      createDay({
+        date: '2025-02-20',
+        balance: 6400,
+        change: 2400,
+        events: [
+          { id: 'occ-salary', eventId: 'evt-salary', name: '工资', amount: 5000, category: 'income', date: '2025-02-20', accountId: 'acc-bank' },
+          { id: 'occ-bonus', eventId: 'evt-bonus', name: '补贴', amount: 500, category: 'income', date: '2025-02-20', accountId: 'acc-bank' },
+          { id: 'occ-rent', eventId: 'evt-rent', name: '房租', amount: 3100, category: 'expense', date: '2025-02-20', accountId: 'acc-bank' },
+          { id: 'occ-rent-dup', eventId: 'evt-rent', name: '房租', amount: 3100, category: 'expense', date: '2025-02-20', accountId: 'acc-bank' },
+        ],
+      }),
+    ];
+
+    const events = [
+      createEvent({ id: 'evt-salary', accountId: 'acc-bank', name: '工资', amount: 5000, category: 'income', type: 'monthly', startDate: '2025-01-01', enabled: true, createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z', monthlyDay: 20 }),
+      createEvent({ id: 'evt-bonus', accountId: 'acc-bank', name: '补贴', amount: 500, category: 'income', type: 'monthly', startDate: '2025-01-01', enabled: true, createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z', monthlyDay: 20 }),
+      createEvent({ id: 'evt-rent', accountId: 'acc-bank', name: '房租', amount: 3100, category: 'expense', type: 'monthly', startDate: '2025-01-01', enabled: true, createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z', monthlyDay: 20 }),
+    ];
+
+    expect(buildEventListFocusState(timeline, events, '2025-02-20', [
+      { id: 'acc-bank', name: '工资卡', typeLabel: '银行账户', initialBalance: 0, currency: 'CNY', warningThreshold: 1000, createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z' },
+    ])).toEqual({
+      sourceDate: '2025-02-20',
+      eventIds: ['evt-salary', 'evt-bonus', 'evt-rent'],
+      accountIds: ['acc-bank'],
+      title: '2025-02-20 对应规则事件',
+      summary: '已定位 3 条规则事件：工资、补贴、房租',
+      detail: '涉及账户：工资卡 4 笔 · 收入 ¥5,500 · 支出 ¥6,200。当日余额变动 +¥2,400。',
+    });
+  });
+
   it('会从事件反向定位到图表中的下一次发生日期，并给出可切换状态', () => {
     const event = createEvent({
       id: 'evt-rent',

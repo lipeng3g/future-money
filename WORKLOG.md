@@ -3,6 +3,12 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-10
+- task: 给 `MainLayout` 补一条真实事件管理接线回归，减少“图表定位 → 抽屉 → 真实表单新增”继续只靠纯函数或大面积 stub 兜底的风险
+- decision: 不再碰用户刚稳定下来的 vendor/chunk 策略，也先跳过任何登录/云端方向；优先补本地高风险交互链的真实组件接线，收益更高、回归更稳
+- implementation: 先尝试新增 `src/layouts/__tests__/MainLayout.test.ts` 覆盖“图表定位 → 抽屉 → 快速添加”真实接线，但当前 `MainLayout` 通过 `defineAsyncComponent` 组织子组件，现有 test harness 下异步模块替身接管成本过高、稳定性不够；已主动撤回该草稿，避免把不稳测试带进主线，并改做更稳的事件聚合边界回归
+- tests: 该草稿测试已撤回，不进入主线；改由本轮后续 `event-focus` 边界回归承担收益
+
+## 2026-03-10
 - task: 给 EventList + EventCard 补真组件组合回归，避免事件面板主要依赖 stub 测试而漏掉子卡片实际只读/高亮/图表定位语义
 - implementation: 新增 `src/components/events/__tests__/EventList.test.ts`，直接挂载真实 `EventList + EventCard` 组合，覆盖高亮样式、图表定位入口、只读态开关禁用/编辑删除隐藏、以及可编辑态 `toggle / edit / delete` 真实冒泡；同时修正测试期望，明确只读态不应再触发 toggle 事件
 - tests: `npm test -- src/components/events/__tests__/EventList.test.ts src/components/events/__tests__/EventCard.test.ts src/components/events/__tests__/EventPanel.test.ts`
