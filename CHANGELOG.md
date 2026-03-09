@@ -1,6 +1,10 @@
 # Changelog
 
 ## 2026-03-10
+- ux(chart-empty): 首页在“还没有任何时间线 / 月度数据”时，现在会直接渲染图表组件自己的真实空态，不再先经过 IntersectionObserver / fallback skeleton 的延迟壳。这样首次进入空库、刚清空数据、或切到无对账账户时，用户会立刻看到明确说明，而不是先等一轮“正在按需加载图表”的假等待。
+- test(chart-empty): 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“无图表数据时直接渲染真实空态、不显示延迟骨架”的容器级回归；同时把既有延迟加载/focus 联动用例改成先造出真实时间线数据，避免测试前提混淆。
+
+## 2026-03-10
 - test(ai-retry-failures): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“同题重试再次失败时，只保留最新一轮 partial、不把多次失败残片叠进历史，后续再重试成功也会正确替换”的组件级回归，继续收紧 AI 抽屉失败恢复边界，避免连续两次 partial fail 后历史里残留多份半截回答。
 - stability(ai-partial-failure): AI 抽屉里的流式请求如果在已经产出 `thinking` 或部分正文后中途失败，现在会先把这段已生成内容落成一条 assistant 回复，再显示输入区上方的错误条；用户不会因为上游超时/断流把已经看到的分析片段整段丢掉，也能基于这段 partial content 继续判断是否需要重试。
 - test(ai-partial-failure): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“流式中途失败时保留已有 thinking + partial content”的组件级回归，锁住 AI 抽屉失败恢复不丢内容的本地体验。

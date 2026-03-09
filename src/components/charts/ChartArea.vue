@@ -30,7 +30,7 @@
       <div class="chart-column">
         <div id="balance-chart-card" ref="balanceChartCardRef" class="balance-card">
           <BalanceChart
-            v-if="shouldRenderBalanceChart"
+            v-if="showBalanceChart"
             :timeline="store.timeline"
             :warning-threshold="store.warningThreshold"
             :chart-type="store.preferences.chartType"
@@ -54,7 +54,7 @@
           </div>
         </div>
         <div id="cashflow-chart-card" ref="cashflowChartCardRef">
-          <CashFlowChart v-if="shouldRenderCashFlowChart" :months="store.analytics.months" />
+          <CashFlowChart v-if="showCashFlowChart" :months="store.analytics.months" />
           <div v-else class="chart-skeleton compact" aria-live="polite">
             <div class="chart-skeleton-header">
               <span class="chart-skeleton-pill w-16"></span>
@@ -107,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import type { BalanceChartFocusKey } from '@/utils/chart-options';
 import TimeRangeControl from '@/components/charts/TimeRangeControl.vue';
@@ -150,6 +150,10 @@ const balanceChartCardRef = ref<HTMLElement | null>(null);
 const cashflowChartCardRef = ref<HTMLElement | null>(null);
 const shouldRenderBalanceChart = ref(false);
 const shouldRenderCashFlowChart = ref(false);
+const hasBalanceTimelineData = computed(() => store.timeline.length > 0);
+const hasCashFlowData = computed(() => store.analytics.months.length > 0);
+const showBalanceChart = computed(() => shouldRenderBalanceChart.value || !hasBalanceTimelineData.value);
+const showCashFlowChart = computed(() => shouldRenderCashFlowChart.value || !hasCashFlowData.value);
 
 const BALANCE_CHART_FALLBACK_DELAY = 1800;
 const CASHFLOW_CHART_FALLBACK_DELAY = 2600;
@@ -191,6 +195,16 @@ const observeDeferredChart = (
   type: 'balance' | 'cashflow',
   rootMargin: string,
 ) => {
+  if (type === 'balance' && !hasBalanceTimelineData.value) {
+    revealChart(type);
+    return;
+  }
+
+  if (type === 'cashflow' && !hasCashFlowData.value) {
+    revealChart(type);
+    return;
+  }
+
   if (!canUseIntersectionObserver()) {
     revealChart(type);
     return;

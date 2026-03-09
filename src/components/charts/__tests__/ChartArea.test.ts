@@ -138,6 +138,9 @@ describe('ChartArea', () => {
   });
 
   it('图表进入视口前先展示骨架，占位不立即加载重图表', async () => {
+    const store = useFinanceStore();
+    store.reconcile('2026-03-01', 5000, [], '初始对账');
+
     const wrapper = mountChartArea();
     await nextTick();
 
@@ -149,6 +152,9 @@ describe('ChartArea', () => {
   });
 
   it('对应卡片进入视口后才分别加载余额图和月度图', async () => {
+    const store = useFinanceStore();
+    store.reconcile('2026-03-01', 5000, [], '初始对账');
+
     const wrapper = mountChartArea();
     await nextTick();
 
@@ -165,6 +171,9 @@ describe('ChartArea', () => {
   });
 
   it('观察器迟迟不触发时，会按兜底定时器逐步加载图表，避免永久骨架', async () => {
+    const store = useFinanceStore();
+    store.reconcile('2026-03-01', 5000, [], '初始对账');
+
     const wrapper = mountChartArea();
     await nextTick();
 
@@ -227,7 +236,21 @@ describe('ChartArea', () => {
     expect(wrapper.find('.current-range').text()).toBe('12');
   });
 
+  it('没有图表数据时会直接渲染真实空态，而不是先卡在延迟骨架', async () => {
+    const wrapper = mountChartArea();
+    await nextTick();
+    await flushAsyncComponents();
+
+    expect(wrapper.find('.balance-chart-stub').exists()).toBe(true);
+    expect(wrapper.find('.cashflow-chart-stub').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain('正在按需加载余额图');
+    expect(wrapper.text()).not.toContain('滚动到这里时再加载月度图表');
+  });
+
   it('外部 focusDate 在图表挂载前后都能正确传递，并在清空时退出事件定位态', async () => {
+    const store = useFinanceStore();
+    store.reconcile('2026-03-01', 5000, [], '初始对账');
+
     const wrapper = mountChartArea({
       props: {
         focusDate: '2026-03-20',
@@ -264,6 +287,9 @@ describe('ChartArea', () => {
   });
 
   it('统计卡片触发 focus-chart 时，容器会把焦点 key 传给余额图，并退出先前的日期定位态', async () => {
+    const store = useFinanceStore();
+    store.reconcile('2026-03-01', 5000, [], '初始对账');
+
     const wrapper = mountChartArea({
       props: {
         focusDate: '2026-03-20',
