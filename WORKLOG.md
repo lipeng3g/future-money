@@ -2,6 +2,11 @@
 
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
+## 2026-03-10
+- task: 收口事件编辑失败时的本地可恢复体验，避免用户提交失败后只看到全局 toast，却不知道弹窗是否还能继续修、也看不到稳定的错误落点
+- implementation: `src/components/events/EventPanel.vue` 新增 `submitError`，在新增/编辑失败时保留弹窗并把 store 返回的错误直接透传给 `EventFormModal`；`src/components/events/EventFormModal.vue` 在表单底部新增内联错误提示区，成功提交/取消/重新打开时会清空旧错误
+- tests: 扩展 `src/components/events/__tests__/EventPanel.test.ts`，新增“编辑失败时弹窗保持打开且展示错误”的组件级回归，验证失败不会改写 store、不会关窗，且错误文案会稳定显示在弹窗内部
+
 ## 2026-03-09
 - task: 补事件面板在多账户汇总 / 历史快照只读视图下的可解释性与运行时守卫，避免用户只看到按钮灰掉却不知道原因，也避免未来接线回退时只读视图仍能误改本地规则
 - implementation: `src/components/events/EventPanel.vue` 新增只读原因横幅，并对新增、编辑、删除、启停、载入示例统一走 `guardReadOnlyAction`；多账户视图明确说明“只能查看与定位”，历史快照视图明确说明“只回看冻结结果，不应直接改历史”

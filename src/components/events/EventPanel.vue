@@ -59,6 +59,7 @@
     <EventFormModal
       :open="modalOpen"
       :event="editingEvent"
+      :submit-error="submitError"
       @submit="handleSubmit"
       @cancel="closeModal"
     />
@@ -87,6 +88,7 @@ const emit = defineEmits<{
 const store = useFinanceStore();
 const modalOpen = ref(false);
 const editingEvent = ref<CashFlowEvent | null>(null);
+const submitError = ref<string | null>(null);
 const chartFocusState = ref<EventChartFocusState | null>(null);
 const activeChartFocus = computed(() => chartFocusState.value);
 const activeListFocus = computed(() => props.focusState ?? null);
@@ -167,17 +169,20 @@ const guardReadOnlyAction = () => {
 const openCreator = () => {
   if (guardReadOnlyAction()) return;
   editingEvent.value = null;
+  submitError.value = null;
   modalOpen.value = true;
 };
 
 const openEditor = (event: CashFlowEvent) => {
   if (guardReadOnlyAction()) return;
   editingEvent.value = event;
+  submitError.value = null;
   modalOpen.value = true;
 };
 
 const closeModal = () => {
   modalOpen.value = false;
+  submitError.value = null;
 };
 
 const clearFocus = () => {
@@ -234,21 +239,25 @@ const stepChartFocus = (direction: -1 | 1) => {
 const handleSubmit = (values: EventFormValues) => {
   if (guardReadOnlyAction()) return;
 
+  submitError.value = null;
+
   if (editingEvent.value) {
     const result = store.updateEvent(editingEvent.value.id, mapValuesToPayload(values));
     if (result.success) {
       message.success('已更新事件');
-      modalOpen.value = false;
+      closeModal();
     } else {
-      message.error(result.errors?.join('；') ?? result.message ?? '更新失败');
+      submitError.value = result.errors?.join('；') ?? result.message ?? '更新失败';
+      message.error(submitError.value);
     }
   } else {
     const result = store.addEvent(mapValuesToPayload(values));
     if (result.success) {
       message.success('已添加事件');
-      modalOpen.value = false;
+      closeModal();
     } else {
-      message.error(result.errors?.join('；') ?? '添加失败');
+      submitError.value = result.errors?.join('；') ?? '添加失败';
+      message.error(submitError.value);
     }
   }
 };

@@ -113,6 +113,10 @@
           </li>
         </ol>
       </div>
+
+      <div v-if="submitError" class="submit-error" role="alert">
+        {{ submitError }}
+      </div>
     </a-form>
   </a-modal>
 </template>
@@ -140,6 +144,7 @@ import {
 interface Props {
   open: boolean;
   event?: CashFlowEvent | null;
+  submitError?: string | null;
 }
 
 const props = defineProps<Props>();
@@ -388,5 +393,16 @@ const handleCancel = () => emit('cancel');
 
 .schedule-preview li small {
   color: var(--fm-text-secondary);
+}
+
+.submit-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  background: rgba(239, 68, 68, 0.08);
+  color: #b91c1c;
+  font-size: 0.84rem;
+  line-height: 1.6;
 }
 </style>

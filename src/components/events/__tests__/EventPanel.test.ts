@@ -78,11 +78,12 @@ const EventListStub = defineComponent({
 
 const EventFormModalStub = defineComponent({
   name: 'EventFormModal',
-  props: ['open', 'event'],
+  props: ['open', 'event', 'submitError'],
   emits: ['submit', 'cancel'],
   template: `
     <div v-if="open" class="event-form-modal-stub">
       <div class="editing-name">{{ event?.name ?? 'new' }}</div>
+      <div v-if="submitError" class="submit-error">{{ submitError }}</div>
       <button
         type="button"
         class="submit-edit"
@@ -97,6 +98,21 @@ const EventFormModalStub = defineComponent({
         })"
       >
         提交编辑
+      </button>
+      <button
+        type="button"
+        class="submit-invalid-edit"
+        @click="$emit('submit', {
+          name: '',
+          amount: 3200,
+          category: 'expense',
+          type: 'monthly',
+          startDate: '2026-01-01',
+          monthlyDay: 12,
+          enabled: true,
+        })"
+      >
+        提交非法编辑
       </button>
       <button type="button" class="cancel-edit" @click="$emit('cancel')">取消</button>
     </div>
@@ -250,6 +266,25 @@ describe('EventPanel', () => {
     expect(updated?.monthlyDay).toBe(12);
     expect(messageSuccess).toHaveBeenCalledWith('已更新事件');
     expect(wrapper.find('.event-form-modal-stub').exists()).toBe(false);
+  });
+
+  it('编辑失败时会保留弹窗并展示明确错误', async () => {
+    const store = useFinanceStore();
+    const wrapper = mountPanel();
+
+    await wrapper.find('.edit-trigger').trigger('click');
+    await nextTick();
+
+    expect(wrapper.find('.event-form-modal-stub').exists()).toBe(true);
+
+    await wrapper.find('.submit-invalid-edit').trigger('click');
+    await nextTick();
+
+    expect(store.events.find((event) => event.id === 'evt-rent')?.name).toBe('房租');
+    expect(messageError).toHaveBeenCalledWith('事件名称不能为空');
+    expect(wrapper.find('.event-form-modal-stub').exists()).toBe(true);
+    expect(wrapper.find('.submit-error').text()).toContain('事件名称不能为空');
+    expect(wrapper.find('.editing-name').text()).toBe('房租');
   });
 
   it('会在切换启用状态时真正更新 store', async () => {
