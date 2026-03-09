@@ -7,10 +7,10 @@
 
 ## 当前状态
 - 单账户导入确认框已补到 sanitize 后摘要 + 当前账户事件规则 diff
-- 已新增 `scripts/browser-import-smoke.mjs` 作为页面级 smoke 草稿；当前仓库尚未安装 `playwright`，因此仍未接入 npm 脚本
-- 当前自动化验证闭环以 vitest/store smoke + preview 探活为主，页面级 browser smoke 仍需后续决策补齐
+- `scripts/browser-import-smoke.mjs` 已改为零依赖测试夹具生成脚本；配合 `docs/browser-import-smoke.md` 中的 OpenClaw/browser 操作手册，可重复执行真实页面级导入/撤销 smoke
+- 当前自动化验证闭环以 vitest/store smoke + preview 探活为主；页面级 browser smoke 已有仓库内标准步骤，但仍未纳入 npm 全自动脚本
 
 ## 下一轮优先级
-1. 若接受新增依赖，可补装 `playwright` 并把 `scripts/browser-import-smoke.mjs` 接入自动化脚本；否则继续用 OpenClaw/browser 工具或更轻量方案把页面级 smoke 变成可重复执行的无依赖流程
-2. 把 browser smoke 从“单账户导入”继续扩展到“恢复全部账户”，覆盖旧备份预警、账户 diff、按账户数据变化与撤销入口
+1. 把 browser smoke 从“单账户导入”继续扩展到“恢复全部账户”，覆盖旧备份预警、账户 diff、按账户数据变化与撤销入口
+2. 评估是否需要把页面级 smoke 进一步收口成可一键执行的本地自动化；若引入新依赖，需先单独评估稳定性与维护成本
 3. 继续处理构建性能余项：在不回退用户 vendor-antd 修复的前提下，寻找 chart-balance-runtime 的安全拆分点

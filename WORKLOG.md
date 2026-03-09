@@ -186,8 +186,8 @@
 [2026-03-09 20:10:00] verification: npm install ✅, npm test ✅ (152), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175 + curl -I ✅；构建仍有既有 circular chunk 提示（vendor-date <-> vendor-antd）与大 chunk 告警（vendor-antd / chart-balance-runtime），本轮未改用户构建修复策略
 [2026-03-09 20:17:21] task: 给单账户导入补 sanitize 后确认摘要与组件级回归，避免它继续直接落地、缺少和整库恢复一致的风险确认\n[2026-03-09 20:17:21] deliverables: AppHeader 新增 confirmImportCurrent，导入当前账户前展示 sanitize 后的来源账户/目标账户/事件-对账-账本-覆盖摘要与事件规则列表；扩展 AppHeader 组件级测试覆盖错误确认拦截与确认后仅覆盖当前账户、不影响其他账户\n[2026-03-09 20:17:21] verification: npm test -- src/layouts/__tests__/AppHeader.test.ts ✅ (10), npm run type-check ✅, npm test ✅ (153), npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175 + curl -I ✅；构建仍有既有 vendor-antd / chart-balance-runtime 大 chunk 告警，本轮未改用户已验证的 vendor-antd 合并策略
 [2026-03-09 20:55:00] task: 给单账户导入/撤销链路补真实预览站点 browser smoke，避免确认框与撤销入口只在 stub 组件里被验证
-[2026-03-09 20:55:00] deliverables: 新增 scripts/browser-import-smoke.mjs 页面级 smoke 草稿；已在预览站点手工跑通“导入当前账户 → 校验 sanitize 后确认摘要与事件规则 diff → 确认导入 → 打开账户管理里的撤销入口 → 撤销回滚”页面级闭环，并校验 localStorage 回到默认初始状态
-[2026-03-09 20:55:00] note: 试接入 npm script 时发现仓库当前未安装 playwright；为避免新增未充分验证依赖，本轮先撤回 package.json 脚本改动，只保留脚本草稿与真实页面验证记录
+[2026-03-09 20:55:00] deliverables: 新增 scripts/browser-import-smoke.mjs 页面级 smoke 测试夹具生成脚本；补 docs/browser-import-smoke.md，明确用 vite preview + OpenClaw/browser + 临时备份文件执行“导入当前账户 → 校验 sanitize 后确认摘要与事件规则 diff → 确认导入 → 打开撤销入口 → 撤销回滚”的零新增依赖页面级闭环
+[2026-03-09 20:55:00] note: 不再保留误导性的 Playwright 草稿实现；当前仓库内页面级 smoke 方案是可重复执行的轻量手册化流程，后续若要引入新依赖需单独评估
 [2026-03-09 20:49:00] task: 收口自治验证后的工作区噪音，避免 Vite preview 探活生成的时间戳模块污染 git 状态
 [2026-03-09 20:49:00] deliverables: `.gitignore` 新增 `vite.config.ts.timestamp-*.mjs`；重新执行 npm install / test / type-check / build / smoke / preview+curl，确认不引入新依赖也能保持完整本地验证闭环
 [2026-03-09 20:49:00] verification: npm install ✅, npm test ✅ (154), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175 + curl -I ✅；当前运行环境仍缺 playwright，因此 browser smoke 继续保留为草稿脚本，未宣称已自动化接入

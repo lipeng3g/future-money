@@ -1,4 +1,3 @@
-import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -115,90 +114,5 @@ const backup = {
   },
 };
 
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 await fs.writeFile(backupPath, JSON.stringify(backup, null, 2), 'utf8');
-
-const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage();
-
-const messages = [];
-page.on('console', (msg) => {
-  messages.push(msg.text());
-});
-
-try {
-  await page.goto('http://127.0.0.1:4175/', { waitUntil: 'networkidle' });
-  await page.evaluate(() => {
-    window.localStorage.setItem('futureMoney.onboarding.v3', '1');
-  });
-  await page.reload({ waitUntil: 'networkidle' });
-
-  await page.getByRole('button', { name: '账户管理' }).click();
-  await page.getByRole('button', { name: '导入当前账户' }).click();
-
-  await page.locator('input[type="file"]').setInputFiles(backupPath);
-
-  await page.waitForSelector('.ant-modal-confirm', { state: 'visible' });
-
-  const modalText = await page.locator('.ant-modal-confirm').innerText();
-  if (!modalText.includes('当前账户事件规则 diff')) {
-    throw new Error(`missing event diff section: ${modalText}`);
-  }
-  if (!modalText.includes('将新增：导入工资、导入房租')) {
-    throw new Error(`missing added event names: ${modalText}`);
-  }
-  if (!modalText.includes('导入后事件 / 对账 / 账本：2 / 1 / 1')) {
-    throw new Error(`missing sanitized data counts: ${modalText}`);
-  }
-
-  await page.getByPlaceholder('请输入：导入当前账户').fill('导入当前账户');
-  await page.getByRole('button', { name: '确认导入' }).click();
-
-  await page.waitForTimeout(300);
-
-  await page.getByRole('button', { name: '账户管理' }).click();
-  await page.waitForSelector('.ant-modal', { state: 'visible' });
-
-  const manageText = await page.locator('.ant-modal').innerText();
-  if (!manageText.includes('撤销上次导入 / 恢复')) {
-    throw new Error(`missing undo action in manage modal: ${manageText}`);
-  }
-  if (!manageText.includes('导入当前账户 · tmp-browser-import-current.json')) {
-    throw new Error(`missing undo summary: ${manageText}`);
-  }
-
-  await page.getByRole('button', { name: '撤销上次导入' }).click();
-  await page.waitForSelector('.ant-modal-confirm', { state: 'visible' });
-  const undoText = await page.locator('.ant-modal-confirm').innerText();
-  if (!undoText.includes('导入当前账户前快照')) {
-    throw new Error(`missing undo confirm type: ${undoText}`);
-  }
-  await page.getByRole('button', { name: '确认撤销' }).click();
-  await page.waitForTimeout(300);
-
-  const state = await page.evaluate(() => JSON.parse(window.localStorage.getItem('futureMoney.state') ?? 'null'));
-  const rollback = await page.evaluate(() => window.localStorage.getItem('futureMoney.rollback'));
-
-  if (!state?.state?.events?.length) {
-    throw new Error('expected at least one event after undo state restore');
-  }
-
-  const accountName = state.state.account?.name;
-  const eventNames = state.state.events.map((event) => event.name);
-
-  if (accountName !== '我的账户') {
-    throw new Error(`unexpected account name after undo: ${accountName}`);
-  }
-  if (eventNames.includes('导入工资') || eventNames.includes('导入房租')) {
-    throw new Error(`imported events still present after undo: ${eventNames.join(',')}`);
-  }
-  if (rollback !== null) {
-    throw new Error('rollback snapshot should be cleared after undo');
-  }
-
-  console.log('browser smoke ok');
-} finally {
-  await browser.close();
-  await fs.rm(backupPath, { force: true });
-}
+console.log(backupPath);
