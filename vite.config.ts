@@ -123,6 +123,14 @@ export default defineConfig({
 
           if (!id.includes('node_modules')) return;
 
+          if (
+            id.includes('/echarts/')
+            || id.includes('/zrender/')
+            || id.includes('/vue-echarts/')
+          ) {
+            return 'vendor-charts';
+          }
+
           if (id.includes('/vue/') || id.includes('/@vue/') || id.includes('pinia')) {
             return 'vendor-vue';
           }

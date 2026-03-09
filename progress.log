@@ -1,3 +1,6 @@
 [2026-03-10 04:12:00] task: 收口首页图表“事件定位 -> 延迟挂载余额图”状态同步，避免 focusDate 在图表进视口前到达时丢失，或清空后残留旧日期解释
 [2026-03-10 04:12:00] implementation: ChartArea 监听补上 shouldRenderBalanceChart 参与依赖，确保外部 focusDate 在图表挂载前已到达时，余额图首次挂载也能拿到最新定位日期；focusDate 清空时显式退出定位态。BalanceChart 用 activeFocus.isPinnedDate 区分“外部定位日期”与“正常快速定位”，让定位解除后恢复默认解释卡
 [2026-03-10 04:12:00] tests: 扩展 src/components/charts/__tests__/ChartArea.test.ts 与 src/components/charts/__tests__/BalanceChart.test.ts，覆盖挂载前缓存/挂载后更新/清空退出三条边界
+
+[2026-03-10 04:24:53] task: 收口构建产物 chunk 边界与自动烟雾守卫，避免图表依赖重新并入 UI vendor 包导致本地首屏/缓存退化
+[2026-03-10 04:24:53] implementation: vite.config.ts 显式把 echarts/zrender/vue-echarts 收口到 vendor-charts；新增 scripts/check-build-chunks.mjs 与 npm run build:check，自动检查 index 入口轻量、vendor-charts 与两张图表 runtime chunk 存在，且图表 vendor 不重新膨胀到与 vendor-antd 同级

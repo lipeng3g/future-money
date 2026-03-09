@@ -10,7 +10,8 @@
     "type-check": "vue-tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke": "vitest run src/stores/__tests__/finance-smoke.test.ts src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts"
+    "smoke": "vitest run src/stores/__tests__/finance-smoke.test.ts src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts",
+    "build:check": "node scripts/check-build-chunks.mjs"
   },
   "dependencies": {
     "ant-design-vue": "^4.2.5",
