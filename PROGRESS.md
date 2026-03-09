@@ -3,6 +3,14 @@
 ## 2026-03-10
 - Checked git status and fetched `origin` before changes.
 - Verified local `main` already matched `origin/main` after fetch.
+- Chose a local high-value task for this pass: harden AI analysis drawer failure recovery further so mid-stream failures do not discard already generated local analysis fragments.
+- Updated `src/components/ai/AiAnalysisModal.vue` so if a streamed reply already produced `thinking` or partial answer text before failing, the modal preserves that partial assistant output in scoped history, then shows the inline retry banner instead of silently dropping the generated fragment.
+- Expanded `src/components/ai/__tests__/AiAnalysisModal.test.ts` with regressions that lock "mid-stream failure keeps partial content/thinking" and "changing account scope clears stale error banner and loads the new scoped history" semantics.
+- Verified the focused AI modal regression suite with `npm test -- src/components/ai/__tests__/AiAnalysisModal.test.ts` before running the full repository validation pass.
+
+## 2026-03-10
+- Checked git status and fetched `origin` before changes.
+- Verified local `main` already matched `origin/main` after fetch.
 - Chose a local high-value task for this pass: harden AI analysis drawer request-failure recovery so transient network/model errors do not pollute local chat history or force the user to retype the same question.
 - Updated `src/components/ai/AiAnalysisModal.vue` to keep the submitted user question visible after a failed request, surface an inline retry banner near the input area, and avoid writing synthetic assistant error messages into scoped local history.
 - Expanded `src/components/ai/__tests__/AiAnalysisModal.test.ts` with a component regression that locks "failure -> inline error -> retry success" semantics, including history cleanliness and one-click retry.

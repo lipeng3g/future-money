@@ -281,6 +281,64 @@ describe('AiAnalysisModal', () => {
     expect(localStorage.getItem(historyKey) ?? '').toContain('重试后恢复成功');
   });
 
+  it('流式中途失败时会保留已有 thinking 和 partial content，避免用户丢失已生成内容', async () => {
+    streamChatMock.mockImplementationOnce(async function* () {
+      yield { type: 'thinking', text: '先梳理现金流风险' };
+      yield { type: 'content', text: '已经确认下月中旬可能出现缺口。' };
+      throw new Error('上游超时');
+    });
+
+    const store = useFinanceStore();
+    const historyKey = `fm-ai-chat:${[store.accounts[0].id, store.accounts[1].id].sort().join(',')}`;
+    const wrapper = await mountModal();
++
+    await wrapper.find('textarea.a-textarea').setValue('看看最近风险');
+    await wrapper.find('button.a-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    const rows = wrapper.findAll('.msg-row');
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.text()).toContain('看看最近风险');
+    expect(rows[1]?.text()).toContain('已经确认下月中旬可能出现缺口。');
+    expect(rows[1]?.text()).toContain('先梳理现金流风险');
+    expect(wrapper.find('[role="alert"]').text()).toContain('请求失败: 上游超时');
+    expect(localStorage.getItem(historyKey) ?? '').toContain('已经确认下月中旬可能出现缺口。');
+    expect(localStorage.getItem(historyKey) ?? '').toContain('先梳理现金流风险');
+  });
+
+  it('失败后切换 scope 时会清掉旧错误条并加载新 scope 历史', async () => {
+    streamChatMock.mockImplementationOnce(async function* () {
+      throw new Error('临时故障');
+    });
+
+    const store = useFinanceStore();
+    const [accountA] = store.accounts;
+    localStorage.setItem(`fm-ai-chat:${accountA.id}`, JSON.stringify([
+      { role: 'user', content: '单账户历史问题' },
+      { role: 'assistant', content: '单账户历史回答' },
+    ] satisfies ChatRecord[]));
+
+    const wrapper = await mountModal();
+    await wrapper.find('textarea.a-textarea').setValue('会失败的问题');
+    await wrapper.find('button.a-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true);
+
+    store.viewMode = 'single';
+    store.multiAccountSelection = [];
+    store.currentAccountId = accountA.id;
+    await nextTick();
+    await nextTick();
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('单账户历史问题');
+    expect(wrapper.text()).toContain('单账户历史回答');
+    expect(wrapper.text()).not.toContain('请求失败: 临时故障');
+  });
+
   it('流式过程中若账户范围变化，会丢弃旧请求结果并切到新 scope', async () => {
     let releaseStream: (() => void) | null = null;
     streamChatMock.mockImplementation(async function* () {

@@ -282,12 +282,14 @@ const cancelActiveRequest = () => {
   activeRequestController.value = null;
 };
 
-const resetStreamingState = () => {
+const resetStreamingState = (options?: { preserveBuffers?: boolean }) => {
   streaming.value = false;
-  contentBuffer.value = '';
-  thinkingBuffer.value = '';
-  streamingContentRenderer.reset();
-  streamingThinkingRenderer.reset();
+  if (!options?.preserveBuffers) {
+    contentBuffer.value = '';
+    thinkingBuffer.value = '';
+    streamingContentRenderer.reset();
+    streamingThinkingRenderer.reset();
+  }
 };
 
 const sendToAi = async (question?: string) => {
@@ -375,6 +377,16 @@ const sendToAi = async (question?: string) => {
 
     const errorMessage = err?.message || '未知错误';
     requestError.value = `请求失败: ${errorMessage}`;
+
+    if (contentBuffer.value || thinkingBuffer.value) {
+      chatMessages.value.push({
+        role: 'assistant',
+        content: contentBuffer.value || '本次分析在输出途中中断，请稍后重试。',
+        thinking: thinkingBuffer.value || undefined,
+      });
+      saveChatHistory(chatMessages.value, chatHistoryScope.value);
+    }
+
     message.error(requestError.value);
   } finally {
     if (requestId === activeRequestId) {
