@@ -313,5 +313,8 @@
 - verification: `npm install` ✅, `npm test -- --run src/components/ai/__tests__/AiAnalysisModal.test.ts` ✅ (13)
 
 ## 2026-03-10
+- task: 继续收口 AI 抽屉失败恢复边界，优先覆盖 `NEXT_TASK` 中点名的“重试期间再次失败去重语义 / 连续两次 partial fail 历史替换策略”，避免当前回归只锁住“失败一次 -> 成功一次”的 happy path。
+- implementation: 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“同题重试再次失败时，只保留最新一轮 partial，不会把第一次失败残片继续叠在历史里；后续再次重试成功时，会继续替换掉最近一次 partial”的组件级回归。该用例同时验证发送给 `streamChat()` 的上下文中不会夹带上一轮失败 partial，确保 retry 语义在连续失败场景下仍然干净。
+- verification: `npm install` ✅, `npm test -- --run src/components/ai/__tests__/AiAnalysisModal.test.ts` ✅ (18), `npm test` ✅ (223), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅, `npm run preview -- --host 127.0.0.1 --port 4175` + `curl -I` ✅ (`HTTP/1.1 200 OK`)；全量测试 / smoke 期间仍有既有导入错误路径的 `stderr` 噪音与 build chunk warning（`vendor-charts` / `vendor-antd`），但不影响本轮通过，且本轮未触碰用户已验证的构建修复边界。
 - AI 抽屉失败重试语义补强：同题重试时剔除上一轮失败残留的 assistant partial/thinking，避免半截建议被再次当成上下文；补组件回归并完成 install/test/type-check/build/smoke/preview 探活。
 - AI 抽屉失败恢复边界继续收口：新增 `lastFailedQuestion` 区分“同题重试”与“失败后手动改题再发送”，只在真正同题重试时替换旧 partial；如果用户改了问题，则保留旧 partial 作为历史并把新问题视为新一轮对话。同步扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts` 锁住这条组件级回归。

@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-03-10
+- test(ai-retry-failures): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“同题重试再次失败时，只保留最新一轮 partial、不把多次失败残片叠进历史，后续再重试成功也会正确替换”的组件级回归，继续收紧 AI 抽屉失败恢复边界，避免连续两次 partial fail 后历史里残留多份半截回答。
 - stability(ai-partial-failure): AI 抽屉里的流式请求如果在已经产出 `thinking` 或部分正文后中途失败，现在会先把这段已生成内容落成一条 assistant 回复，再显示输入区上方的错误条；用户不会因为上游超时/断流把已经看到的分析片段整段丢掉，也能基于这段 partial content 继续判断是否需要重试。
 - test(ai-partial-failure): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“流式中途失败时保留已有 thinking + partial content”的组件级回归，锁住 AI 抽屉失败恢复不丢内容的本地体验。
 - test(ai-error-reset): 同步补“失败后切换账户 scope 会清掉旧错误条并加载新 scope 历史”的组件级回归，避免错误 banner 跟着账户切换串到另一段本地对话。

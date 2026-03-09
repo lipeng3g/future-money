@@ -1,8 +1,9 @@
-- [ ] 继续补 AI 抽屉失败恢复的边界回归，优先覆盖“重试期间再次失败的去重语义”“连续两次 partial fail 时历史替换策略”，避免当前修复只锁住同题重试这一路径。
+- [x] 继续补 AI 抽屉失败恢复的边界回归，优先覆盖“重试期间再次失败的去重语义”“连续两次 partial fail 时历史替换策略”，避免当前修复只锁住同题重试这一路径。
 - [ ] 继续压缩大体积前端 chunk（当前 build 仍提示 chart-balance-runtime / vendor-antd 超 500 kB），优先从图表 runtime 与 Ant Design 组件级拆分入手。
 - [x] 继续给首页统计卡片 / 图表聚焦补更贴近真实 AntD 交互的容器级回归，尤其是 `StatisticsPanel → ChartArea → BalanceChart` 的 focus-key / focus-date 联动，避免后续重构只保住 store 层却把页面操作手感弄坏。
 
 ## 刚完成
+- 已给 AI 抽屉继续补失败恢复边界回归：新增“同题重试再次失败时，只保留最新一轮 partial；连续两次 partial fail 后历史不会叠两份半截回答，后续再重试成功也会正确替换”的组件级测试，进一步锁住 request retry / partial replacement 的真实 UI 语义。
 - 已给 `StatisticsPanel → ChartArea → BalanceChart` 补容器级焦点联动回归：统计卡片触发 `focus-chart` 时，`ChartArea` 现在有测试明确锁住“把 `focusKey` 传给余额图，并清掉先前事件定位的 `focusDate`”，避免首页统计卡片点击后仍残留旧日期定位态
 - `npm run smoke` 已从“单账户导入 → 撤销”扩到同时覆盖“恢复全部账户 → 确认摘要 → 真恢复 → 撤销回滚”的 UI 闭环；`src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts` 现在会验证 sanitize 后摘要、账户/事件差异提示、整库恢复真实落地与回滚复原，降低高风险本地恢复链路继续只靠普通组件测试兜底的风险
 - 图表 runtime 的异步加载状态已抽成 `src/utils/chart-runtime.ts`，余额图 / 月度图现统一具备“加载中 / 成功 / 失败可重试”的共享状态机与 UI 兜底，不再各自散落处理 chunk 加载生命周期

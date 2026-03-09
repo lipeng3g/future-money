@@ -566,6 +566,77 @@ describe('AiAnalysisModal', () => {
     expect(wrapper.text()).toContain('旧问题的半截回答');
     expect(wrapper.find('[role="alert"]').exists()).toBe(false);
   });
+
+  it('同题重试再次失败时，只保留最新一轮 partial，不会把多次失败残片叠进历史', async () => {
+    streamChatMock
+      .mockImplementationOnce(async function* () {
+        yield { type: 'thinking', text: '第一次思路' };
+        yield { type: 'content', text: '第一次半截回答' };
+        throw new Error('第一次失败');
+      })
+      .mockImplementationOnce(async function* (_config: unknown, messages: ChatMessage[]) {
+        expect(messages).not.toEqual(expect.arrayContaining([
+          expect.objectContaining({ role: 'assistant', content: '第一次半截回答' }),
+        ]));
+        expect(messages).toEqual(expect.arrayContaining([
+          { role: 'user', content: '重复问题' },
+        ]));
+        yield { type: 'thinking', text: '第二次思路' };
+        yield { type: 'content', text: '第二次半截回答' };
+        throw new Error('第二次失败');
+      })
+      .mockImplementationOnce(async function* (_config: unknown, messages: ChatMessage[]) {
+        expect(messages).not.toEqual(expect.arrayContaining([
+          expect.objectContaining({ role: 'assistant', content: '第二次半截回答' }),
+        ]));
+        expect(messages).toEqual(expect.arrayContaining([
+          { role: 'user', content: '重复问题' },
+        ]));
+        yield { type: 'content', text: '第三次终于成功' };
+      });
+
+    const wrapper = await mountModal();
+    const store = useFinanceStore();
+    const historyKey = `fm-ai-chat:${[store.accounts[0].id, store.accounts[1].id].sort().join(',')}`;
+
+    await wrapper.find('textarea.a-textarea').setValue('重复问题');
+    await wrapper.find('button.a-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.text()).toContain('第一次半截回答');
+    expect(wrapper.findAll('.msg-row')).toHaveLength(2);
+    expect(wrapper.find('[role="alert"]').text()).toContain('请求失败: 第一次失败');
+
+    await wrapper.find('button.request-retry-btn').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    const rowsAfterSecondFail = wrapper.findAll('.msg-row');
+    expect(rowsAfterSecondFail).toHaveLength(2);
+    expect(wrapper.text()).toContain('第二次半截回答');
+    expect(wrapper.text()).not.toContain('第一次半截回答');
+    expect(wrapper.find('[role="alert"]').text()).toContain('请求失败: 第二次失败');
+
+    const savedAfterSecondFail = localStorage.getItem(historyKey) ?? '';
+    expect(savedAfterSecondFail).toContain('第二次半截回答');
+    expect(savedAfterSecondFail).not.toContain('第一次半截回答');
+
+    await wrapper.find('button.request-retry-btn').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    const rowsAfterSuccess = wrapper.findAll('.msg-row');
+    expect(rowsAfterSuccess).toHaveLength(2);
+    expect(rowsAfterSuccess[1]?.text()).toContain('第三次终于成功');
+    expect(wrapper.text()).not.toContain('第二次半截回答');
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+
+    const savedAfterSuccess = localStorage.getItem(historyKey) ?? '';
+    expect(savedAfterSuccess).toContain('第三次终于成功');
+    expect(savedAfterSuccess).not.toContain('第一次半截回答');
+    expect(savedAfterSuccess).not.toContain('第二次半截回答');
+  });
  
   it('多账户顺序变化时会复用同一份 scope 历史与草稿，不会因为顺序抖动串台', async () => {
     const store = useFinanceStore();
