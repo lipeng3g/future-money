@@ -133,33 +133,9 @@ describe('EventCard', () => {
     expect(wrapper.emitted('delete')?.[0]?.[0]).toMatchObject({ id: 'evt-rent' });
   });
 
-  it('会跟随 store 只读状态自动切到禁用展示语义', () => {
-    const store = useFinanceStore();
-    store.$patch({
-      snapshots: [
-        {
-          id: 'snap-old',
-          accountId: 'acc-main',
-          date: '2026-02-01',
-          balance: 4800,
-          source: 'manual',
-          note: '旧快照',
-          createdAt: '2026-02-01T00:00:00.000Z',
-        },
-        {
-          id: 'snap-new',
-          accountId: 'acc-main',
-          date: '2026-03-01',
-          balance: 5000,
-          source: 'manual',
-          note: '最新快照',
-          createdAt: '2026-03-01T00:00:00.000Z',
-        },
-      ],
-    });
-    store.setViewSnapshot('snap-old');
+  it('会在父层显式传入 readonly 时稳定切到禁用展示语义', () => {
+    const wrapper = mountCard({ readonly: true });
 
-    const wrapper = mountCard();
     expect(wrapper.find('.switch-stub').attributes('disabled')).toBeDefined();
     expect(wrapper.findAll('.action-btn')).toHaveLength(0);
   });

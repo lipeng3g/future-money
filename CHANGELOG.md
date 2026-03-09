@@ -3,7 +3,7 @@
 ## 2026-03-10
 - ux(event-edit): 事件编辑/新增提交失败时，表单弹窗现在会保留打开，并在弹窗底部直接展示明确错误文案；用户不再只能看一闪而过的全局 toast 后自己回忆哪里填错了，尤其适合修改已有规则时边看边修
 - test(event-edit): 扩展 `src/components/events/__tests__/EventPanel.test.ts`，新增“编辑失败时弹窗保持打开且展示错误”的组件级回归，锁住 EventPanel 与 EventFormModal 的真实接线语义，防止后续再次退回到失败即关窗或错误无落点
-- test(event-card): 新增 `src/components/events/__tests__/EventCard.test.ts`，补齐 EventCard 真组件下的只读展示/禁用语义回归：现在会明确锁住“只读时开关禁用、编辑/删除按钮隐藏、store 只读状态会自动透传到卡片层”，避免事件面板只读保护只在父层存在、子卡片真实交互却悄悄回退
+- test(event-card): 新增 `src/components/events/__tests__/EventCard.test.ts`，补齐 EventCard 真组件下的只读展示/禁用语义回归：现在会明确锁住“只读时开关禁用、编辑/删除按钮隐藏”，避免事件面板只读保护只在父层存在、子卡片真实交互却悄悄回退
 
 ## 2026-03-09
 - ux(event-readonly): 事件面板在多账户汇总 / 历史快照两类只读视图下，新增显式原因横幅，直接说明为什么此时只能查看与定位、不能新增/编辑/删除/启停事件，避免用户只看到按钮灰掉却不明白限制来自哪里

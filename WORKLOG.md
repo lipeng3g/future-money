@@ -4,7 +4,7 @@
 
 ## 2026-03-10
 - task: 给 EventCard 真组件补只读展示/禁用语义回归，避免事件面板只读保护只停留在父层横幅与守卫，子卡片真实交互却因为接线回退重新放出可点开关/编辑删除按钮
-- implementation: 新增 `src/components/events/__tests__/EventCard.test.ts`，覆盖账户/频率/金额摘要、图表定位入口、暂停状态、开关/编辑/删除事件透传，以及 `readonly` prop / store `isReadOnly` 两条路径下的“开关禁用 + 编辑/删除隐藏”真实组件语义
+- implementation: 新增 `src/components/events/__tests__/EventCard.test.ts`，覆盖账户/频率/金额摘要、图表定位入口、暂停状态、开关/编辑/删除事件透传，以及父层显式 `readonly` 传入时的“开关禁用 + 编辑/删除隐藏”真实组件语义
 - verification: 待本轮完整验证（npm install / test / type-check / build / smoke / preview+curl）结果回填
 
 ## 2026-03-10
