@@ -14,3 +14,307 @@ Improve AI config UX when users accidentally paste localhost / private network e
 
 ### Notes
 - Minor environment/tooling gap: `rg` (ripgrep) is not installed in this environment; used `grep` as fallback.
+## 2026-03-10
+- task: 给 AI 分析抽屉继续补高风险本地交互回归，锁住“配置缺失门禁 + 导出当前 scope 对话”两条容易被 UI 重构带坏的真实入口
+- implementation: 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“未配置 API 时点击预设不会误发请求而是打开设置弹窗”“导出对话会把当前账户 scope 的消息传给 exportChatHistory 并提示成功”两条组件级回归；继续复用真实 Pinia scope、草稿/历史 key 与 AntD 替身，避免 AI 本地分析入口只在 utils 层有覆盖、真实抽屉交互却悄悄回退
+- tests: `npm test -- src/components/ai/__tests__/AiAnalysisModal.test.ts`
+
+## 2026-03-10
+- task: 收口图表 runtime 共享加载接线，并把失败后重试的回归补到公共层/组件层，减少两张图各自散落维护异步加载逻辑的成本
+- implementation: 新增 `src/utils/use-chart-runtime.ts`，把 `onMounted -> ensureReady()` 的组合式接线从 `BalanceChart` / `CashFlowChart` 抽成共享 hook；两张图改为直接复用该 hook，避免重复写 mounted 生命周期与 runtime 状态胶水代码。同步新增 `src/utils/__tests__/use-chart-runtime.test.ts` 覆盖“挂载即触发加载”，并在 `src/components/charts/__tests__/CashFlowChart.test.ts` 补“runtime 失败 -> 错误态 -> 重试恢复”的组件级回归，继续锁住本地图表 chunk 失败后的可恢复体验
+- tests: `npm test -- src/components/charts/__tests__/BalanceChart.test.ts src/components/charts/__tests__/CashFlowChart.test.ts src/utils/__tests__/chart-runtime.test.ts src/utils/__tests__/use-chart-runtime.test.ts`
+
+## 2026-03-10
+- task: 给 `MainLayout` 补一条真实事件管理接线回归，减少“图表定位 → 抽屉 → 真实表单新增”继续只靠纯函数或大面积 stub 兜底的风险
+- decision: 不再碰用户刚稳定下来的 vendor/chunk 策略，也先跳过任何登录/云端方向；优先补本地高风险交互链的真实组件接线，收益更高、回归更稳
+- implementation: 先尝试新增 `src/layouts/__tests__/MainLayout.test.ts` 覆盖“图表定位 → 抽屉 → 快速添加”真实接线，但当前 `MainLayout` 通过 `defineAsyncComponent` 组织子组件，现有 test harness 下异步模块替身接管成本过高、稳定性不够；已主动撤回该草稿，避免把不稳测试带进主线，并改做更稳的事件聚合边界回归
+- tests: 该草稿测试已撤回，不进入主线；改由本轮后续 `event-focus` 边界回归承担收益
+
+## 2026-03-10
+- task: 给 EventList + EventCard 补真组件组合回归，避免事件面板主要依赖 stub 测试而漏掉子卡片实际只读/高亮/图表定位语义
+- implementation: 新增 `src/components/events/__tests__/EventList.test.ts`，直接挂载真实 `EventList + EventCard` 组合，覆盖高亮样式、图表定位入口、只读态开关禁用/编辑删除隐藏、以及可编辑态 `toggle / edit / delete` 真实冒泡；同时修正测试期望，明确只读态不应再触发 toggle 事件
+- tests: `npm test -- src/components/events/__tests__/EventList.test.ts src/components/events/__tests__/EventCard.test.ts src/components/events/__tests__/EventPanel.test.ts`
+
+## 2026-03-10
+- task: 给导入确认框补 sanitize 过滤统计，减少用户只看到“会过滤坏字段”却看不清到底丢了多少数据的盲区
+- implementation: `src/utils/import-preview.ts` 新增 `buildImportSanitizeDiscardSummary`，按账户/事件/对账/账本/覆盖记录汇总原始计数、sanitize 后计数、过滤数与常见原因；`src/layouts/AppHeader.vue` 在“导入当前账户 / 恢复全部账户”确认框接入该统计区块，并修正预览摘要沿用原始 envelope scope，避免单账户备份在确认阶段被误显示成 legacy
+- tests: 扩展 `src/utils/__tests__/import-preview.test.ts` 与 `src/layouts/__tests__/AppHeader.test.ts`，覆盖过滤统计纯函数与两条高风险导入确认流接线
+
+## 2026-03-10
+- task: 收口导入预览阶段的无抛错解析结果，减少 UI 预期错误路径里的异常噪音，同时保持用户看到的中文错误文案不变
+- implementation: `src/utils/import-preview.ts` 新增 `safeParseImportPreview()`，把“合法 JSON / state 结构缺失”等预校验统一改成结构化 `{ ok, summary | error }` 返回；`src/layouts/AppHeader.vue` 的导入模式校验与确认摘要构建改为先消费安全结果，再进入 sanitize 后的预览/确认流；保留原 `parseImportPreview()` 供纯函数调用方继续使用抛错语义
+- tests: 扩展 `src/utils/__tests__/import-preview.test.ts` 覆盖安全解析成功/失败分支；同时修正 `src/components/ai/__tests__/AiAnalysisModal.test.ts` 的导出用例，改为按真实发送后再导出，避免依赖脆弱的预置 localStorage/按钮定位假设
+- verification: `npm test` ✅ (209), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅；构建仍保留既有 `vendor-date <-> vendor-antd` circular chunk 提示与大 chunk 告警，本轮未触碰用户已验证的构建策略
+[2026-03-10 00:45:00] task: 收口事件新增/编辑失败时的本地可恢复体验，确保失败后弹窗保留、错误有内联落点，并完成完整验证/提交/push
+[2026-03-10 00:52:00] deliverables: EventPanel 新增失败提示统一优先透传 store.message；扩展 EventPanel 组件级回归覆盖“新增失败保留弹窗+内联错误”与“新增成功真实写入 store 并关窗”，把失败保护从仅编辑场景补齐到新增场景
+[2026-03-10 00:57:00] follow-up: 补齐 finance store 的 addEvent 显式返回类型，保证 UI 统一读取 errors/message 时 TypeScript 不再因失败分支联合类型过窄而报错
+
+## 2026-03-10
+- task: 把高风险导入 smoke 从“单账户导入”继续扩到“恢复全部账户”，避免整库恢复/撤销闭环继续主要依赖普通组件测试与手工预览
+- implementation: 扩展 `src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts`，新增“恢复全部账户 → sanitize 后确认摘要 → 真恢复 → 撤销回滚”UI 级 smoke；测试夹具覆盖账户差异、事件规则变化、脏账户/坏事件/断裂引用被过滤后的摘要与真实落地结果
+- verification: `npm install` ✅, `npm test` ✅ (170), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅ (3), `npm run preview -- --host 127.0.0.1 --port 4175` + `curl -I` ✅（返回 200；组合命令收尾时 `kill` 写法触发 shell 用法提示，不影响探活结果）；构建仍保留既有 `vendor-date <-> vendor-antd` circular chunk 提示与 `chart-balance-runtime ~556kB` / `vendor-antd ~715kB` 大 chunk 告警，本轮未触碰用户已验证的构建合并策略
+
+## 2026-03-10
+- task: 收口事件编辑失败时的本地可恢复体验，避免用户提交失败后只看到全局 toast，却不知道弹窗是否还能继续修、也看不到稳定的错误落点
+- implementation: `src/components/events/EventPanel.vue` 新增 `submitError`，在新增/编辑失败时保留弹窗并把 store 返回的错误直接透传给 `EventFormModal`；`src/components/events/EventFormModal.vue` 在表单底部新增内联错误提示区，成功提交/取消/重新打开时会清空旧错误
+- tests: 扩展 `src/components/events/__tests__/EventPanel.test.ts`，新增“编辑失败时弹窗保持打开且展示错误”的组件级回归，验证失败不会改写 store、不会关窗，且错误文案会稳定显示在弹窗内部
+
+## 2026-03-09
+- task: 补事件面板在多账户汇总 / 历史快照只读视图下的可解释性与运行时守卫，避免用户只看到按钮灰掉却不知道原因，也避免未来接线回退时只读视图仍能误改本地规则
+- implementation: `src/components/events/EventPanel.vue` 新增只读原因横幅，并对新增、编辑、删除、启停、载入示例统一走 `guardReadOnlyAction`；多账户视图明确说明“只能查看与定位”，历史快照视图明确说明“只回看冻结结果，不应直接改历史”
+- tests: 扩展 `src/components/events/__tests__/EventPanel.test.ts`，新增“多账户只读会展示原因且阻止编辑类操作”“历史快照只读会阻止新增事件”两条组件级回归
+
+## 2026-03-09
+- task: 给事件面板补高风险 UI 接线回归，避免编辑/删除/启停/载入示例这些真实操作继续主要靠 store 逻辑或手工回归兜底
+- implementation: 重写 `src/components/events/__tests__/EventPanel.test.ts` 的测试桩，新增可触发 edit/delete/toggle 的 `EventList` stub 与可提交 payload 的 `EventFormModal` stub；补齐“编辑事件写回 store 并关闭弹窗”“切换启停真正更新 store”“删除确认后清掉 store 与当前焦点”“载入示例口令错误不覆盖 / 正确才覆盖并清掉当前焦点”四类组件级回归，同时保留原有图表定位日期 chip / 上下切换能力断言
+- docs: 更新 `CHANGELOG.md` 与 `NEXT_TASK.md`，把事件面板本轮补测范围与后续未补齐边界写入仓库，保留真实进度痕迹
+
+## 2026-03-09
+- task: 把高风险导入/撤销从手册 smoke 再推进到可执行的 UI 级自动 smoke，避免本地导入链路继续主要依赖 OpenClaw/browser 手工回归
+- implementation: 新增 `src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts`，直接挂载真实 `AppHeader + Pinia store`，走“账户管理 → 导入当前账户 → 校验 sanitize 后确认摘要与事件规则 diff → 确认导入 → 再次打开账户管理 → 撤销上次导入”的整条 DOM 级闭环；同时把 `package.json` 的 `npm run smoke` 扩到同时执行 store 级 smoke 与这条 UI 级 smoke
+- docs: 更新 `README.md`、`CHANGELOG.md`、`NEXT_TASK.md`，把新的 smoke 覆盖范围和后续缺口写进仓库真实文件，保留本轮进度痕迹
+- task: 给首页图表延迟挂载补“观察器失效时的超时兜底揭示”，避免后台标签页/兼容性异常场景下永久停留在骨架屏
+- implementation: `src/components/charts/ChartArea.vue` 为余额图/月度图各自增加 fallback timer；IntersectionObserver 正常命中时会取消对应定时器，若观察器迟迟不回调，则在 1.8s / 2.6s 后按顺序自动揭示图表，兼顾首屏让路与最终可达性；卸载时统一清理 observer 与 timer
+- tests: 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“observer 不触发时按兜底定时器逐步加载图表”组件级回归
+- verification: npm install ✅, npm test -- src/components/charts/__tests__/ChartArea.test.ts ✅, npm test ✅ (160), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175 + curl -I ✅；构建仍保留既有 `vendor-date <-> vendor-antd` circular chunk 提示与 `chart-balance-runtime ~556kB` / `vendor-antd ~715kB` 大 chunk 告警，本轮未触碰用户已验证的 vendor-antd 合并修复
+
+## 2026-03-09
+- task: 给图表 runtime 补统一异步状态机与失败可恢复兜底，避免余额图 / 月度图 chunk 加载失败时静默白屏
+- implementation: 新增 `src/utils/chart-runtime.ts`，收口 `ensureReady / retry / error / ready`；`BalanceChart.vue` 与 `CashFlowChart.vue` 接入统一 runtime 状态，并在失败时展示错误卡片与“重试加载”按钮
+- tests: 新增 `src/utils/__tests__/chart-runtime.test.ts`，覆盖并发加载去重与失败后 retry 恢复；组件级测试继续锁住“先加载态、后挂图表”的真实 UI 语义
+- verification: npm install ✅, npm test ✅ (159), npm run type-check ✅, npm run build ✅, npm run smoke ✅，预览探活已启动；当前构建仍保留既有 `chart-balance-runtime ~556kB` / `vendor-antd ~715kB` 告警与 `vendor-date <-> vendor-antd` circular chunk 提示，本轮未回退用户已验证的 vendor-antd 合并策略
+
+## 2026-03-09
+- task: 继续验证并收紧图表首开加载链路，确认 `chart-balance-runtime` 的真实瓶颈到底在业务代码还是 ECharts runtime 本体
+- implementation: `src/components/charts/BalanceChart.vue` / `CashFlowChart.vue` 改为在 `onMounted` 后异步 `import('@/utils/echarts-balance')` / `import('@/utils/echarts-cashflow')`，并在 runtime ready 前展示轻量加载态；这样图表组件自身不再因为顶层静态 import 过早绑定 ECharts 注册模块
+- tests: 调整 `src/components/charts/__tests__/BalanceChart.test.ts`，并新增 `src/components/charts/__tests__/CashFlowChart.test.ts`，显式等待 runtime 初始化完成后再断言图表挂载，锁住新的异步初始化语义
+- verification: 重新构建后 `BalanceChart` 组件壳体约 11.8kB、`CashFlowChart` 约 4.8kB，`chart-balance-runtime` 仍约 556kB，确认大块主要来自 ECharts runtime 本体；后续如继续优化，应优先找 runtime 级拆分点而非再细拆业务 option 代码
+- task: 单账户导入确认框补“当前账户事件规则 diff”，减少只看总量和导入清单却不知道会替掉哪些本地规则的风险
+- implementation: `src/utils/import-preview.ts` 新增 `buildImportSingleAccountEventDiffSummary`，按规则名去重/trim 后输出新增、移除、保留三类事件；`src/layouts/AppHeader.vue` 将单账户导入确认框从“导入清单”升级为“当前账户事件规则 diff”摘要
+- tests: 扩展 `src/utils/__tests__/import-preview.test.ts` 与 `src/layouts/__tests__/AppHeader.test.ts`，覆盖单账户规则 diff 纯函数与确认框接线
+- task: 给导入/恢复关键路径补一条可重复执行的本地 smoke 闭环，避免每轮只靠零散单测确认
+- implementation: 新增 `src/stores/__tests__/finance-smoke.test.ts`，直接通过 Pinia store + jsdom localStorage 验证“导出全部账户 → 清空当前账户 → 恢复全部账户 → 撤销恢复”；同时在 `package.json` 增加 `npm run smoke` 作为独立烟雾入口
+- task: AI 分析抽屉流式取消与过期写回防护
+- implementation: `streamChat` 支持 AbortSignal；AiAnalysisModal 在抽屉关闭、组件卸载、scope 变化时主动 abort 并清空流式态；用 requestId 屏蔽过期结果写回
+- tests: 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，补"关闭即中止""scope 变化不写回旧结果"组件级回归
+- verification: npm test ✅ (148), npm run type-check ✅, npm run build ✅
+- push: 已推送至 origin/main
+
+## 2026-03-09
+- task: 强化导入/恢复稳定性，给 `storage.importState()` 增加状态净化，防止断裂引用、重复 ID、跨账户脏数据进入本地状态
+- implementation: 在 `src/utils/storage.ts` 中补齐 preferences 默认值，并按账户 → 事件 → 对账 → 账本/覆盖 的引用链过滤非法记录
+- tests: 在 `src/utils/__tests__/storage.test.ts` 增加坏备份回归用例，覆盖缺失账户、重复记录、失效 ruleId / reconciliationId 的导入行为
+
+## 2026-03-08
+- 建立长期工作器方案：不再把 isolated cron 误当成持续开发本体，改为 `tmux` 长期工作器 + 文件化上下文 + 每小时汇报。
+- 已完成的近期代码成果（进入长期工作器前）包括：
+  - 存储仓储接口抽象与迁移测试
+  - AI 模块懒加载与代理校验收口
+  - 输入校验边界补强
+  - Vite manualChunks 初步拆包
+- 第一轮长期 worker 实际开发已开始并完成一项真实改动：新增 `src/utils/recurrence.ts`，把时间线生成与对账待确认条目生成中重复的事件发生规则抽成共享模块，避免两套实现继续漂移；同时补上季度/半年/年闰日/endDate 边界测试。
+- 当前验证结果：`npm test`、`npm run type-check`、`npm run build` 全通过；仍存在既有的大 vendor chunk 告警，后续继续处理。
+[2026-03-08 20:30:23] worker start: inspect repo and choose next task
+[2026-03-08 20:30:59] task: inspect tests and add next high-value coverage
+[2026-03-08 20:34:17] validating current recurrence refactor
+[2026-03-08 20:48:17] task: fix storage normalization so legacy/empty imports do not fabricate default snapshots or reconciliations
+[2026-03-08 20:48:17] verification: npm test ✅ (34), npm run type-check ✅, npm run build ✅
+[2026-03-08 21:32:00] task: scope AI chat history by selected account set, avoid cross-account context contamination in analysis drawer
+[2026-03-08 21:32:00] deliverables: scoped localStorage keys + legacy fallback + scoped export filename + regression tests
+[2026-03-08 21:40:00] task: fix AI analysis context source so drawer follows selected account scope instead of accidentally reusing current store timeline/analytics
+[2026-03-08 21:40:00] deliverables: extracted buildScopedFinancialContext + scoped timeline/analytics recomputation + regression tests for single/multi/missing reconciliation cases
+[2026-03-08 21:47:00] task: reduce initial bundle cost by replacing global Ant Design Vue install with explicit per-component registration in src/main.ts
+[2026-03-08 21:47:00] verification: npm run type-check ✅, npm test ✅ (42), npm run build ✅; vendor-antd chunk ~1403kB -> ~718kB, build time ~16.5s -> ~14.3s
+[2026-03-08 21:55:00] task: defer ECharts runtime out of app entry; move vue-echarts registration into chart components and lazy-load chart panes from ChartArea
+[2026-03-08 21:55:00] expected gain: reduce non-chart route/bootstrap JS, keep analytics cards/upcoming list interactive while chart chunk loads separately
+[2026-03-08 21:57:00] verification: npm run type-check ✅, npm test ✅ (42), npm run build ✅; app entry index js 96.67kB -> 88.34kB, chart panes split into BalanceChart/CashFlowChart async chunks; vendor-charts still ~563kB and remains next splitting target
+[2026-03-08 21:58:00] task: lazy-load low-frequency management surfaces from header/drawer instead of eagerly shipping them in the app shell
+[2026-03-08 21:58:00] deliverables: AppHeader management modals async + render-on-open, MainLayout event panel/form async + render-on-open, ChartArea reconcile modal async to avoid static-import chunk pinning
+[2026-03-08 22:00:00] verification: npm run type-check ✅, npm test ✅ (42), npm run build ✅; app entry index js 65.37kB -> 57.04kB, reconciliation/event/account modal code now emitted as separate async chunks
+[2026-03-08 22:08:00] task: upgrade import/export from single-account semantics to explicit current-account vs all-accounts backup/restore, avoiding multi-account data loss during local backup workflows
+[2026-03-08 22:08:00] deliverables: store-level full backup/restore path, account management dual import/export actions, account-specific export filename, regression tests covering current/all modes
+[2026-03-08 22:22:00] task: harden local AI config + proxy target validation to reduce SSRF/internal-target risk and normalize OpenAI-compatible endpoints
+[2026-03-08 22:22:00] deliverables: shared target guard in src/utils/ai.ts, config sanitization/normalization, AiConfigModal UX copy update, Cloudflare ai-proxy server-side allowlist check, regression tests for localhost/private-network rejection and URL normalization
+[2026-03-08 22:24:00] verification: npm test ✅ (49), npm run type-check ✅, npm run build ✅; build warning unchanged: vendor-charts ~563kB, vendor-antd ~718kB
+[2026-03-08 22:34:00] task: harden full-backup restore UX with import preview + typed confirmation before replacing all local accounts/data
+[2026-03-08 22:34:00] deliverables: import-preview parser utility, restore-all modal summary (accounts/events/reconciliations/ledger/timestamp), warning styling, Cloudflare ai-proxy function-level tests
+[2026-03-08 22:35:00] verification: npm test ✅ (57), npm run type-check ✅, npm run build ✅; build warning unchanged: vendor-charts ~563kB, vendor-antd ~718kB
+[2026-03-08 22:46:00] task: reduce AI analysis drawer markdown re-render cost during streaming output
+[2026-03-08 22:46:00] deliverables: extracted markdown cache/streaming renderer utility, avoid repeated full markdown-it render for unchanged history, throttle streaming markdown flush on tiny token chunks, added renderer unit tests
+[2026-03-08 22:45:00] verification: npm test ✅ (62), npm run type-check ✅, npm run build ✅; AI 抽屉渲染优化已落地，打包体积基本不变，后续继续看 vendor-charts 拆分与 AI 长消息虚拟化
+[2026-03-08 22:55:00] task: 提取多账户时间线聚合器，消除 finance store / AI 上下文重复实现，并把按日期 repeatedly find 的 O(accounts×dates×timeline) 聚合改成预索引查表
+[2026-03-08 22:55:00] deliverables: 新增 src/utils/timeline-aggregate.ts 共享聚合工具；store 与 AI buildScopedFinancialContext 统一复用；补 timeline-aggregate 单测覆盖余额/事件/accountId/空时间线/日期排序
+[2026-03-08 22:55:00] verification: npm run type-check ✅, npm test ✅ (65), npm run build ✅; 功能行为不变，减少多账户视图与 AI 分析上下文构建时的重复扫描成本
+[2026-03-08 23:20:00] task: 优化本地持久化写入策略，避免高频编辑/导入时反复全量序列化并写 localStorage，同时保证关键导入/恢复场景可立即读到最新状态
+[2026-03-08 23:20:00] deliverables: LocalStorageStateRepository 新增“首写立即落盘 + 短窗口去抖合并 + 相同状态跳过重复写入 + beforeunload/pagehide flush + 显式 flushPendingSave 接口”；store 在 import current / import all 等关键路径强制 flush；新增 3 个存储层回归测试
+[2026-03-08 23:36:00] verification: npm run type-check ✅, npm test ✅ (69), npm run build ✅；构建 warning 仍是既有 vendor-charts ~563kB / vendor-antd ~718kB，后续继续拆包
+[2026-03-08 23:50:00] task: 为本地 JSON 导入/恢复补充“备份作用域识别 + 模式不匹配拦截”，降低误把整库备份导入成单账户或反向误恢复的风险
+[2026-03-08 23:50:00] deliverables: PersistedStateEnvelope 新增可选 scope=current|all；导出时写入 scope；导入预览识别 current/all/legacy-unknown；AppHeader 在导入前校验模式匹配并在整库恢复确认框展示文件类型；补 import-preview / finance-import-export 回归测试
+[2026-03-09 00:03:00] task: 打磨图表可维护性与空数据体验，把 ECharts option 构建抽成纯函数并给长时间线补标签稀疏/动画降级策略
+[2026-03-09 00:03:00] deliverables: 新增 src/utils/chart-options.ts；BalanceChart / CashFlowChart 接入共享 option builder；新增空数据态；补 chart-options 单测覆盖空时间线、长时间线、月度序列映射
+[2026-03-09 00:20:00] task: 继续打磨长时间线余额图浏览效率，为图表加入默认聚焦时间窗与快捷定位（最新区间 / 今天 / 首次预警 / 最低点 / 最近对账）
+[2026-03-09 00:20:00] deliverables: chart-options 新增默认 focus date / zoom window 纯函数；BalanceChart 增加快速定位工具条；补回归测试覆盖聚焦优先级与默认时间窗
+[2026-03-09 00:20:00] verification: npm test ✅ (78), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB，后续继续拆包
+[2026-03-09 00:28:00] task: 打通“统计卡片 → 余额图快速定位”联动，减少长时间线下在卡片和图表之间来回找位置的成本
+[2026-03-09 00:28:00] deliverables: 抽出 buildBalanceChartFocusTargets 作为共享聚焦目标源；StatisticsPanel 可点击跳转到 latest / warning / min / max；ChartArea 与 BalanceChart 通过 focusKey 单向联动；补 chart-options 回归测试覆盖 max/共享目标列表
+[2026-03-09 00:29:00] verification: npm test ✅ (79), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB
+[2026-03-09 00:41:48] task: 为余额图快速定位增加焦点解释卡，直接说明最低点/首次预警/最近对账为何重要
+[2026-03-09 00:41:48] deliverables: 新增 buildBalanceChartFocusInsight 纯函数；BalanceChart 展示焦点解释卡与当日事件摘要；补 chart-options 回归测试覆盖 warning/max/reconciliation 解释
+[2026-03-09 00:41:48] verification: npm test ✅ (81), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB
+[2026-03-09 01:00:00] task: 收紧事件/账户创建表单的前置校验与日期约束，减少无效本地配置进入 store 后才报错的情况
+[2026-03-09 01:00:00] deliverables: 新增 src/utils/event-form.ts 提取表单归一化/日期约束/前置校验；EventFormModal 增加起止/一次性日期 selectable 限制与提交时错误提示；CreateAccountModal 补账户名必填提示与 trim；新增 event-form 单测覆盖日期夹取、trim、年份非法组合与可选范围
+[2026-03-09 01:02:00] verification: npm test ✅ (85), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB
+[2026-03-09 01:10:00] task: 打通“余额图点击日期点 → 打开事件抽屉 → 高亮对应规则事件”链路，减少用户在图表与事件清单之间手动查找的成本
+[2026-03-09 01:10:00] deliverables: 新增 src/utils/event-focus.ts 提取图表日期到事件列表焦点的纯函数；BalanceChart 支持点击含事件的数据点；MainLayout / EventPanel 接入焦点状态、自动开抽屉、横幅说明、滚动到首条高亮事件；EventCard/EventList 增加高亮样式；补 event-focus 单测
+[2026-03-09 01:18:00] verification: npm test ✅ (87), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB
+[2026-03-09 01:57:00] task: 打通“事件清单 → 图表日期”反向定位链路，补齐与“图表点 → 事件清单”相反方向的浏览闭环
+[2026-03-09 01:57:00] deliverables: 新增 buildEventChartFocusState；事件卡增加“查看图上日期”；事件抽屉支持高亮当前定位事件、给出发生次数说明，并驱动余额图跳到对应日期；补 event-focus / chart-options 回归测试
+[2026-03-09 02:02:00] verification: npm test ✅ (90), npm run type-check ✅, npm run build ✅；构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB
+[2026-03-09 02:20:00] task: 为本地导入/恢复补一层“自动回滚快照 + 一键撤销”，降低误恢复整库或误导入错误备份后的不可逆风险
+[2026-03-09 02:20:00] deliverables: storage 仓储新增 rollback snapshot；finance store 在 import current / import all 前自动保存回滚点并暴露 undoLastImport；账户管理面板新增“撤销上次导入/恢复”；补 storage / finance-import-export 回归测试
+[2026-03-09 02:22:00] verification: npm test ✅ (92), npm run type-check ✅, npm run build ✅；新增回滚链路通过验证，构建 warning 仍为 vendor-charts ~563kB / vendor-antd ~718kB
+[2026-03-09 02:35:00] task: 继续压缩图表大包，撤销把全部 ECharts/vue-echarts/zrender 强绑进单一 vendor-charts 的策略，改为按余额图/收支图分模块注册
+[2026-03-09 02:35:00] deliverables: 新增 src/utils/echarts-balance.ts 与 src/utils/echarts-cashflow.ts；BalanceChart / CashFlowChart 分别按需注册图表能力；vite manualChunks 不再把所有图表依赖合并进 vendor-charts，恢复 Rollup 对异步图表 chunk 的自然拆分
+[2026-03-09 02:40:00] verification: npm run type-check ✅, npm test ✅ (92), npm run build ✅；图表大包已从单一 vendor-charts ~563kB 拆为 BalanceChart ~59.6kB + CashFlowChart ~35.8kB + chart-options ~483.2kB，当前仅剩 vendor-antd ~718kB 为构建告警
+[2026-03-09 02:43:00] task: 继续压缩应用壳第三方依赖，撤销把全部 Ant Design Vue 强绑进单一 vendor-antd 的策略，改为按基础组件 / 表单组件 / 反馈浮层 / 图标依赖拆分
+[2026-03-09 02:43:00] deliverables: vite manualChunks 细分为 vendor-antd-core / vendor-antd-form / vendor-antd-feedback / vendor-antd-icons，并把 markdown-it、日期库单独拆仓，降低低频弹窗与主壳共享大包耦合
+[2026-03-09 02:45:00] verification: npm run type-check ✅, npm test ✅ (92), npm run build ✅；构建告警中的 vendor-antd ~718kB 已消除，当前主要 chunk 为 vendor-antd-core ~397.8kB、vendor-antd-form ~195.4kB、vendor-antd-feedback ~91.2kB、vendor-markdown ~91.9kB、vendor-date ~43.5kB、chart-options ~483.2kB，全部低于默认 500kB 告警阈值
+[2026-03-09 02:50:00] task: 修复 Vite 配置漂移并继续拆图表 option 共享块，避免“vite.config.ts 已优化但 build 仍命中旧 vite.config.js”的回退问题
+[2026-03-09 08:07:00] task: 继续优化首页首开体感，把 ChartArea 中两张异步图表改成“进入视口后再挂载”，避免统计卡与事件侧栏还没看完就被 ECharts 初始化抢走主线程
+[2026-03-09 08:07:00] deliverables: ChartArea 新增基于 IntersectionObserver 的图表延迟挂载与骨架占位；新增 src/components/charts/__tests__/ChartArea.test.ts 覆盖未入视口骨架与入视口后分别加载余额图/收支图
+[2026-03-09 08:15:00] verification: npm test ✅ (133), npm run type-check ✅, npm run build ✅；构建仍保留既有 chart-balance-runtime ~556.3kB 告警，但现在首页首开不再必须立即执行该重图表异步块
+[2026-03-09 08:42:00] task: 收紧本地存储迁移回写条件，并补齐单账户备份的明确风险分级，减少无意义 localStorage 回写与导入确认语义漂移
+[2026-03-09 08:42:00] deliverables: storage.loadState 改为仅在字段缺失/非数组时判定需要迁移，不再把空 snapshots/reconciliations 误当成未迁移；import-preview 为 scope=current 增加低风险提示；补 storage / import-preview 回归测试
+[2026-03-09 08:50:00] task: 打磨 AI 分析抽屉的本地连续性与上下文稳定性，避免未发送问题和流式请求在账户范围切换时串台
+[2026-03-09 08:50:00] deliverables: AI 抽屉新增按账户 scope 保存/恢复未发送草稿；清空对话同步清空当前 scope 草稿；流式分析时锁定账户勾选并提示当前上下文已锁定；新增 AiAnalysisModal 组件级回归并扩展 ai-chat-history 测试
+[2026-03-09 09:02:00] verification: npm test ✅ (143), npm run type-check ✅, npm run build ✅；构建产物仍保留既有 chart-balance-runtime ~556.26kB 告警，下一轮可继续拆余额图 runtime 或进一步延迟其内部重依赖初始化
+[2026-03-09 02:50:00] deliverables: 删除历史编译产物 vite.config.js；新增 src/utils/chart-base.ts 与 src/utils/chart-options-cashflow.ts；收口 src/utils/chart-options.ts 为余额图专属逻辑；CashFlowChart 与图表测试改为按新模块引用
+[2026-03-09 02:54:00] verification: npm test ✅ (92), npm run build ✅；构建已按 vite.config.ts 生效，默认 500kB 告警消失，主要 chunk 为 vendor-antd-core ~397.8kB / vendor-antd-form ~195.4kB / vendor-antd-feedback ~91.2kB / vendor-markdown ~91.9kB / vendor-date ~43.5kB / BalanceChart ~67.5kB / CashFlowChart ~39.5kB
+[2026-03-09 03:00:00] task: 将事件表单中的 yearly/monthly 重复日期语义前移为即时字段提示，减少用户提交后才发现规则含义或非法月日组合的成本
+[2026-03-09 03:00:00] deliverables: src/utils/event-form.ts 新增 monthly/yearly semantic hint 纯函数；EventFormModal 接入 help / validate-status；补 event-form 回归测试覆盖 31 日月末降级、2/29 平年降级、4/31 即时错误
+[2026-03-09 03:03:00] verification: npm test ✅ (94), npm run type-check ✅, npm run build ✅；当前构建无默认 chunk 告警，残余较大共享异步块为 chart-base ~471.8kB，可作为下一轮继续拆分目标
+
+[2026-03-09 03:18:38] task: 为事件清单补“同一规则多次发生日期前后切换”能力
+[2026-03-09 03:20:21] deliverables: 事件图表定位支持同一规则的前后日期切换；event-focus 纯函数新增 occurrence index / matchedDates / step 导航
+[2026-03-09 03:20:21] verification: npm run type-check ✅, npm test ✅ (95), npm run build ✅
+[2026-03-09 03:28:00] task: 补强“图表点 → 事件抽屉”定位说明，把事件名扩展为账户级收支摘要，减少多账户视图下看不出这一天到底发生了什么的问题
+[2026-03-09 03:28:00] deliverables: buildEventListFocusState 新增 detail 聚合（账户名/笔数/收入/支出/当日余额变动）；MainLayout 透传 accounts；EventPanel 横幅展示 detail；补 event-focus 回归测试覆盖账户映射与缺省 accountId 回退
+[2026-03-09 03:44:00] task: 为事件表单补“规则预演”能力，让用户在提交前直接看到最近几次实际发生日期，降低对月末/闰年降级语义的理解成本
+[2026-03-09 03:44:00] deliverables: src/utils/event-form.ts 新增 buildEventSchedulePreview 纯函数，复用 recurrence 规则推导最近发生日；EventFormModal 展示“接下来会这样发生”预演区块；补 event-form 回归测试覆盖 monthly 31 日短月降级、yearly 2/29 平年回退、禁用/非法规则不展示预演
+[2026-03-09 03:44:00] verification: npm run type-check ✅, npm test ✅ (99), npm run build ✅；构建 chunk 告警仍已消除，chart-base ~471.8kB 仍是后续可继续拆分目标
+
+[2026-03-09 03:50:00] task: 修正事件表单“接下来会这样发生”的时间语义，避免编辑旧规则时把历史发生日误当成未来预演
+[2026-03-09 03:50:00] deliverables: buildEventSchedulePreview 新增 anchorDate（组件接入 store.todayStr）；预演从业务今天或开始日期（取较晚者）往后推导；补 event-form 回归测试覆盖未来锚点与开始日前锚点
+[2026-03-09 04:05:00] task: 继续降低本地整库恢复误操作风险，把确认框从“文件摘要”升级为“风险分级 + 当前本地将被替换的后果说明”
+[2026-03-09 04:05:00] deliverables: import-preview 新增 buildImportRiskSummary；AppHeader 的“恢复全部账户”确认框展示高/中风险提示、当前本地替换范围与作用域说明；补 import-preview 回归测试覆盖整库恢复与 legacy 未标记备份
+[2026-03-09 04:14:00] task: 将事件表单“频率切换 → 字段显隐 / 默认值补齐”下沉为纯函数，避免组件模板继续散落条件判断
+[2026-03-09 04:14:00] deliverables: src/utils/event-form.ts 新增 getEventFormVisibleSections / applyEventTypeDefaults；EventFormModal 改为复用纯函数控制区块显隐与频率切换默认值；补 event-form 回归测试覆盖字段区块与默认值补齐；新增 docs/worker-2026-03-09-event-form-followup.md 记录本轮任务切换原因
+[2026-03-09 04:14:00] verification: npm test ✅ (105), npm run type-check ✅, npm run build ✅；chart-base 仍为共享异步大块，确认其主要是 ECharts 运行时本体，本轮未继续硬拆
+[2026-03-09 04:24:00] task: 继续打磨事件表单即时反馈，把起始日期 / 结束日期 / 一次性发生日期的越界错误前移到字段旁展示，避免只在提交时 toast
+[2026-03-09 04:24:00] deliverables: src/utils/event-form.ts 新增 getEventFormDateFeedback；EventFormModal 接入日期字段级 validate-status/help；补 event-form 回归测试覆盖起止日期倒挂与 onceDate 超出范围；同步更新 CHANGELOG / NEXT_TASK
+[2026-03-09 04:35:00] task: 把事件表单上一轮纯函数改造补齐到组件级交互回归，避免“逻辑函数过了但模板接线回归”
+[2026-03-09 04:35:00] deliverables: 新增 src/components/events/__tests__/EventFormModal.test.ts，覆盖频率切换字段显隐、预演区块显示/隐藏、起止/发生日期字段级错误、非法提交阻断；引入 @vue/test-utils 作为 Vue 组件测试基础能力
+[2026-03-09 04:47:00] task: 修正事件表单默认日期的时间语义漂移，统一使用业务 today 而不是系统当前时间
+[2026-03-09 04:47:00] deliverables: EventFormModal 的默认 startDate/onceDate、频率切换补默认值、提交兜底日期全部改为复用 store.todayStr，保证模拟日期 / 预演锚点 / 表单默认值一致
+[2026-03-09 04:49:00] verification: npm test ✅ (110), npm run type-check ✅, npm run build ✅；组件级测试已打通，chart-base ~471.8kB 仍是下一轮主要本地优化目标
+[2026-03-09 05:05:00] task: 继续降低整库恢复误操作风险，把确认框里的“当前本地 vs 备份文件”差异从抽象风险说明升级为账户名级新增/移除/保留摘要
+[2026-03-09 05:05:00] deliverables: src/utils/import-preview.ts 新增 buildImportAccountDiffSummary；AppHeader 的恢复全部账户确认框展示账户差异速览；补 import-preview 回归测试覆盖新增/移除/保留与脏数据去噪
+[2026-03-09 05:20:00] task: 继续降低整库恢复误操作风险，把确认框里的“当前本地 vs 备份文件”差异从账户名级扩展到数据规模净增减摘要
+[2026-03-09 05:20:00] deliverables: src/utils/import-preview.ts 新增 buildImportDataDeltaSummary；AppHeader 的恢复全部账户确认框展示账户 / 事件 / 对账 / 账本 / 覆盖记录的恢复前后净变化；补 import-preview 回归测试覆盖净增减计算；同步更新 CHANGELOG / NEXT_TASK
+[2026-03-09 05:20:00] verification: npm test ✅ (113), npm run type-check ✅, npm run build ✅；构建默认 chunk 告警仍已消除，chart-base ~471.84kB 仍是下一轮可继续优化目标
+[2026-03-09 05:32:00] task: 给高风险导入/恢复 UI 补组件级回归，避免账户差异/数据规模提示与撤销入口只在纯函数层被覆盖
+[2026-03-09 05:32:00] deliverables: 新增 src/layouts/__tests__/AppHeader.test.ts，覆盖“恢复全部账户”确认框里的账户差异与数据规模变化接线，以及“撤销上次导入”在账户管理中的可见性、确认框摘要和真实回滚执行
+[2026-03-09 05:33:00] verification: npm test ✅ (115), npm run type-check ✅, npm run build ✅；高风险导入/撤销流现已同时具备 store / pure util / 组件接线三层回归，chart-base ~471.84kB 仍是后续主要性能优化点
+[2026-03-09 05:40:00] task: 给余额图“快速定位条 + 焦点解释卡”补组件级回归，避免图表交互继续只靠纯函数测试兜底
+[2026-03-09 05:40:00] deliverables: 新增 src/components/charts/__tests__/BalanceChart.test.ts，覆盖空态、快速定位切换、外部 focusKey/focusDate 联动、仅含事件点触发 select-date；同时在补测中发现并修复默认焦点优先级 bug：当“今天”和“首次预警”落在同一天时，默认焦点现在按 warning > today > reconciliation 的 key 优先级稳定命中，而不再按日期误落到第一个按钮
+[2026-03-09 05:45:00] verification: npm test ✅ (120), npm run type-check ✅, npm run build ✅；新增图表组件级回归已纳入全量验证，当前主要性能余项仍是 chart-base ~471.84kB
+[2026-03-09 05:55:00] task: 继续降低整库恢复误操作风险，把确认框里的差异从“总量变化”再细化为“按账户的数据变化 + 日期覆盖范围”
+[2026-03-09 06:00:00] deliverables: src/utils/import-preview.ts 新增 buildImportAccountDataDeltaSummary / buildImportDateRangeSummary；AppHeader 的恢复全部账户确认框展示按账户的事件/对账/账本/覆盖变化，以及当前本地 vs 备份文件的日期覆盖范围；补 import-preview / AppHeader 回归测试
+[2026-03-09 06:18:00] task: 继续降低整库恢复误操作风险，补“备份是否明显比当前本地旧”的直接预警，减少用户只看日期范围却没快速意识到是旧备份的情况
+[2026-03-09 06:18:00] deliverables: src/utils/import-preview.ts 新增 buildImportFreshnessSummary；AppHeader 的恢复全部账户确认框展示“备份时间新旧正常 / 旧备份预警”与最新业务日期对比；补 import-preview / AppHeader 回归测试
+[2026-03-09 06:20:00] verification: npm run type-check ✅, npm test ✅ (125), npm run build ✅；构建默认 chunk 告警仍已消除，chart-base ~471.84kB 仍是下一轮主要性能优化点
+[2026-03-09 06:32:00] task: 把整库恢复确认信息继续从“数量 diff”推进到“按账户的事件规则名级 diff”，避免用户知道会增减几条事件却仍不清楚具体会替换掉哪些规则
+[2026-03-09 06:32:00] deliverables: src/utils/import-preview.ts 新增 buildImportAccountEventDiffSummary；AppHeader 的恢复全部账户确认框展示“按账户的事件规则变化”；补 import-preview / AppHeader 回归测试覆盖新增事件、移除事件、按账户聚合与去重语义
+[2026-03-09 06:36:00] verification: npm run type-check ✅, npm test ✅ (126), npm run build ✅；当前恢复确认流已具备账户名 / 数据规模 / 日期范围 / 备份新旧 / 事件规则名级 diff 五层提示，下一轮仍可继续攻 chart-base ~471.84kB 性能余项
+[2026-03-09 06:48:00] task: 继续压缩图表共享异步块，避免余额图与收支图因注册入口被 Rollup 再次揉回同一个 chart-base 依赖链
+[2026-03-09 06:48:00] deliverables: vite manualChunks 为 src/utils/echarts-balance.ts 与 src/utils/echarts-cashflow.ts 增加独立 runtime chunk；BalanceChart / CashFlowChart 继续共用轻量 chart-base 工具，但各自图表注册 runtime 改为按需异步装载
+[2026-03-09 06:48:00] verification: npm run test ✅ (126), npm run type-check ✅, npm run build ✅；构建产物已从 chart-base ~471.84kB 收敛为 chart-base ~4.28kB + chart-balance-runtime ~556.26kB + chart-cashflow-runtime 独立小块，显著降低两张图之间的共享耦合；当前仅余额图 runtime 仍触发 >500kB warning，可作为下一轮继续细拆目标
+[2026-03-09 06:58:00] task: 把“事件清单 → 图表日期”定位继续从顺序切换推进到“全部发生日总览”，减少高频规则只能上一个/下一个来回试探的成本
+[2026-03-09 06:58:00] deliverables: buildEventChartFocusState 新增发生日总览 detail；EventPanel 定位横幅展示全部发生日 chip 并支持点击任意日期跳图；新增 EventPanel 组件级回归并扩展 event-focus 纯函数测试
+[2026-03-09 07:29:00] task: 给图表容器层补组件级联动回归，验证“统计卡片 → 余额图”和“外部日期定位 → 余额图”真实接线
+[2026-03-09 07:29:00] deliverables: 新增 src/components/charts/__tests__/ChartArea.test.ts；覆盖 stats focusKey、focusDate/focusNonce、select-date 回传与 TimeRangeControl 接线；补测中发现并修复 ChartArea 对外部 focusDate 监听未 immediate 的问题，首次挂载时现在会立刻把日期传给余额图
+[2026-03-09 07:45:00] task: 打磨多账户视图入口，让弹窗打开时自动补齐可汇总整组账户，而不是只保留单个当前账户
+[2026-03-09 07:45:00] deliverables: AccountMultiSelectModal 新增“同最新对账日整组自动预选 + 无基准时回退到人数最多且日期最新的可汇总组”；新增 src/components/account/__tests__/AccountMultiSelectModal.test.ts 覆盖自动预选、分组回退与单账户阻断确认
+[2026-03-09 07:52:00] verification: npm test -- AccountMultiSelectModal ✅, npm run type-check ✅；全量 npm test / npm run build 已启动，待结果回填
+[2026-03-09 08:25:00] task: 给账户管理里的危险操作补组件级回归，避免“清空当前账户 / 删除账户”只在 store 层有测试而缺少真实界面接线验证
+[2026-03-09 08:28:00] deliverables: 扩展 src/layouts/__tests__/AppHeader.test.ts；新增“清空当前账户”与“删除账户”两条组件级测试，覆盖账户管理弹层到确认框的接线、错误确认文案拦截、以及确认后的真实 state 变化与账户切换
+[2026-03-09 08:29:00] verification: npm test ✅ (135), npm run type-check ✅, npm run build ✅；本轮把账户危险操作也补齐到组件层，当前主要性能余项仍是 chart-balance-runtime ~556.26kB
+[2026-03-09 09:16:00] task: 给账户管理里的导入/导出按钮补组件级接线回归，避免高风险文件流继续只靠 store / 纯函数测试兜底
+[2026-03-09 09:16:00] deliverables: 扩展 src/layouts/__tests__/AppHeader.test.ts；新增“导入当前账户误选整库备份拦截不污染本地状态”与“导出当前/全部账户走对模式并生成对应文件名”两条组件级测试；顺手统一了测试里的账户名断言，避免被前序状态污染
+[2026-03-09 10:18:00] task: 收口账户管理文件导入的失败分支，给 FileReader onerror 真正补 UI 级回归，避免读取失败时悄悄卡在错误模式
+[2026-03-09 10:18:00] deliverables: AppHeader 的 handleFileChange 增加 reader.onerror 与统一 resetImportState；扩展 src/layouts/__tests__/AppHeader.test.ts，覆盖“恢复全部账户/导入当前账户在文件读取失败时分别提示错误，且不会误弹确认框”的组件级回归；同步更新 CHANGELOG
+
+[2026-03-09 13:58:00] task: 吸收用户在 origin/main 上的两次 ant-design-vue 构建修复后，补账户管理中文件读取失败分支的 UI 级回归与状态复位保护
+[2026-03-09 13:58:00] absorb(user-fix): 已学习 909d43c / 2f918d8；确认问题根因是 ant-design-vue 与 @ant-design/icons-vue 及其内部子模块拆 chunk 后形成 ESM 循环依赖，导致运行时访问未初始化变量；本轮开发严格保留用户把相关依赖并回单一 vendor-antd chunk 的修复，不再触碰该构建拆分策略
+[2026-03-09 13:58:00] deliverables: AppHeader 为 FileReader 增加 onerror 处理并统一 resetImportState，避免“恢复全部账户 / 导入当前账户”遇到读取失败时卡在错误模式或残留后续流程；扩展 AppHeader 组件级测试覆盖 current/all 两条读取失败路径
+[2026-03-09 13:58:00] verification: npm install ✅, npm test ✅ (146), npm run type-check ✅, npm run build ✅；npm run preview -- --host 127.0.0.1 --port 4175 + curl -I http://127.0.0.1:4175/ ✅；产物检查仍见既有 vendor-antd ~715kB / chart-balance-runtime ~556kB 告警，其中 vendor-antd 与用户为消除循环依赖所做的安全合并一致，本轮未回退
+[2026-03-09 14:15:00] task: 收口 AI 抽屉的流式取消与过期写回问题，避免关闭抽屉或账户范围切换后旧请求继续把结果灌回当前本地对话
+[2026-03-09 14:15:00] deliverables: src/utils/ai.ts 的 streamChat 支持 AbortSignal；AiAnalysisModal 在抽屉关闭、组件卸载、scope 变化时主动 abort 并清空流式态，同时用 requestId 屏蔽过期结果写回；扩展 AiAnalysisModal 组件级回归覆盖“关闭即中止”“scope 变化不写回旧结果”
+
+[2026-03-09 19:41:03] task: 收紧导入值级数据净化，过滤非法日期/NaN/异常枚举，避免坏备份污染本地状态
+[2026-03-09 19:44:30] deliverables: storage 导入链路新增值级净化，过滤非法日期/NaN/异常枚举；补 storage 回归测试覆盖坏值剔除与账户字段降级
+[2026-03-09 19:44:30] verification: npm install ✅, npm test ✅ (151), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview + curl -I ✅；lockfile/config 未发现 mirrors.tencentyun.com、私有 registry 或内网源
+[2026-03-09 19:49:00] task: 扩展导入值级净化回归，把坏备份脏值覆盖到更多真实枚举/空白字段组合
+[2026-03-09 19:49:00] deliverables: 扩展 src/utils/__tests__/storage.test.ts，新增空白账户名、异常事件 category、异常 snapshot source、异常 ledger source、异常 override action 等值级坏数据回归，确保 sanitize 链路继续只保留可安全落地的数据
+[2026-03-09 19:49:00] verification: npm test -- src/utils/__tests__/storage.test.ts ✅ (10), npm test ✅, npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview + curl -I ✅；预览探活返回 200，组合命令末尾因主动收尾 preview 进程触发 SIGTERM，不影响实际 smoke 结果
+[2026-03-09 20:10:00] task: 打通“坏整库备份 → sanitize 后确认摘要 → 实际恢复 → 撤销回滚”的 UI 级闭环，避免确认框仍按原始脏 JSON 展示，和真实落地结果不一致
+[2026-03-09 20:10:00] deliverables: AppHeader 的恢复全部账户确认框改为基于 storage.importState() 净化后的 incoming state 生成账户/事件/账本/覆盖摘要；扩展 src/layouts/__tests__/AppHeader.test.ts，新增坏备份 sanitize 后预览、恢复成功、撤销回滚的一条组件级闭环回归
+[2026-03-09 20:10:00] verification: npm install ✅, npm test ✅ (152), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175 + curl -I ✅；构建仍有既有 circular chunk 提示（vendor-date <-> vendor-antd）与大 chunk 告警（vendor-antd / chart-balance-runtime），本轮未改用户构建修复策略
+[2026-03-09 20:17:21] task: 给单账户导入补 sanitize 后确认摘要与组件级回归，避免它继续直接落地、缺少和整库恢复一致的风险确认\n[2026-03-09 20:17:21] deliverables: AppHeader 新增 confirmImportCurrent，导入当前账户前展示 sanitize 后的来源账户/目标账户/事件-对账-账本-覆盖摘要与事件规则列表；扩展 AppHeader 组件级测试覆盖错误确认拦截与确认后仅覆盖当前账户、不影响其他账户\n[2026-03-09 20:17:21] verification: npm test -- src/layouts/__tests__/AppHeader.test.ts ✅ (10), npm run type-check ✅, npm test ✅ (153), npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175 + curl -I ✅；构建仍有既有 vendor-antd / chart-balance-runtime 大 chunk 告警，本轮未改用户已验证的 vendor-antd 合并策略
+[2026-03-09 20:55:00] task: 给单账户导入/撤销链路补真实预览站点 browser smoke，避免确认框与撤销入口只在 stub 组件里被验证
+[2026-03-09 20:55:00] deliverables: 新增 scripts/browser-import-smoke.mjs 页面级 smoke 测试夹具生成脚本；补 docs/browser-import-smoke.md，明确用 vite preview + OpenClaw/browser + 临时备份文件执行“导入当前账户 → 校验 sanitize 后确认摘要与事件规则 diff → 确认导入 → 打开撤销入口 → 撤销回滚”的零新增依赖页面级闭环
+[2026-03-09 20:55:00] note: 不再保留误导性的 Playwright 草稿实现；当前仓库内页面级 smoke 方案是可重复执行的轻量手册化流程，后续若要引入新依赖需单独评估
+[2026-03-09 20:49:00] task: 收口自治验证后的工作区噪音，避免 Vite preview 探活生成的时间戳模块污染 git 状态
+[2026-03-09 20:49:00] deliverables: `.gitignore` 新增 `vite.config.ts.timestamp-*.mjs`；重新执行 npm install / test / type-check / build / smoke / preview+curl，确认不引入新依赖也能保持完整本地验证闭环
+[2026-03-09 20:49:00] verification: npm install ✅, npm test ✅ (154), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175 + curl -I ✅；当前运行环境仍缺 playwright，因此 browser smoke 继续保留为草稿脚本，未宣称已自动化接入
+[2026-03-10 01:29:00] task: 校正文案与真实行为不一致的账户清空危险操作确认，避免用户误以为只会删事件/快照而低估影响范围
+[2026-03-10 01:29:00] deliverables: AppHeader 的清空当前账户确认框改为展示真实删除范围摘要（事件/对账/账本/覆盖记录数量、余额归零、仅影响当前账户）；同步更新 AccountManageModal 中该危险操作说明，明确会删除账本与覆盖记录并重置余额；扩展 AppHeader 组件级回归，覆盖错误确认拦截、真实摘要展示与确认后 state 清空
+[2026-03-10 01:29:00] verification: npm test ✅ (182), npm run type-check ✅, npm run build ✅, npm run dev -- --host 127.0.0.1 + curl -I/http body smoke ✅；宿主无可用浏览器，未做 GUI 浏览器自动化，但已确认 dev server 返回首页 HTML 200
+[2026-03-10 05:30:00] task: 给 AI 分析抽屉补输入/预设交互回归，锁住 Enter 发送语义与预设提问不清草稿的本地体验
+[2026-03-10 05:30:00] deliverables: 扩展 src/components/ai/__tests__/AiAnalysisModal.test.ts，新增“Shift+Enter 不发送、Enter 才发送”“点击预设后分析正常发起但当前 scope 草稿继续保留”两条组件级回归；顺手清理测试文件内残留 patch 标记字符，避免脏文本继续混在仓库里
+[2026-03-10 05:30:00] verification: npm install ✅, npm test -- --run src/components/ai/__tests__/AiAnalysisModal.test.ts ✅ (11), npm test ✅ (213), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175（端口占用后自动漂移到 4197）+ curl -I/curl body ✅；额外检查 package-lock.json / package.json / 配置未发现 mirrors.tencentyun.com、私有 registry 或内网 registry 源
+
+## 2026-03-10
+- 收口事件管理成功/失败反馈一致性：在已有 delete/toggle 失败提示基础上，`EventPanel` 的事件启停现在也会在成功后给出明确 toast（已暂停 / 已启用），避免用户点击开关后只能靠视觉状态变化猜测操作是否真正生效。
+- 扩展 `src/components/events/__tests__/EventPanel.test.ts`：把原“toggle 会改 store”回归升级为“禁用成功提示 + 重新启用成功提示”双向断言，同时继续保留 toggle/delete 失败分支保护，锁住事件管理操作反馈语义。
+- 验证：`npm install`、`npm test`（32 files / 200 tests 通过）、`npm run type-check`、`npm run build`、`npm run smoke`（2 files / 5 tests 通过）均通过；额外执行 `npm run dev -- --host 127.0.0.1` 并用 `curl -I http://127.0.0.1:3002/` 命中 `HTTP/1.1 200 OK` 完成运行时烟雾验证。构建过程中仍有既有 chunk size / circular chunk warning，但不影响本轮通过。
+
+## 2026-03-10
+- task: 给首页“预测范围”补容器级接线回归，锁住 TimeRangeControl -> ChartArea -> store -> BalanceChart timeline 这条首页关键链路
+- implementation: 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“切换预测范围会真实更新 `viewMonths/defaultViewMonths`，并让余额图拿到更长 timeline”回归；避免后续 segmented 控件或容器接线改动时出现“按钮看着切了，但图表其实没收到新范围”的静默回退
+- verification: `npm install` ✅, `npm test` ✅ (202), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅, `npm run preview -- --host 127.0.0.1 --port 4175` + `curl -I` ✅
+
+## 2026-03-10
+- task: 给首页“预测范围”补容器级接线回归，锁住 TimeRangeControl -> ChartArea -> store -> BalanceChart timeline 这条首页关键链路
+- implementation: 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“切换预测范围会真实更新 `viewMonths/defaultViewMonths`，并让余额图拿到更长 timeline”回归；避免后续 segmented 控件或容器接线改动时出现“按钮看着切了，但图表其实没收到新范围”的静默回退
+- verification: `npm install` ✅, `npm test` ✅ (202), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅, `npm run preview -- --host 127.0.0.1 --port 4175` + `curl -I` ✅
+
+## 2026-03-10
+- task: 给首页统计卡片 -> 余额图聚焦补容器级接线回归，锁住 StatisticsPanel -> ChartArea -> BalanceChart 的 focus-key / focus-date 互斥联动
+- implementation: 扩展 ChartArea 测试中的 StatisticsPanel stub，使其可真实发出 focus-chart；新增“统计卡片点击 warning/min 会把 focusKey 传给 BalanceChart，并清掉旧 focusDate”回归；顺手把 AiAnalysisModal 导出测试从依赖按钮下标改为按 title 精准选择，消除既有脆弱失败
+- verification: npm install ✅, npm test ✅ (208), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175 + curl -I ✅；构建仍保留既有 vendor-date <-> vendor-antd circular chunk 提示与 vendor-charts ~560kB / vendor-antd ~715kB 告警，本轮未触碰用户已验证的构建修复策略
+
+## 2026-03-10
+- task: 收口 AI 抽屉“预设提问与手动发送上下文不一致”的本地连续性缺口，避免用户在同一轮分析里点了快捷预设后，模型像突然失忆一样丢掉刚才对话
+- implementation: `src/components/ai/AiAnalysisModal.vue` 的 `sendToAi()` 现在先统一规范 question/displayQuestion，再让预设入口与手动发送共用同一套“最近 6 轮历史 + 最新问题”拼装逻辑；不改现有草稿保留语义，只补上下文连续性。同步扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“点击预设时会复用最近对话历史，避免同一会话上下文突然丢失”组件级回归
+- verification: `npm install` ✅, `npm test -- --run src/components/ai/__tests__/AiAnalysisModal.test.ts` ✅ (13)
+
+## 2026-03-10
+- task: 继续收口 AI 抽屉失败恢复边界，优先覆盖 `NEXT_TASK` 中点名的“重试期间再次失败去重语义 / 连续两次 partial fail 历史替换策略”，避免当前回归只锁住“失败一次 -> 成功一次”的 happy path。
+- implementation: 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“同题重试再次失败时，只保留最新一轮 partial，不会把第一次失败残片继续叠在历史里；后续再次重试成功时，会继续替换掉最近一次 partial”的组件级回归。该用例同时验证发送给 `streamChat()` 的上下文中不会夹带上一轮失败 partial，确保 retry 语义在连续失败场景下仍然干净。
+- verification: `npm install` ✅, `npm test -- --run src/components/ai/__tests__/AiAnalysisModal.test.ts` ✅ (18), `npm test` ✅ (223), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅, `npm run preview -- --host 127.0.0.1 --port 4175` + `curl -I` ✅ (`HTTP/1.1 200 OK`)；全量测试 / smoke 期间仍有既有导入错误路径的 `stderr` 噪音与 build chunk warning（`vendor-charts` / `vendor-antd`），但不影响本轮通过，且本轮未触碰用户已验证的构建修复边界。
+- AI 抽屉失败重试语义补强：同题重试时剔除上一轮失败残留的 assistant partial/thinking，避免半截建议被再次当成上下文；补组件回归并完成 install/test/type-check/build/smoke/preview 探活。
+- AI 抽屉失败恢复边界继续收口：新增 `lastFailedQuestion` 区分“同题重试”与“失败后手动改题再发送”，只在真正同题重试时替换旧 partial；如果用户改了问题，则保留旧 partial 作为历史并把新问题视为新一轮对话。同步扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts` 锁住这条组件级回归。
+
+[2026-03-10 06:55:00] task: 打磨 AI 抽屉失败后的本地恢复体验，补“继续编辑上次问题”入口，避免失败后只能原题重试或手动重敲
+[2026-03-10 06:55:00] deliverables: AiAnalysisModal 错误横幅新增“继续编辑上次问题 + 直接重试”双入口；新增组件级回归覆盖失败后恢复输入框/草稿与清除错误横幅；同步把既有 retry 回归改成按按钮文案精确命中，降低测试脆弱性

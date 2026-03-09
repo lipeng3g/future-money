@@ -200,4 +200,3 @@
 - test(ai-retry-recover): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“失败后恢复上次问题到输入框并同步草稿、清掉错误横幅”的组件级回归；并把既有 retry 回归改成按按钮文案精确命中，避免后续错误横幅按钮增减或重排时测试被顺序误伤。
 
 - ux(chart-tooltip): BalanceChart 多账户 tooltip 的“账户级落点”改为近似标注（显示 `落点≈`），避免被误解为真实账户级时间线余额。
-
