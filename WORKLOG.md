@@ -188,3 +188,6 @@
 [2026-03-09 20:55:00] task: 给单账户导入/撤销链路补真实预览站点 browser smoke，避免确认框与撤销入口只在 stub 组件里被验证
 [2026-03-09 20:55:00] deliverables: 新增 scripts/browser-import-smoke.mjs 页面级 smoke 草稿；已在预览站点手工跑通“导入当前账户 → 校验 sanitize 后确认摘要与事件规则 diff → 确认导入 → 打开账户管理里的撤销入口 → 撤销回滚”页面级闭环，并校验 localStorage 回到默认初始状态
 [2026-03-09 20:55:00] note: 试接入 npm script 时发现仓库当前未安装 playwright；为避免新增未充分验证依赖，本轮先撤回 package.json 脚本改动，只保留脚本草稿与真实页面验证记录
+[2026-03-09 20:49:00] task: 收口自治验证后的工作区噪音，避免 Vite preview 探活生成的时间戳模块污染 git 状态
+[2026-03-09 20:49:00] deliverables: `.gitignore` 新增 `vite.config.ts.timestamp-*.mjs`；重新执行 npm install / test / type-check / build / smoke / preview+curl，确认不引入新依赖也能保持完整本地验证闭环
+[2026-03-09 20:49:00] verification: npm install ✅, npm test ✅ (154), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview -- --host 127.0.0.1 --port 4175 + curl -I ✅；当前运行环境仍缺 playwright，因此 browser smoke 继续保留为草稿脚本，未宣称已自动化接入

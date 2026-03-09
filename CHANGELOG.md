@@ -2,6 +2,8 @@
 
 ## 2026-03-09
 
+- chore(gitignore): 将 `vite.config.ts.timestamp-*.mjs` 加入 `.gitignore`，避免本地 `vite preview` / 探活验证后生成的 Vite 临时时间戳模块污染工作区，降低自治验证与用户手工开发之间的噪音
+- test(validation): 再次完整执行 `npm install`、`npm test`、`npm run type-check`、`npm run build`、`npm run smoke` 与 `npm run preview -- --host 127.0.0.1 --port 4175 + curl -I`，确认当前导入/恢复与 UI 回归链路在不新增依赖的前提下仍可重复通过；当前仓库仍未安装 `playwright`，因此页面级 browser smoke 继续保留为草稿脚本而非 npm 自动化脚本
 - test(smoke-browser): 新增 `scripts/browser-import-smoke.mjs` 作为页面级 smoke 草稿，并已用真实预览站点手工跑通同一条“打开账户管理 → 导入当前账户 → 检查 sanitize 后确认摘要与事件规则 diff → 确认导入 → 打开撤销入口 → 撤销回滚”的浏览器闭环；当前仓库尚未安装 `playwright`，因此本轮没有把它接入 npm 脚本，避免引入未验证的新依赖
 - safety(import-current): 单账户导入确认框现在会直接展示“当前账户事件规则 diff”，按规则名列出将新增 / 移除 / 保持存在的事件，避免用户只看到导入后总量和备份规则清单，却看不出当前账户本地哪些规则会被替掉
 - test(import-current): 扩展 `src/utils/__tests__/import-preview.test.ts` 与 `src/layouts/__tests__/AppHeader.test.ts`，补单账户事件规则 diff 的纯函数回归与确认框接线断言

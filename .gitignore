@@ -6,3 +6,4 @@ dist
 pnpm-lock.yaml
 yarn.lock
 *.tsbuildinfo
+vite.config.ts.timestamp-*.mjs
