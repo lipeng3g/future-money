@@ -212,8 +212,12 @@ watch(
 watch(
   selectedAccountIds,
   () => {
+    suppressDraftPersistence.value = true;
     loadScopedChatHistory();
     userInput.value = loadChatDraft(chatHistoryScope.value);
+    nextTick(() => {
+      suppressDraftPersistence.value = false;
+    });
   },
   { deep: true },
 );
@@ -238,6 +242,7 @@ const lastFailedQuestion = ref('');
 const lastFailedAssistantMessage = ref<ChatRecord | null>(null);
 const chatAreaRef = ref<HTMLElement | null>(null);
 const activeRequestController = ref<AbortController | null>(null);
+const suppressDraftPersistence = ref(false);
 let activeRequestId = 0;
 
 const loadScopedChatHistory = () => {
@@ -247,6 +252,7 @@ const loadScopedChatHistory = () => {
 watch(
   userInput,
   (value) => {
+    if (suppressDraftPersistence.value) return;
     saveChatDraft(value, chatHistoryScope.value);
   },
 );

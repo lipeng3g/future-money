@@ -160,6 +160,7 @@ describe('AiAnalysisModal', () => {
     await nextTick();
 
     expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('单账户草稿');
+    expect(localStorage.getItem(createChatDraftScopeKey({ accountIds: [accountA.id] }))).toBe('单账户草稿');
 
     await wrapper.find('textarea.a-textarea').setValue('新的单账户草稿');
     expect(localStorage.getItem(createChatDraftScopeKey({ accountIds: [accountA.id] }))).toBe('新的单账户草稿');
@@ -688,6 +689,30 @@ describe('AiAnalysisModal', () => {
 
     expect(wrapper.text()).toContain('稳定的多账户问题');
     expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('稳定的多账户草稿');
+    expect(localStorage.getItem(normalizedDraftKey)).toBe('稳定的多账户草稿');
+  });
+
+  it('scope 切换加载草稿时不会把旧 scope 草稿误写到新 scope', async () => {
+    const store = useFinanceStore();
+    const [accountA, accountB] = store.accounts;
+    const multiDraftKey = createChatDraftScopeKey({ accountIds: [accountA.id, accountB.id] });
+    const singleDraftKey = createChatDraftScopeKey({ accountIds: [accountA.id] });
+
+    localStorage.setItem(multiDraftKey, '多账户草稿');
+    localStorage.setItem(singleDraftKey, '单账户草稿');
+
+    const wrapper = await mountModal();
+    expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('多账户草稿');
+
+    store.viewMode = 'single';
+    store.multiAccountSelection = [];
+    store.currentAccountId = accountA.id;
+    await nextTick();
+    await nextTick();
+
+    expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('单账户草稿');
+    expect(localStorage.getItem(singleDraftKey)).toBe('单账户草稿');
+    expect(localStorage.getItem(multiDraftKey)).toBe('多账户草稿');
   });
 
   it('清空对话只会清掉当前 scope 的历史与草稿，不影响其它 scope', async () => {

@@ -321,3 +321,6 @@
 
 [2026-03-10 06:55:00] task: 打磨 AI 抽屉失败后的本地恢复体验，补“继续编辑上次问题”入口，避免失败后只能原题重试或手动重敲
 [2026-03-10 06:55:00] deliverables: AiAnalysisModal 错误横幅新增“继续编辑上次问题 + 直接重试”双入口；新增组件级回归覆盖失败后恢复输入框/草稿与清除错误横幅；同步把既有 retry 回归改成按按钮文案精确命中，降低测试脆弱性
+[2026-03-10 07:20:00] task: 修掉 AI 抽屉切换账户 scope 时的草稿串写竞态，避免旧 scope 草稿在切换瞬间误覆盖到新 scope
+[2026-03-10 07:20:00] deliverables: `AiAnalysisModal.vue` 新增 `suppressDraftPersistence`，在 scope 切换加载新草稿的过渡 tick 内暂停 draft watcher 持久化，避免 `selectedAccountIds` 先变化后 `userInput` 仍是旧值时把旧草稿写进新 scope；扩展组件级回归覆盖“切到单账户时保留原单账户草稿不被多账户草稿污染”与“多账户顺序抖动不改写现有草稿”
+[2026-03-10 07:20:00] verification: `npm install` ✅, `npm test` ✅ (225), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅；build 仍有既有大 chunk warning（`vendor-charts` / `vendor-antd`），未触碰用户已验证的构建修复边界
