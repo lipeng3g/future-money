@@ -156,3 +156,5 @@
 [2026-03-09 13:58:00] absorb(user-fix): 已学习 909d43c / 2f918d8；确认问题根因是 ant-design-vue 与 @ant-design/icons-vue 及其内部子模块拆 chunk 后形成 ESM 循环依赖，导致运行时访问未初始化变量；本轮开发严格保留用户把相关依赖并回单一 vendor-antd chunk 的修复，不再触碰该构建拆分策略
 [2026-03-09 13:58:00] deliverables: AppHeader 为 FileReader 增加 onerror 处理并统一 resetImportState，避免“恢复全部账户 / 导入当前账户”遇到读取失败时卡在错误模式或残留后续流程；扩展 AppHeader 组件级测试覆盖 current/all 两条读取失败路径
 [2026-03-09 13:58:00] verification: npm install ✅, npm test ✅ (146), npm run type-check ✅, npm run build ✅；npm run preview -- --host 127.0.0.1 --port 4175 + curl -I http://127.0.0.1:4175/ ✅；产物检查仍见既有 vendor-antd ~715kB / chart-balance-runtime ~556kB 告警，其中 vendor-antd 与用户为消除循环依赖所做的安全合并一致，本轮未回退
+[2026-03-09 14:15:00] task: 收口 AI 抽屉的流式取消与过期写回问题，避免关闭抽屉或账户范围切换后旧请求继续把结果灌回当前本地对话
+[2026-03-09 14:15:00] deliverables: src/utils/ai.ts 的 streamChat 支持 AbortSignal；AiAnalysisModal 在抽屉关闭、组件卸载、scope 变化时主动 abort 并清空流式态，同时用 requestId 屏蔽过期结果写回；扩展 AiAnalysisModal 组件级回归覆盖“关闭即中止”“scope 变化不写回旧结果”

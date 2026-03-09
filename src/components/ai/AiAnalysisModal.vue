@@ -5,7 +5,7 @@
     :width="560"
     :headerStyle="{ display: 'none' }"
     :bodyStyle="{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }"
-    @close="$emit('close')"
+    @close="emit('close')"
   >
     <!-- 顶栏 -->
     <div class="drawer-header">
@@ -20,7 +20,7 @@
         <button class="icon-btn" @click="configOpen = true" title="API 设置">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
         </button>
-        <button class="icon-btn close-btn" @click="$emit('close')">
+        <button class="icon-btn close-btn" @click="emit('close')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
@@ -128,7 +128,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { message } from 'ant-design-vue';
 import { useFinanceStore } from '@/stores/finance';
 import AiConfigModal from '@/components/ai/AiConfigModal.vue';
@@ -153,8 +153,8 @@ import {
   createStreamingMarkdownRenderer,
 } from '@/utils/markdown';
 
-defineProps<{ open: boolean }>();
-defineEmits(['close']);
+const props = defineProps<{ open: boolean }>();
+const emit = defineEmits(['close']);
 
 const store = useFinanceStore();
 const fallbackMdRenderer = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
@@ -202,6 +202,8 @@ const contentBuffer = ref('');
 const thinkingBuffer = ref('');
 const userInput = ref('');
 const chatAreaRef = ref<HTMLElement | null>(null);
+const activeRequestController = ref<AbortController | null>(null);
+let activeRequestId = 0;
 
 const loadScopedChatHistory = () => {
   chatMessages.value = loadChatHistory(chatHistoryScope.value);
@@ -251,6 +253,19 @@ const getFinancialContext = () => {
   });
 };
 
+const cancelActiveRequest = () => {
+  activeRequestController.value?.abort();
+  activeRequestController.value = null;
+};
+
+const resetStreamingState = () => {
+  streaming.value = false;
+  contentBuffer.value = '';
+  thinkingBuffer.value = '';
+  streamingContentRenderer.reset();
+  streamingThinkingRenderer.reset();
+};
+
 const sendToAi = async (question?: string) => {
   if (streaming.value) return;
 
@@ -282,6 +297,10 @@ const sendToAi = async (question?: string) => {
   saveChatHistory(chatMessages.value, chatHistoryScope.value);
   scrollToBottom();
 
+  const requestId = ++activeRequestId;
+  const controller = new AbortController();
+  activeRequestController.value = controller;
+
   streaming.value = true;
   contentBuffer.value = '';
   thinkingBuffer.value = '';
@@ -289,7 +308,11 @@ const sendToAi = async (question?: string) => {
   streamingThinkingRenderer.reset();
 
   try {
-    for await (const chunk of streamChat(config, fullMessages)) {
+    for await (const chunk of streamChat(config, fullMessages, { signal: controller.signal })) {
+      if (requestId !== activeRequestId) {
+        return;
+      }
+
       if (chunk.type === 'thinking') {
         thinkingBuffer.value += chunk.text;
       } else {
@@ -297,6 +320,11 @@ const sendToAi = async (question?: string) => {
       }
       scrollToBottom();
     }
+
+    if (requestId !== activeRequestId || controller.signal.aborted) {
+      return;
+    }
+
     chatMessages.value.push({
       role: 'assistant',
       content: contentBuffer.value,
@@ -304,6 +332,10 @@ const sendToAi = async (question?: string) => {
     });
     saveChatHistory(chatMessages.value, chatHistoryScope.value);
   } catch (err: any) {
+    if (requestId !== activeRequestId || err?.name === 'AbortError' || controller.signal.aborted) {
+      return;
+    }
+
     message.error(`请求失败: ${err.message}`);
     chatMessages.value.push({
       role: 'assistant',
@@ -311,12 +343,11 @@ const sendToAi = async (question?: string) => {
     });
     saveChatHistory(chatMessages.value, chatHistoryScope.value);
   } finally {
-    streaming.value = false;
-    contentBuffer.value = '';
-    thinkingBuffer.value = '';
-    streamingContentRenderer.reset();
-    streamingThinkingRenderer.reset();
-    scrollToBottom();
+    if (requestId === activeRequestId) {
+      activeRequestController.value = null;
+      resetStreamingState();
+      scrollToBottom();
+    }
   }
 };
 
@@ -335,6 +366,31 @@ const handleEnter = (e: KeyboardEvent) => {
   e.preventDefault();
   handleSend();
 };
+
+watch(
+  () => props.open,
+  (open) => {
+    if (open) return;
+    cancelActiveRequest();
+    resetStreamingState();
+  },
+);
+
+watch(
+  chatHistoryScope,
+  () => {
+    if (!streaming.value) return;
+    activeRequestId += 1;
+    cancelActiveRequest();
+    resetStreamingState();
+  },
+  { deep: true },
+);
+
+onBeforeUnmount(() => {
+  activeRequestId += 1;
+  cancelActiveRequest();
+});
 
 const handleClearChat = () => {
   chatMessages.value = [];

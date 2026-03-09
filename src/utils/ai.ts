@@ -393,6 +393,7 @@ export interface StreamChunk {
 export async function* streamChat(
     config: AiConfig,
     messages: ChatMessage[],
+    options?: { signal?: AbortSignal },
 ): AsyncGenerator<StreamChunk, void, unknown> {
     const sanitizedConfig = sanitizeAiConfig(config);
     const targetUrl = buildAiChatCompletionsUrl(sanitizedConfig.baseUrl);
@@ -410,6 +411,7 @@ export async function* streamChat(
             stream: true,
             temperature: 0.7,
         }),
+        signal: options?.signal,
     });
 
     if (!response.ok) {

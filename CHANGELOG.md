@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-03-09
+- stability(ai): AI 分析抽屉现在会在关闭抽屉、组件卸载或账户范围变化时主动中止流式请求，并通过 requestId 屏蔽旧请求的过期回灌；避免用户已经切走上下文后，旧响应仍把内容写回当前本地对话
+- test(ai): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，补“关闭抽屉即中止流式请求”“分析中切换账户范围后旧请求结果不再写回”两条组件级回归，继续把 AI 本地稳定性问题锁到真实 UI 行为层
 - absorb(build): 已吸收并保留用户在 `origin/main` 的两次构建修复：`909d43c` 先把 `@ant-design/icons-vue` 并回 antd 主 chunk，`2f918d8` 再把全部 `ant-design-vue` / `@ant-design/icons-vue` 合并到单一 `vendor-antd`，用于消除子 chunk 间 ESM 循环依赖导致的运行时未初始化崩溃；本轮开发未回退该修复边界
 - fix(import-ui): 账户管理里的“恢复全部账户 / 导入当前账户”现在对 `FileReader.onerror` 做了显式兜底；当浏览器读取备份文件失败时，会立即给出对应模式的错误提示，并统一重置导入模式与 input 状态，避免后续操作串到错误模式
 - test(import-ui): 扩展 `src/layouts/__tests__/AppHeader.test.ts`，补“恢复全部账户读取失败”“导入当前账户读取失败”两条组件级回归，确保读取失败时不会误弹确认框，也不会残留错误导入状态

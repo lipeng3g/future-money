@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ChatMessage } from '@/utils/ai';
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
@@ -201,5 +202,74 @@ describe('AiAnalysisModal', () => {
     await nextTick();
 
     expect(wrapper.find('.a-checkbox-group').attributes('data-disabled')).toBe('no');
+  });
+
+  it('关闭抽屉时会中止流式请求，并且不写回过期结果', async () => {
+    let resolveChunk: (() => void) | null = null;
+    let capturedSignal: AbortSignal | undefined;
+    streamChatMock.mockImplementation(async function* (_config: unknown, _messages: ChatMessage[], options?: { signal?: AbortSignal }) {
+      capturedSignal = options?.signal;
+      yield { type: 'thinking', text: '先分析上下文' };
+      await new Promise<void>((resolve) => {
+        resolveChunk = resolve;
+      });
+      yield { type: 'content', text: '这段结果不应写回' };
+    });
+
+    const wrapper = await mountModal();
+    await wrapper.find('textarea.a-textarea').setValue('帮我分析');
+    await wrapper.find('button.a-button').trigger('click');
+    await nextTick();
+
+    expect(wrapper.text()).toContain('思考中...');
+    await wrapper.setProps({ open: false });
+    await nextTick();
+
+    expect(capturedSignal?.aborted).toBe(true);
+
+    resolveChunk?.();
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.findAll('.msg-row').length).toBe(0);
+    expect(wrapper.text()).not.toContain('这段结果不应写回');
+    expect(localStorage.getItem('fm-ai-chat:account-1,account-2') ?? '').not.toContain('这段结果不应写回');
+    expect(messageError).not.toHaveBeenCalled();
+  });
+
+  it('流式过程中若账户范围变化，会丢弃旧请求结果并切到新 scope', async () => {
+    let releaseStream: (() => void) | null = null;
+    streamChatMock.mockImplementation(async function* () {
+      yield { type: 'thinking', text: '旧上下文分析中' };
+      await new Promise<void>((resolve) => {
+        releaseStream = resolve;
+      });
+      yield { type: 'content', text: '旧上下文结果' };
+    });
+
+    const store = useFinanceStore();
+    const [accountA] = store.accounts;
+    const wrapper = await mountModal();
+
+    await wrapper.find('textarea.a-textarea').setValue('先分析多账户');
+    await wrapper.find('button.a-button').trigger('click');
+    await nextTick();
+    expect(wrapper.find('.a-checkbox-group').attributes('data-disabled')).toBe('yes');
+
+    store.viewMode = 'single';
+    store.multiAccountSelection = [];
+    store.currentAccountId = accountA.id;
+    await nextTick();
+    await nextTick();
+
+    expect(wrapper.find('.a-checkbox-group').attributes('data-disabled')).toBe('no');
+    expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('');
+
+    releaseStream?.();
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.text()).not.toContain('旧上下文结果');
+    expect(messageError).not.toHaveBeenCalled();
   });
 });
