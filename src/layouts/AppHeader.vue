@@ -317,21 +317,29 @@ const validateImportMode = (mode: ImportExportMode, content: string) => {
   return summary;
 };
 
-const confirmImportAll = (content: string, fileName: string) => {
-  validateImportMode('all', content);
+const buildImportPreviewState = (content: string) => {
   const parsed = JSON.parse(content) as PersistedStateEnvelope;
   const incomingState = previewStateRepository.importState(content);
-  const backupSummary = parseImportPreview(JSON.stringify({
+  const summary = parseImportPreview(JSON.stringify({
     ...parsed,
     state: incomingState,
   }));
-  const currentState = {
-    accounts: store.accounts,
-    events: store.events,
-    reconciliations: store.reconciliations,
-    ledgerEntries: store.ledgerEntries,
-    eventOverrides: store.eventOverrides,
-  };
+
+  return { parsed, incomingState, summary };
+};
+
+const currentImportPreviewState = () => ({
+  accounts: store.accounts,
+  events: store.events,
+  reconciliations: store.reconciliations,
+  ledgerEntries: store.ledgerEntries,
+  eventOverrides: store.eventOverrides,
+});
+
+const confirmImportAll = (content: string, fileName: string) => {
+  validateImportMode('all', content);
+  const { incomingState, summary: backupSummary } = buildImportPreviewState(content);
+  const currentState = currentImportPreviewState();
   const risk = buildImportRiskSummary(backupSummary, currentState);
   const accountDiff = buildImportAccountDiffSummary(backupSummary, store.accounts);
   const dataDelta = buildImportDataDeltaSummary(backupSummary, currentState);
@@ -465,6 +473,71 @@ const confirmImportAll = (content: string, fileName: string) => {
   });
 };
 
+const confirmImportCurrent = (content: string, fileName: string) => {
+  validateImportMode('current', content);
+  const { incomingState, summary } = buildImportPreviewState(content);
+  const targetAccount = store.currentAccount;
+  const sourceAccountName = summary.accountNames[0] ?? '未识别账户';
+  const backupTime = summary.timestamp
+    ? new Date(summary.timestamp).toLocaleString('zh-CN', { hour12: false })
+    : '未知';
+  const importedEventNames = incomingState.events
+    .filter((event) => event.accountId === incomingState.account.id)
+    .map((event) => event.name.trim())
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, 'zh-CN'));
+  let inputValue = '';
+  const confirmText = '导入当前账户';
+
+  Modal.confirm({
+    title: `导入到当前账户「${targetAccount.name}」？`,
+    width: 540,
+    content: h('div', [
+      h('div', { style: 'background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px; margin-bottom: 12px;' }, [
+        h('p', { style: 'color: #1d4ed8; margin-bottom: 8px; font-weight: 700;' }, '单账户导入：将只覆盖当前选中账户的数据'),
+        h('p', { style: 'margin-bottom: 6px; line-height: 1.7;' }, `导入后会替换当前账户「${targetAccount.name}」的事件、对账、账本记录与覆盖记录，但不会动其他账户。`),
+        h('p', { style: 'margin: 0; line-height: 1.7; color: #475569;' }, '系统会按 sanitize 后的结果导入，坏字段或断裂引用会在导入前被过滤。'),
+      ]),
+      h('div', { style: 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
+        h('div', `备份文件：${fileName}`),
+        h('div', `文件类型：${getScopeLabel(summary.scope)}`),
+        h('div', `备份时间：${backupTime}`),
+        h('div', `导入来源账户：${sourceAccountName}`),
+        h('div', `将覆盖当前账户：${targetAccount.name}`),
+        h('div', `导入后事件 / 对账 / 账本：${summary.eventsCount} / ${summary.reconciliationsCount} / ${summary.ledgerEntriesCount}`),
+        h('div', `导入后覆盖记录：${summary.eventOverridesCount}`),
+        h('div', `备份版本：${summary.stateVersion}`),
+      ]),
+      importedEventNames.length
+        ? h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
+          h('div', { style: 'font-weight: 600; margin-bottom: 6px; color: #0f172a;' }, '将导入的事件规则'),
+          h('div', importedEventNames.join('、')),
+        ])
+        : h('div', { style: 'background: #fff7ed; border: 1px dashed #fdba74; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7; color: #9a3412;' }, '这份单账户备份里没有可导入的事件；确认后会把当前账户替换为空事件状态。'),
+      h('p', { style: 'margin-bottom: 8px;' }, `请输入“${confirmText}”以继续：`),
+      h('input', {
+        type: 'text',
+        class: 'ant-input',
+        placeholder: `请输入：${confirmText}`,
+        style: 'width: 100%;',
+        onInput: (e: Event) => {
+          inputValue = (e.target as HTMLInputElement).value;
+        },
+      }),
+    ]),
+    okText: '确认导入',
+    cancelText: '取消',
+    onOk: () => {
+      if (inputValue.trim() !== confirmText) {
+        message.error('输入的文字不正确，操作已取消');
+        return Promise.reject();
+      }
+      store.importState(content, 'current', fileName);
+      message.success('已导入当前账户数据，可在账户管理中撤销上次导入');
+    },
+  });
+};
+
 const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
@@ -483,9 +556,7 @@ const handleFileChange = (event: Event) => {
       if (mode === 'all') {
         confirmImportAll(content, fileName);
       } else {
-        validateImportMode('current', content);
-        store.importState(content, mode, fileName);
-        message.success('已导入当前账户数据，可在账户管理中撤销上次导入');
+        confirmImportCurrent(content, fileName);
       }
     } catch (error) {
       console.error(error);

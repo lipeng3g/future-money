@@ -317,6 +317,218 @@ describe('AppHeader', () => {
     expect(store.events.filter((event) => event.accountId === secondary.id)).toHaveLength(1);
   });
 
+  it('导入当前账户前会先展示 sanitize 后摘要，并在确认后只覆盖当前账户', async () => {
+    const store = useFinanceStore();
+    const originalAccountId = store.currentAccount.id;
+    const originalAccountName = store.currentAccount.name;
+
+    store.addEvent({
+      name: '原始工资',
+      amount: 5000,
+      category: 'income',
+      type: 'monthly',
+      startDate: '2026-01-01',
+      monthlyDay: 10,
+      enabled: true,
+    });
+    store.reconcile('2026-03-05', 6000, [], '当前对账');
+    const secondary = store.addAccount({ name: '旅行基金', warningThreshold: 300 });
+    store.addEvent({
+      accountId: secondary.id,
+      name: '副账户收入',
+      amount: 800,
+      category: 'income',
+      type: 'monthly',
+      startDate: '2026-01-01',
+      monthlyDay: 5,
+      enabled: true,
+    });
+    store.currentAccountId = originalAccountId;
+
+    const wrapper = mountHeader();
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+    await wrapper.find('button.trigger-import-current').trigger('click');
+
+    const noisyCurrentBackup = {
+      version: '2.0.0',
+      timestamp: '2026-03-09T01:00:00.000Z',
+      scope: 'current',
+      state: {
+        version: '2.0.0',
+        account: {
+          id: 'imported-acc',
+          name: '  导入账户  ',
+          typeLabel: '现金',
+          initialBalance: 6600,
+          currency: '¥',
+          warningThreshold: 999,
+          color: '#10b981',
+          iconKey: 'piggy',
+          createdAt: '2026-03-01T00:00:00.000Z',
+          updatedAt: '2026-03-01T00:00:00.000Z',
+        },
+        accounts: [
+          {
+            id: 'imported-acc',
+            name: '  导入账户  ',
+            typeLabel: '现金',
+            initialBalance: 6600,
+            currency: '¥',
+            warningThreshold: 999,
+            color: '#10b981',
+            iconKey: 'piggy',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+          {
+            id: 'ignored-blank',
+            name: '   ',
+            typeLabel: '脏账户',
+            initialBalance: 10,
+            currency: '¥',
+            warningThreshold: 0,
+            color: '#ef4444',
+            iconKey: 'card',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+        events: [
+          {
+            id: 'evt-good',
+            accountId: 'imported-acc',
+            name: '  新工资  ',
+            amount: 9000,
+            category: 'income',
+            type: 'monthly',
+            startDate: '2026-03-01',
+            monthlyDay: 9,
+            enabled: true,
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+          {
+            id: 'evt-bad',
+            accountId: 'imported-acc',
+            name: '坏分类',
+            amount: 100,
+            category: 'transfer',
+            type: 'monthly',
+            startDate: '2026-03-01',
+            monthlyDay: 1,
+            enabled: true,
+            createdAt: '2026-03-01T00:00:00.000Z',
+            updatedAt: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+        preferences: store.preferences,
+        snapshots: [],
+        reconciliations: [
+          {
+            id: 'recon-good',
+            accountId: 'imported-acc',
+            date: '2026-03-09',
+            balance: 6600,
+            note: '  导入对账  ',
+            createdAt: '2026-03-09T00:00:00.000Z',
+          },
+        ],
+        ledgerEntries: [
+          {
+            id: 'ledger-good',
+            accountId: 'imported-acc',
+            reconciliationId: 'recon-good',
+            ruleId: 'evt-good',
+            name: '  新工资入账  ',
+            amount: 9000,
+            category: 'income',
+            date: '2026-03-09',
+            source: 'rule',
+            createdAt: '2026-03-09T00:00:00.000Z',
+            updatedAt: '2026-03-09T00:00:00.000Z',
+          },
+          {
+            id: 'ledger-bad',
+            accountId: 'imported-acc',
+            reconciliationId: 'recon-good',
+            ruleId: 'evt-missing',
+            name: '断裂引用',
+            amount: 1,
+            category: 'expense',
+            date: '2026-03-09',
+            source: 'rule',
+            createdAt: '2026-03-09T00:00:00.000Z',
+            updatedAt: '2026-03-09T00:00:00.000Z',
+          },
+        ],
+        eventOverrides: [
+          {
+            id: 'override-good',
+            accountId: 'imported-acc',
+            ruleId: 'evt-good',
+            period: '2026-03',
+            action: 'modified',
+            amount: 9200,
+            name: '  手调工资  ',
+            createdAt: '2026-03-09T00:00:00.000Z',
+          },
+          {
+            id: 'override-bad',
+            accountId: 'imported-acc',
+            ruleId: 'evt-good',
+            period: 'bad-period',
+            action: 'modified',
+            amount: 9300,
+            createdAt: '2026-03-09T00:00:00.000Z',
+          },
+        ],
+      },
+    };
+
+    const fileInput = wrapper.find('input.file-input').element as HTMLInputElement;
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [{ name: 'import-current-sanitized.json', __text: JSON.stringify(noisyCurrentBackup) }],
+    });
+    await wrapper.find('input.file-input').trigger('change');
+    await flushPromises();
+
+    expect(modalConfirm).toHaveBeenCalledTimes(1);
+    const config = modalConfirm.mock.calls[0][0];
+    const contentText = extractText(config.content);
+    expect(config.title).toBe(`导入到当前账户「${originalAccountName}」？`);
+    expect(contentText).toContain('单账户导入：将只覆盖当前选中账户的数据');
+    expect(contentText).toContain('导入来源账户：导入账户');
+    expect(contentText).toContain(`将覆盖当前账户：${originalAccountName}`);
+    expect(contentText).toContain('导入后事件 / 对账 / 账本：1 / 1 / 1');
+    expect(contentText).toContain('导入后覆盖记录：1');
+    expect(contentText).toContain('将导入的事件规则');
+    expect(contentText).toContain('新工资');
+    expect(contentText).not.toContain('坏分类');
+
+    await expect(config.onOk()).rejects.toBeUndefined();
+    expect(messageError).toHaveBeenCalledWith('输入的文字不正确，操作已取消');
+    expect(store.currentAccountId).toBe(originalAccountId);
+    expect(store.currentAccount.name).toBe(originalAccountName);
+    expect(store.events.filter((event) => event.accountId === originalAccountId)).toHaveLength(1);
+    expect(store.events.filter((event) => event.accountId === secondary.id)).toHaveLength(1);
+
+    const inputNode = config.content.children.at(-1);
+    inputNode.props.onInput({ target: { value: '导入当前账户' } });
+    await config.onOk();
+
+    expect(store.currentAccountId).toBe(originalAccountId);
+    expect(store.currentAccount.name).toBe('导入账户');
+    expect(store.events.filter((event) => event.accountId === originalAccountId)).toHaveLength(1);
+    expect(store.events.find((event) => event.accountId === originalAccountId)?.name).toBe('新工资');
+    expect(store.reconciliations.filter((item) => item.accountId === originalAccountId)).toHaveLength(1);
+    expect(store.ledgerEntries.filter((item) => item.accountId === originalAccountId)).toHaveLength(1);
+    expect(store.eventOverrides.filter((item) => item.accountId === originalAccountId)).toHaveLength(1);
+    expect(store.events.filter((event) => event.accountId === secondary.id)).toHaveLength(1);
+    expect(messageSuccess).toHaveBeenCalledWith('已导入当前账户数据，可在账户管理中撤销上次导入');
+  });
+
   it('账户管理里的导出按钮会按 current/all 模式生成对应文件名', async () => {
     const store = useFinanceStore();
     store.currentAccount.name = '现金 主账户';
