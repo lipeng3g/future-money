@@ -248,7 +248,10 @@ describe('AiAnalysisModal', () => {
       .mockImplementationOnce(async function* () {
         throw new Error('网络异常');
       })
-      .mockImplementationOnce(async function* () {
+      .mockImplementationOnce(async function* (_config: unknown, messages: ChatMessage[]) {
+        expect(messages).not.toEqual(expect.arrayContaining([
+          expect.objectContaining({ role: 'assistant', content: expect.stringContaining('请求失败') }),
+        ]));
         yield { type: 'content', text: '重试后恢复成功' };
       });
 
@@ -282,16 +285,26 @@ describe('AiAnalysisModal', () => {
   });
 
   it('流式中途失败时会保留已有 thinking 和 partial content，避免用户丢失已生成内容', async () => {
-    streamChatMock.mockImplementationOnce(async function* () {
-      yield { type: 'thinking', text: '先梳理现金流风险' };
-      yield { type: 'content', text: '已经确认下月中旬可能出现缺口。' };
-      throw new Error('上游超时');
-    });
+    streamChatMock
+      .mockImplementationOnce(async function* () {
+        yield { type: 'thinking', text: '先梳理现金流风险' };
+        yield { type: 'content', text: '已经确认下月中旬可能出现缺口。' };
+        throw new Error('上游超时');
+      })
+      .mockImplementationOnce(async function* (_config: unknown, messages: ChatMessage[]) {
+        expect(messages).not.toEqual(expect.arrayContaining([
+          expect.objectContaining({ role: 'assistant', content: '已经确认下月中旬可能出现缺口。' }),
+        ]));
+        expect(messages).toEqual(expect.arrayContaining([
+          expect.objectContaining({ role: 'user', content: '看看最近风险' }),
+        ]));
+        yield { type: 'content', text: '重试后的完整建议' };
+      });
 
     const store = useFinanceStore();
     const historyKey = `fm-ai-chat:${[store.accounts[0].id, store.accounts[1].id].sort().join(',')}`;
     const wrapper = await mountModal();
-+
+
     await wrapper.find('textarea.a-textarea').setValue('看看最近风险');
     await wrapper.find('button.a-button').trigger('click');
     await flushPromises();
@@ -305,6 +318,18 @@ describe('AiAnalysisModal', () => {
     expect(wrapper.find('[role="alert"]').text()).toContain('请求失败: 上游超时');
     expect(localStorage.getItem(historyKey) ?? '').toContain('已经确认下月中旬可能出现缺口。');
     expect(localStorage.getItem(historyKey) ?? '').toContain('先梳理现金流风险');
+
+    await wrapper.find('button.request-retry-btn').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    const rowsAfterRetry = wrapper.findAll('.msg-row');
+    expect(rowsAfterRetry).toHaveLength(2);
+    expect(rowsAfterRetry[1]?.text()).toContain('重试后的完整建议');
+    expect(wrapper.text()).not.toContain('已经确认下月中旬可能出现缺口。');
+    const savedHistory = localStorage.getItem(historyKey) ?? '';
+    expect(savedHistory).toContain('重试后的完整建议');
+    expect(savedHistory).not.toContain('已经确认下月中旬可能出现缺口。');
   });
 
   it('失败后切换 scope 时会清掉旧错误条并加载新 scope 历史', async () => {

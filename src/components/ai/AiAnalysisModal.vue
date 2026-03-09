@@ -225,6 +225,7 @@ const thinkingBuffer = ref('');
 const userInput = ref('');
 const requestError = ref('');
 const lastSubmittedQuestion = ref('');
+const lastFailedAssistantMessage = ref<ChatRecord | null>(null);
 const chatAreaRef = ref<HTMLElement | null>(null);
 const activeRequestController = ref<AbortController | null>(null);
 let activeRequestId = 0;
@@ -306,8 +307,15 @@ const sendToAi = async (question?: string) => {
   }
 
   const hadExplicitQuestion = typeof question === 'string';
-  const existingMessages = [...chatMessages.value];
+  const isRetryingFailedQuestion = !!lastFailedAssistantMessage.value && displayQuestion === lastSubmittedQuestion.value;
+  const existingMessages = isRetryingFailedQuestion
+    ? chatMessages.value.filter((message) => message !== lastFailedAssistantMessage.value)
+    : [...chatMessages.value];
   const shouldAppendUserMessage = !hadExplicitQuestion || existingMessages.at(-1)?.role !== 'user' || existingMessages.at(-1)?.content !== displayQuestion;
+
+  if (isRetryingFailedQuestion) {
+    chatMessages.value = existingMessages;
+  }
 
   if (shouldAppendUserMessage) {
     chatMessages.value.push({
@@ -320,6 +328,7 @@ const sendToAi = async (question?: string) => {
 
   requestError.value = '';
   lastSubmittedQuestion.value = displayQuestion;
+  lastFailedAssistantMessage.value = null;
 
   const ctx = getFinancialContext();
   const summary = buildFinancialSummary(ctx);
@@ -370,6 +379,7 @@ const sendToAi = async (question?: string) => {
       thinking: thinkingBuffer.value || undefined,
     });
     saveChatHistory(chatMessages.value, chatHistoryScope.value);
+    lastFailedAssistantMessage.value = null;
   } catch (err: any) {
     if (requestId !== activeRequestId || err?.name === 'AbortError' || controller.signal.aborted) {
       return;
@@ -379,11 +389,13 @@ const sendToAi = async (question?: string) => {
     requestError.value = `请求失败: ${errorMessage}`;
 
     if (contentBuffer.value || thinkingBuffer.value) {
-      chatMessages.value.push({
-        role: 'assistant',
+      const partialAssistantMessage = {
+        role: 'assistant' as const,
         content: contentBuffer.value || '本次分析在输出途中中断，请稍后重试。',
         thinking: thinkingBuffer.value || undefined,
-      });
+      };
+      chatMessages.value.push(partialAssistantMessage);
+      lastFailedAssistantMessage.value = partialAssistantMessage;
       saveChatHistory(chatMessages.value, chatHistoryScope.value);
     }
 
@@ -425,6 +437,7 @@ watch(
   (open) => {
     if (open) return;
     requestError.value = '';
+    lastFailedAssistantMessage.value = null;
     cancelActiveRequest();
     resetStreamingState();
   },
@@ -433,6 +446,7 @@ watch(
 watch(
   chatHistoryScope,
   () => {
+    lastFailedAssistantMessage.value = null;
     if (!streaming.value) return;
     activeRequestId += 1;
     cancelActiveRequest();
@@ -449,6 +463,8 @@ onBeforeUnmount(() => {
 const handleClearChat = () => {
   chatMessages.value = [];
   userInput.value = '';
+  requestError.value = '';
+  lastFailedAssistantMessage.value = null;
   clearChatHistory(chatHistoryScope.value);
   clearChatDraft(chatHistoryScope.value);
   message.success(selectedAccountIds.value.length > 1 ? '当前账户组合对话与草稿已清空' : '当前账户对话与草稿已清空');

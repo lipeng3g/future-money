@@ -311,3 +311,6 @@
 - task: 收口 AI 抽屉“预设提问与手动发送上下文不一致”的本地连续性缺口，避免用户在同一轮分析里点了快捷预设后，模型像突然失忆一样丢掉刚才对话
 - implementation: `src/components/ai/AiAnalysisModal.vue` 的 `sendToAi()` 现在先统一规范 question/displayQuestion，再让预设入口与手动发送共用同一套“最近 6 轮历史 + 最新问题”拼装逻辑；不改现有草稿保留语义，只补上下文连续性。同步扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“点击预设时会复用最近对话历史，避免同一会话上下文突然丢失”组件级回归
 - verification: `npm install` ✅, `npm test -- --run src/components/ai/__tests__/AiAnalysisModal.test.ts` ✅ (13)
+
+## 2026-03-10
+- AI 抽屉失败重试语义补强：同题重试时剔除上一轮失败残留的 assistant partial/thinking，避免半截建议被再次当成上下文；补组件回归并完成 install/test/type-check/build/smoke/preview 探活。

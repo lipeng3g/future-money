@@ -5,7 +5,8 @@
 - Verified local `main` already matched `origin/main` after fetch.
 - Chose a local high-value task for this pass: harden AI analysis drawer failure recovery further so mid-stream failures do not discard already generated local analysis fragments.
 - Updated `src/components/ai/AiAnalysisModal.vue` so if a streamed reply already produced `thinking` or partial answer text before failing, the modal preserves that partial assistant output in scoped history, then shows the inline retry banner instead of silently dropping the generated fragment.
-- Expanded `src/components/ai/__tests__/AiAnalysisModal.test.ts` with regressions that lock "mid-stream failure keeps partial content/thinking" and "changing account scope clears stale error banner and loads the new scoped history" semantics.
+- Further refined retry semantics in `src/components/ai/AiAnalysisModal.vue`: when the user retries the same failed question, the modal now excludes the previous failed partial assistant message from the next request context and replaces it with the retried answer, preventing half-finished advice from polluting follow-up analysis.
+- Expanded `src/components/ai/__tests__/AiAnalysisModal.test.ts` with regressions that lock "mid-stream failure keeps partial content/thinking", "retry does not resend failed partial assistant content", and "changing account scope clears stale error banner and loads the new scoped history" semantics.
 - Verified the focused AI modal regression suite with `npm test -- src/components/ai/__tests__/AiAnalysisModal.test.ts` before running the full repository validation pass.
 
 ## 2026-03-10
