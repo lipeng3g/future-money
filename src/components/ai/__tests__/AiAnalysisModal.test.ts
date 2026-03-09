@@ -269,9 +269,9 @@ describe('AiAnalysisModal', () => {
     expect(wrapper.text()).not.toContain('请求失败: 网络异常请求失败: 网络异常');
     expect(localStorage.getItem('fm-ai-chat:account-1,account-2') ?? '').not.toContain('请求失败: 网络异常');
 
-    const retryButton = wrapper.find('button.request-retry-btn');
-    expect(retryButton.exists()).toBe(true);
-    await retryButton.trigger('click');
+    const retryButton = wrapper.findAll('button.request-retry-btn').find((node) => node.text() === '直接重试');
+    expect(retryButton?.exists()).toBe(true);
+    await retryButton!.trigger('click');
     await flushPromises();
     await nextTick();
 
@@ -282,6 +282,34 @@ describe('AiAnalysisModal', () => {
     const store = useFinanceStore();
     const historyKey = `fm-ai-chat:${[store.accounts[0].id, store.accounts[1].id].sort().join(',')}`;
     expect(localStorage.getItem(historyKey) ?? '').toContain('重试后恢复成功');
+  });
+
+  it('请求失败后可以把上次问题恢复到输入框继续编辑，并清掉错误横幅', async () => {
+    streamChatMock.mockImplementationOnce(async function* () {
+      throw new Error('网络异常');
+    });
+
+    const store = useFinanceStore();
+    const scopeKey = createChatDraftScopeKey({ accountIds: [store.accounts[0].id, store.accounts[1].id] });
+    const wrapper = await mountModal();
+
+    await wrapper.find('textarea.a-textarea').setValue('原问题');
+    await wrapper.find('button.a-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true);
+    expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('');
+    expect(localStorage.getItem(scopeKey)).toBeNull();
+
+    const restoreButton = wrapper.findAll('button.request-retry-btn').find((node) => node.text() === '继续编辑上次问题');
+    expect(restoreButton?.exists()).toBe(true);
+    await restoreButton!.trigger('click');
+    await nextTick();
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('原问题');
+    expect(localStorage.getItem(scopeKey)).toBe('原问题');
   });
 
   it('流式中途失败时会保留已有 thinking 和 partial content，避免用户丢失已生成内容', async () => {
@@ -319,7 +347,7 @@ describe('AiAnalysisModal', () => {
     expect(localStorage.getItem(historyKey) ?? '').toContain('已经确认下月中旬可能出现缺口。');
     expect(localStorage.getItem(historyKey) ?? '').toContain('先梳理现金流风险');
 
-    await wrapper.find('button.request-retry-btn').trigger('click');
+    await wrapper.findAll('button.request-retry-btn').find((node) => node.text() === '直接重试')!.trigger('click');
     await flushPromises();
     await nextTick();
 
@@ -608,7 +636,7 @@ describe('AiAnalysisModal', () => {
     expect(wrapper.findAll('.msg-row')).toHaveLength(2);
     expect(wrapper.find('[role="alert"]').text()).toContain('请求失败: 第一次失败');
 
-    await wrapper.find('button.request-retry-btn').trigger('click');
+    await wrapper.findAll('button.request-retry-btn').find((node) => node.text() === '直接重试')!.trigger('click');
     await flushPromises();
     await nextTick();
 
@@ -622,7 +650,7 @@ describe('AiAnalysisModal', () => {
     expect(savedAfterSecondFail).toContain('第二次半截回答');
     expect(savedAfterSecondFail).not.toContain('第一次半截回答');
 
-    await wrapper.find('button.request-retry-btn').trigger('click');
+    await wrapper.findAll('button.request-retry-btn').find((node) => node.text() === '直接重试')!.trigger('click');
     await flushPromises();
     await nextTick();
 

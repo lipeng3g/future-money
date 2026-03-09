@@ -159,3 +159,7 @@
 - test(account-danger): 扩展 AppHeader 组件级回归，覆盖清空当前账户的真实摘要展示、错误确认拦截，以及确认后事件/对账/账本/覆盖记录与余额的实际重置
 - test(chart-focus): 为首页 `StatisticsPanel → ChartArea → BalanceChart` 新增容器级焦点联动回归，锁住统计卡片点击会把 `focusKey` 传给余额图，并主动清掉旧的 `focusDate` 事件定位态，避免首页浏览链路在后续重构中静默回退
 - test(ai-export): 将 AI 抽屉导出回归从“依赖按钮顺序”改为“按 `title="导出对话"` 精准命中”，减少工具按钮增减或重排时的脆弱失败
+
+## 2026-03-10
+- ux(ai-retry-recover): AI 抽屉请求失败后的错误横幅新增“双入口恢复”——既可“直接重试”原问题，也可把上次问题恢复回输入框继续编辑；这样失败后不必手动重新敲整句，尤其适合想微调问法再重发的本地分析场景。
+- test(ai-retry-recover): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“失败后恢复上次问题到输入框并同步草稿、清掉错误横幅”的组件级回归；并把既有 retry 回归改成按按钮文案精确命中，避免后续错误横幅按钮增减或重排时测试被顺序误伤。

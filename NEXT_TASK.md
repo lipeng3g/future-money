@@ -31,3 +31,5 @@
 - [x] 给首页“预测范围”补容器级接线回归（TimeRangeControl -> ChartArea -> store -> BalanceChart timeline），避免 UI 只改显示不改真实时间窗。
 
 - [x] 给首页“预测范围”补容器级接线回归（TimeRangeControl -> ChartArea -> store -> BalanceChart timeline），避免 UI 只改显示不改真实时间窗。
+
+- [x] 给 AI 失败横幅补“继续编辑上次问题”入口，失败后可一键把上次问题恢复到输入框并重新保存草稿；避免本地分析请求一抖动，用户就得从头重敲整句。

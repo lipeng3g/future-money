@@ -94,13 +94,22 @@
     <div class="input-bar">
       <div v-if="requestError" class="request-error-banner" role="alert">
         <span>{{ requestError }}</span>
-        <button
-          class="request-retry-btn"
-          :disabled="!lastSubmittedQuestion || streaming || !selectedAccountIds.length"
-          @click="handleRetry"
-        >
-          重试上一次
-        </button>
+        <div class="request-error-actions">
+          <button
+            class="request-retry-btn"
+            :disabled="!lastSubmittedQuestion || streaming || !selectedAccountIds.length"
+            @click="handleRestoreFailedQuestion"
+          >
+            继续编辑上次问题
+          </button>
+          <button
+            class="request-retry-btn"
+            :disabled="!lastSubmittedQuestion || streaming || !selectedAccountIds.length"
+            @click="handleRetry"
+          >
+            直接重试
+          </button>
+        </div>
       </div>
       <div v-if="chatMessages.length" class="quick-row">
         <button
@@ -417,6 +426,14 @@ const sendToAi = async (question?: string) => {
 };
 
 const handlePreset = (preset: (typeof presets)[number]) => sendToAi(preset.question);
+
+const handleRestoreFailedQuestion = () => {
+  const retryQuestion = lastSubmittedQuestion.value.trim();
+  if (!retryQuestion || streaming.value) return;
+  requestError.value = '';
+  userInput.value = retryQuestion;
+  saveChatDraft(userInput.value, chatHistoryScope.value);
+};
 
 const handleRetry = () => {
   const retryQuestion = lastSubmittedQuestion.value.trim();
@@ -786,6 +803,43 @@ const handleExport = () => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.request-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #b91c1c;
+  color: #fff;
+  font-size: 0.82rem;
+}
+
+.request-error-actions {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.request-retry-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.request-retry-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.request-retry-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 .quick-row {

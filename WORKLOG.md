@@ -318,3 +318,6 @@
 - verification: `npm install` ✅, `npm test -- --run src/components/ai/__tests__/AiAnalysisModal.test.ts` ✅ (18), `npm test` ✅ (223), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅, `npm run preview -- --host 127.0.0.1 --port 4175` + `curl -I` ✅ (`HTTP/1.1 200 OK`)；全量测试 / smoke 期间仍有既有导入错误路径的 `stderr` 噪音与 build chunk warning（`vendor-charts` / `vendor-antd`），但不影响本轮通过，且本轮未触碰用户已验证的构建修复边界。
 - AI 抽屉失败重试语义补强：同题重试时剔除上一轮失败残留的 assistant partial/thinking，避免半截建议被再次当成上下文；补组件回归并完成 install/test/type-check/build/smoke/preview 探活。
 - AI 抽屉失败恢复边界继续收口：新增 `lastFailedQuestion` 区分“同题重试”与“失败后手动改题再发送”，只在真正同题重试时替换旧 partial；如果用户改了问题，则保留旧 partial 作为历史并把新问题视为新一轮对话。同步扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts` 锁住这条组件级回归。
+
+[2026-03-10 06:55:00] task: 打磨 AI 抽屉失败后的本地恢复体验，补“继续编辑上次问题”入口，避免失败后只能原题重试或手动重敲
+[2026-03-10 06:55:00] deliverables: AiAnalysisModal 错误横幅新增“继续编辑上次问题 + 直接重试”双入口；新增组件级回归覆盖失败后恢复输入框/草稿与清除错误横幅；同步把既有 retry 回归改成按按钮文案精确命中，降低测试脆弱性
