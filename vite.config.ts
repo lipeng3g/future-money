@@ -135,11 +135,7 @@ export default defineConfig({
             return 'vendor-date';
           }
 
-          if (id.includes('@ant-design/icons-vue')) {
-            return 'vendor-antd-icons';
-          }
-
-          if (id.includes('ant-design-vue')) {
+          if (id.includes('@ant-design/icons-vue') || id.includes('ant-design-vue')) {
             if (/(?:^|\/)(?:message|notification|modal|drawer|popover|dropdown|menu)(?:\/|$)/.test(id)) {
               return 'vendor-antd-feedback';
             }
