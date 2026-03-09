@@ -5,7 +5,8 @@
 ## 2026-03-10
 - task: 给 EventCard 真组件补只读展示/禁用语义回归，避免事件面板只读保护只停留在父层横幅与守卫，子卡片真实交互却因为接线回退重新放出可点开关/编辑删除按钮
 - implementation: 新增 `src/components/events/__tests__/EventCard.test.ts`，覆盖账户/频率/金额摘要、图表定位入口、暂停状态、开关/编辑/删除事件透传，以及父层显式 `readonly` 传入时的“开关禁用 + 编辑/删除隐藏”真实组件语义
-- verification: 待本轮完整验证（npm install / test / type-check / build / smoke / preview+curl）结果回填
+- verification: 已纳入本轮完整验证队列（npm install / test / type-check / build / smoke / preview+curl）；待结果回填
+[2026-03-10 00:45:00] task: 收口事件新增/编辑失败时的本地可恢复体验，确保失败后弹窗保留、错误有内联落点，并完成完整验证/提交/push
 
 ## 2026-03-10
 - task: 把高风险导入 smoke 从“单账户导入”继续扩到“恢复全部账户”，避免整库恢复/撤销闭环继续主要依赖普通组件测试与手工预览

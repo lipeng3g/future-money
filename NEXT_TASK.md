@@ -15,8 +15,8 @@
 - `npm run smoke` 已纳入两条自动化烟雾：store 级整库恢复/撤销，以及 AppHeader UI 级“导入当前账户 → 确认 → 撤销”闭环；当前高风险本地导入链路已不再只靠手册验证
 
 ## 下一轮优先级
-1. 把自动 smoke 从“导入当前账户”继续扩展到“恢复全部账户”，覆盖旧备份预警、账户 diff、按账户数据变化与撤销入口
-2. 评估是否要把 `docs/browser-import-smoke.md` 的真实页面流程进一步半自动化；若引入新依赖，需先单独评估稳定性与维护成本
-3. 继续处理构建性能余项：在不回退用户 vendor-antd 修复的前提下，优先研究 `chart-balance-runtime` 的 runtime 级安全拆分点（如确认 `echarts/components` / renderer / chart type 是否还能进一步按使用路径收口），不要再把精力浪费在继续细拆已经很小的业务壳体上
-4. 在图表容器层继续补页面级/运行时 smoke，重点确认“IntersectionObserver 延迟挂载 + 超时兜底揭示 + runtime 异步注册 + focus 联动”四层组合在真实预览站点也不会卡成永久骨架
-5. 继续给事件面板补剩余高风险 UI 回归：EventCard 真组件下的只读展示/禁用语义已补齐，下一步优先看“新增失败场景是否也要和编辑失败一样保留弹窗内联错误”，以及 EventList + EventCard 在真实组件组合下的焦点高亮/只读接线，确保事件管理不只在单账户 happy path 上稳定
+1. 把事件面板失败态回归从“编辑失败”继续扩展到“新增失败”，确保新增场景也保留弹窗并展示内联错误，而不是只剩 toast
+2. 给 EventList + EventCard 真组件组合补接线回归，重点锁住高亮、图表定位入口、只读透传与启停按钮语义，避免当前主要依赖 stub 组件测试
+3. 评估是否要把 `docs/browser-import-smoke.md` 的真实页面流程进一步半自动化；若引入新依赖，需先单独评估稳定性与维护成本
+4. 继续处理构建性能余项：在不回退用户 vendor-antd 修复的前提下，优先研究 `chart-balance-runtime` 的 runtime 级安全拆分点（如确认 `echarts/components` / renderer / chart type 是否还能进一步按使用路径收口），不要再把精力浪费在继续细拆已经很小的业务壳体上
+5. 在图表容器层继续补页面级/运行时 smoke，重点确认“IntersectionObserver 延迟挂载 + 超时兜底揭示 + runtime 异步注册 + focus 联动”四层组合在真实预览站点也不会卡成永久骨架
