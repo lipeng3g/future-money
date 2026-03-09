@@ -375,6 +375,38 @@ describe('AiAnalysisModal', () => {
     expect(localStorage.getItem(scopeKey)).toBe('稍后再问的草稿');
   });
 
+  it('点击预设时会复用最近对话历史，避免同一会话上下文突然丢失', async () => {
+    streamChatMock.mockImplementation(async function* () {
+      yield { type: 'content', text: '第一轮回答' };
+    });
+
+    const wrapper = await mountModal();
+
+    await wrapper.find('textarea.a-textarea').setValue('第一轮问题');
+    await wrapper.find('button.a-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    streamChatMock.mockReset();
+    streamChatMock.mockImplementation(async function* () {
+      yield { type: 'content', text: '第二轮预设回答' };
+    });
+
+    await wrapper.find('button.quick-btn').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(streamChatMock).toHaveBeenCalledTimes(1);
+    const [, messages] = streamChatMock.mock.calls[0] as [unknown, ChatMessage[]];
+    expect(messages.map((message) => ({ role: message.role, content: message.content }))).toEqual([
+      expect.objectContaining({ role: 'system' }),
+      { role: 'user', content: '第一轮问题' },
+      { role: 'assistant', content: '第一轮回答' },
+      expect.objectContaining({ role: 'user' }),
+    ]);
+    expect(wrapper.text()).toContain('第二轮预设回答');
+  });
+ 
   it('多账户顺序变化时会复用同一份 scope 历史与草稿，不会因为顺序抖动串台', async () => {
     const store = useFinanceStore();
     const [accountA, accountB] = store.accounts;

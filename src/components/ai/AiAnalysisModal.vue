@@ -273,6 +273,10 @@ const resetStreamingState = () => {
 const sendToAi = async (question?: string) => {
   if (streaming.value) return;
 
+  const normalizedQuestion = question?.trim();
+  const promptQuestion = normalizedQuestion || undefined;
+  const displayQuestion = promptQuestion || '请分析我的财务状况';
+
   const config = loadAiConfig();
   if (!config) {
     configOpen.value = true;
@@ -281,7 +285,7 @@ const sendToAi = async (question?: string) => {
 
   const ctx = getFinancialContext();
   const summary = buildFinancialSummary(ctx);
-  const apiMessages = createAnalysisMessages(summary, question);
+  const apiMessages = createAnalysisMessages(summary, promptQuestion);
 
   const historyMessages: ChatMessage[] = chatMessages.value.slice(-6).map((m) => ({
     role: m.role as 'user' | 'assistant',
@@ -296,7 +300,7 @@ const sendToAi = async (question?: string) => {
 
   chatMessages.value.push({
     role: 'user',
-    content: question || '请分析我的财务状况',
+    content: displayQuestion,
   });
   saveChatHistory(chatMessages.value, chatHistoryScope.value);
   scrollToBottom();
