@@ -3,6 +3,11 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-10
+- task: 给 EventList + EventCard 补真组件组合回归，避免事件面板主要依赖 stub 测试而漏掉子卡片实际只读/高亮/图表定位语义
+- implementation: 新增 `src/components/events/__tests__/EventList.test.ts`，直接挂载真实 `EventList + EventCard` 组合，覆盖高亮样式、图表定位入口、只读态开关禁用/编辑删除隐藏、以及可编辑态 `toggle / edit / delete` 真实冒泡；同时修正测试期望，明确只读态不应再触发 toggle 事件
+- tests: `npm test -- src/components/events/__tests__/EventList.test.ts src/components/events/__tests__/EventCard.test.ts src/components/events/__tests__/EventPanel.test.ts`
+
+## 2026-03-10
 - task: 给导入确认框补 sanitize 过滤统计，减少用户只看到“会过滤坏字段”却看不清到底丢了多少数据的盲区
 - implementation: `src/utils/import-preview.ts` 新增 `buildImportSanitizeDiscardSummary`，按账户/事件/对账/账本/覆盖记录汇总原始计数、sanitize 后计数、过滤数与常见原因；`src/layouts/AppHeader.vue` 在“导入当前账户 / 恢复全部账户”确认框接入该统计区块，并修正预览摘要沿用原始 envelope scope，避免单账户备份在确认阶段被误显示成 legacy
 - tests: 扩展 `src/utils/__tests__/import-preview.test.ts` 与 `src/layouts/__tests__/AppHeader.test.ts`，覆盖过滤统计纯函数与两条高风险导入确认流接线

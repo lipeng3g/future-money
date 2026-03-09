@@ -15,8 +15,8 @@
 - `npm run smoke` 已纳入两条自动化烟雾：store 级整库恢复/撤销，以及 AppHeader UI 级“导入当前账户 → 确认 → 撤销”闭环；当前高风险本地导入链路已不再只靠手册验证
 
 ## 下一轮优先级
-1. 给 EventList + EventCard 真组件组合补接线回归，重点锁住高亮、图表定位入口、只读透传与启停按钮语义，避免当前主要依赖 stub 组件测试
-2. 评估是否要把 `docs/browser-import-smoke.md` 的真实页面流程进一步半自动化；若引入新依赖，需先单独评估稳定性与维护成本
-3. 继续处理构建性能余项：在不回退用户 vendor-antd 修复的前提下，优先研究 `chart-balance-runtime` 的 runtime 级安全拆分点（如确认 `echarts/components` / renderer / chart type 是否还能进一步按使用路径收口），不要再把精力浪费在继续细拆已经很小的业务壳体上
-4. 在图表容器层继续补页面级/运行时 smoke，重点确认“IntersectionObserver 延迟挂载 + 超时兜底揭示 + runtime 异步注册 + focus 联动”四层组合在真实预览站点也不会卡成永久骨架
-5. 若后续继续打磨导入链路，可把 `sanitize 过滤统计` 再细化到“重复 ID / 非法枚举 / 断裂引用 / 空白字段”分组级原因，而不只是当前的大类说明
+1. 评估是否要把 `docs/browser-import-smoke.md` 的真实页面流程进一步半自动化；若引入新依赖，需先单独评估稳定性与维护成本
+2. 继续处理构建性能余项：在不回退用户 vendor-antd 修复的前提下，优先研究 `chart-balance-runtime` 的 runtime 级安全拆分点（如确认 `echarts/components` / renderer / chart type 是否还能进一步按使用路径收口），不要再把精力浪费在继续细拆已经很小的业务壳体上
+3. 在图表容器层继续补页面级/运行时 smoke，重点确认“IntersectionObserver 延迟挂载 + 超时兜底揭示 + runtime 异步注册 + focus 联动”四层组合在真实预览站点也不会卡成永久骨架
+4. 若后续继续打磨导入链路，可把 `sanitize 过滤统计` 再细化到“重复 ID / 非法枚举 / 断裂引用 / 空白字段”分组级原因，而不只是当前的大类说明
+5. 继续补事件管理的真组件接线回归缺口，优先看 `EventPanel` 是否要逐步减少对 `EventList` stub 的依赖，把更多聚焦/只读/排序语义收口到真实组合测试
