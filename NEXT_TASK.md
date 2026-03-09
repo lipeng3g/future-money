@@ -1,41 +1,13 @@
-- [ ] 继续审视 AI 直连地址的 SSRF/私网误连边界，下一步可评估域名重绑定/解析后私网 IP 风险、以及 UI 上更明确的阻断原因提示；本轮已把 Cloudflare ai-proxy 服务端校验补齐到与前端一致，覆盖 localhost、RFC1918、169.254/16、100.64/10、IPv6 ULA 与 link-local。
-- [x] 若继续打磨首页余额图，可在本轮已完成“账户名/颜色替代原始 account id”基础上，再补 hover / tooltip 级预览（例如账户净变动、该账户当日余额落点），优先提升多账户焦点卡的解释深度，而不是继续堆更多纯文本摘要。
-- [ ] 下一轮若继续深化余额图解释层，可评估把 tooltip 里的“账户级余额落点”从当前按净变动顺序的近似推导，升级为更明确的文案提示或接入真实账户级时间线；前提仍是不把实现复杂度抬到高于收益。
-- [x] 继续补 AI 抽屉失败恢复的边界回归，优先覆盖“重试期间再次失败的去重语义”“连续两次 partial fail 时历史替换策略”，避免当前修复只锁住同题重试这一路径。
-- [ ] 继续压缩大体积前端 chunk（当前 build 实际仍提示 `vendor-charts` / `vendor-antd` 超 500 kB；之前 `chart-balance-runtime` 已缩成轻壳），优先评估 ECharts runtime 与 Ant Design 的进一步拆分点，但不要回退本轮已落地的“idle preload + 共享 runtime 缓存”首开体验优化。
-- [x] 给首页图表补一条真实预览级 smoke：新增 `scripts/browser-chart-smoke.mjs` 生成空态/有数据两份 localStorage 夹具，并补 `docs/browser-chart-smoke.md`，用于验证“空库直出空态 / 有数据时才走 deferred skeleton + runtime 加载”。
-- [ ] 若继续推进图表稳定性，可在当前已透出“离线/下载失败”差异化 CTA 的基础上，再评估是否要补一条浏览器预览站点下的真实 runtime 失败 smoke，确认组件层建议文案与真实 chunk 失败场景一致，而不只锁在纯函数/模拟失败语义。
-- [ ] 若继续推进页面级自动化，可评估把 `docs/browser-chart-smoke.md` 与 `docs/browser-import-smoke.md` 的人工 browser 步骤再半自动化，但前提仍是不引入高维护成本的新依赖。
-- [x] 继续给首页统计卡片 / 图表聚焦补更贴近真实 AntD 交互的容器级回归，尤其是 `StatisticsPanel → ChartArea → BalanceChart` 的 focus-key / focus-date 联动，避免后续重构只保住 store 层却把页面操作手感弄坏。
+# Next Task（worker 更新）
 
 ## 刚完成
-- 已给 AI 抽屉继续补失败恢复边界回归：新增“同题重试再次失败时，只保留最新一轮 partial；连续两次 partial fail 后历史不会叠两份半截回答，后续再重试成功也会正确替换”的组件级测试，进一步锁住 request retry / partial replacement 的真实 UI 语义。
-- 已给 `StatisticsPanel → ChartArea → BalanceChart` 补容器级焦点联动回归：统计卡片触发 `focus-chart` 时，`ChartArea` 现在有测试明确锁住“把 `focusKey` 传给余额图，并清掉先前事件定位的 `focusDate`”，避免首页统计卡片点击后仍残留旧日期定位态
-- `npm run smoke` 已从“单账户导入 → 撤销”扩到同时覆盖“恢复全部账户 → 确认摘要 → 真恢复 → 撤销回滚”的 UI 闭环；`src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts` 现在会验证 sanitize 后摘要、账户/事件差异提示、整库恢复真实落地与回滚复原，降低高风险本地恢复链路继续只靠普通组件测试兜底的风险
-- 图表 runtime 的异步加载状态已抽成 `src/utils/chart-runtime.ts`，余额图 / 月度图现统一具备“加载中 / 成功 / 失败可重试”的共享状态机与 UI 兜底，不再各自散落处理 chunk 加载生命周期
-- 图表组件已改为“挂载后再异步加载 ECharts runtime 注册模块”，避免余额图 / 月度图在组件求值阶段就静态绑住 runtime；同时补齐 BalanceChart 组件测试对这层异步初始化语义的覆盖
-- 重新 build 后确认 `BalanceChart` 业务壳体已缩到约 11.8kB，但 `chart-balance-runtime` 仍约 556kB，说明当前构建大块主要是 ECharts runtime 本体，不是余额图自身 option/UI 逻辑
-- 单账户导入现在也会先展示 sanitize 后确认摘要：来源账户、目标账户、事件/对账/账本/覆盖数量、事件规则列表，以及坏字段/断裂引用会被过滤的说明
-- 已补 AppHeader 组件级回归，覆盖“确认文案错误会拦截导入”与“确认后仅覆盖当前账户、其他账户保持不变”
-- 将 `vite.config.ts.timestamp-*.mjs` 纳入 `.gitignore`，避免本地 preview / 探活验证生成的临时文件污染工作区
-- 已再次完整跑通 `npm install`、`npm test`、`npm run type-check`、`npm run build`、`npm run smoke`、`npm run preview + curl -I`
-
-## 当前状态
-- 单账户导入确认框已补到 sanitize 后摘要 + 当前账户事件规则 diff
-- `scripts/browser-import-smoke.mjs` 已改为零依赖测试夹具生成脚本；配合 `docs/browser-import-smoke.md` 中的 OpenClaw/browser 操作手册，可重复执行真实页面级导入/撤销 smoke
-- `npm run smoke` 已纳入两条自动化烟雾：store 级整库恢复/撤销，以及 AppHeader UI 级“导入当前账户 → 确认 → 撤销”闭环；当前高风险本地导入链路已不再只靠手册验证
+- AI 分析抽屉现在会按账户范围分别保存未发送草稿：单账户、多账户组合互不串台；关闭抽屉或切换视图回来后，会恢复当前 scope 自己的提问草稿
+- AI 流式分析进行中会临时锁定账户范围切换，并在账户栏直接提示“当前上下文已锁定”，避免请求已按一组账户发出后，界面勾选又被改成另一组账户，导致分析结果和界面范围不一致
+- 已新增 `src/components/ai/__tests__/AiAnalysisModal.test.ts` 组件级回归，并扩展 `src/utils/__tests__/ai-chat-history.test.ts`，覆盖草稿按 scope 隔离、清空联动、旧版全局草稿兼容与流式锁定恢复
 
 ## 下一轮优先级
-1. 评估是否要把 `docs/browser-import-smoke.md` 的真实页面流程进一步半自动化；若引入新依赖，需先单独评估稳定性与维护成本
-2. 继续处理构建性能余项：在不回退用户 vendor-antd 修复的前提下，优先研究 `chart-balance-runtime` 的 runtime 级安全拆分点（如确认 `echarts/components` / renderer / chart type 是否还能进一步按使用路径收口），不要再把精力浪费在继续细拆已经很小的业务壳体上
-3. 在图表容器层继续补页面级/运行时 smoke，重点确认“IntersectionObserver 延迟挂载 + 超时兜底揭示 + runtime 异步注册 + focus 联动”四层组合在真实预览站点也不会卡成永久骨架
-4. 若后续继续打磨导入链路，可把 `sanitize 过滤统计` 再细化到“重复 ID / 非法枚举 / 断裂引用 / 空白字段”分组级原因，而不只是当前的大类说明
-5. 继续补 AI 抽屉高风险接线回归，优先覆盖“发送按钮 / 预设入口 / scope 切换 / 导出 / 清空 / 配置缺失门禁”在真实 AntD 控件语义下的组合行为，避免后续 UI 重构把本地分析入口悄悄弄坏（本轮已补空导出门禁、清空仅作用当前 scope、Enter 发送语义，以及“预设入口复用最近对话历史”；下一步可补单账户文案、历史恢复与流式失败后重试语义）
-6. 继续检查导入链路里是否还有“用户可读错误已提示，但测试/运行时仍伴随大量预期异常噪音”的路径；优先看 FileReader onerror、模式不匹配、sanitize 过滤后的确认分支，评估是否继续把预期失败改成结构化结果而不是 throw
-7. 继续检查事件管理链路里是否还存在“成功只改视觉、不做显式反馈”的交互空洞；若继续打磨，可优先看删除以外的批量操作、示例载入与未来可能补充的复制/暂停全部等入口是否需要统一反馈语义
-
-- [x] 给首页“预测范围”补容器级接线回归（TimeRangeControl -> ChartArea -> store -> BalanceChart timeline），避免 UI 只改显示不改真实时间窗。
-
-- [x] 给首页“预测范围”补容器级接线回归（TimeRangeControl -> ChartArea -> store -> BalanceChart timeline），避免 UI 只改显示不改真实时间窗。
-
-- [x] 给 AI 失败横幅补“继续编辑上次问题”入口，失败后可一键把上次问题恢复到输入框并重新保存草稿；避免本地分析请求一抖动，用户就得从头重敲整句。
+1. **继续压包**：当前构建已把图表共享块拆散，但 `chart-balance-runtime` 仍约 556kB；下一步可评估 tooltip formatter、markArea/markLine 或 ECharts 依赖是否还能再拆，进一步降低余额图首次打开成本
+2. **图表体验继续深化**：在“图表点 → 事件清单高亮”和“事件清单 → 图表日期全部发生日总览”基础上，继续补“图上多事件日期的账户分组说明 / 金额摘要”或“从图表日期直接切换到同规则前后发生日”
+3. **导入恢复防误操作**：本轮之前已把总量 diff 细化到“按账户的数据变化 + 日期覆盖范围 + 备份新旧程度预警 + 按账户事件规则名级摘要”；下一步可继续做“按时间段的事件覆盖损失提示”或“按账户提示某个年份/月份的规则会整体减少”，把确认信息再往业务后果推近一层
+4. **AI 体验**：继续检查分析抽屉的流式渲染/大段 markdown 性能，必要时做消息虚拟化或渲染节流
+5. **测试面扩展**：图表容器联动、多账户预选入口、账户管理里的导入导出/清空/删除，以及文件读取失败分支都已补上组件级回归；下一步可继续给“AI 分析入口首次配置分支 / 清空后空状态提示 / 恢复全部账户确认框里的确认文案输入流”补组件级测试，避免高风险交互只靠 store / 纯函数兜底
