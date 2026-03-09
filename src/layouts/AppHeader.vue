@@ -181,6 +181,7 @@ import type { PersistedStateEnvelope } from '@/types';
 import type { UserPreferences } from '@/types/account';
 import { useFinanceStore } from '@/stores/finance';
 import { formatLocalISODate } from '@/utils/date';
+import { APP_VERSION } from '@/utils/defaults';
 import { createStateRepository } from '@/utils/storage';
 import {
   buildImportAccountDataDeltaSummary,
@@ -305,7 +306,7 @@ const rollbackSummary = computed(() => {
 });
 
 const validateImportMode = (mode: ImportExportMode, content: string) => {
-  const summary = parseImportPreview(content);
+  const summary = buildImportPreviewState(content).summary;
 
   if (mode === 'current' && summary.scope === 'all') {
     throw new Error('你选择的是“恢复当前账户”，但文件看起来是“全部账户备份”。请改用“恢复全部账户”，避免误把整库备份塞进单账户。');
@@ -319,14 +320,14 @@ const validateImportMode = (mode: ImportExportMode, content: string) => {
 };
 
 const buildImportPreviewState = (content: string) => {
-  const parsed = JSON.parse(content) as PersistedStateEnvelope;
   const incomingState = previewStateRepository.importState(content);
   const summary = parseImportPreview(JSON.stringify({
-    ...parsed,
+    version: APP_VERSION,
+    timestamp: new Date().toISOString(),
     state: incomingState,
-  }));
+  } satisfies PersistedStateEnvelope));
 
-  return { parsed, incomingState, summary };
+  return { incomingState, summary };
 };
 
 const currentImportPreviewState = () => ({

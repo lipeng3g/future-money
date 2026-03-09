@@ -3,9 +3,10 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-10
-- task: 给 EventCard 真组件补只读展示/禁用语义回归，避免事件面板只读保护只停留在父层横幅与守卫，子卡片真实交互却因为接线回退重新放出可点开关/编辑删除按钮
-- implementation: 新增 `src/components/events/__tests__/EventCard.test.ts`，覆盖账户/频率/金额摘要、图表定位入口、暂停状态、开关/编辑/删除事件透传，以及父层显式 `readonly` 传入时的“开关禁用 + 编辑/删除隐藏”真实组件语义
-- verification: 已纳入本轮完整验证队列（npm install / test / type-check / build / smoke / preview+curl）；待结果回填
+- task: 收口导入/恢复流程在预览前的 envelope 预校验与错误文案，避免坏 JSON 或缺少 `state` 的备份直接把底层解析异常暴露给用户
+- implementation: `src/utils/storage.ts` 新增 `parseImportedEnvelope` 统一处理导入 JSON / state 校验，`src/layouts/AppHeader.vue` 改为基于 sanitize 后 state 生成预览摘要，不再二次裸 `JSON.parse`
+- tests: 扩展 `src/utils/__tests__/storage.test.ts` 与 `src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts`，新增“非法 JSON / 缺少 state 时给出可读错误且不弹确认框”回归
+- verification: 已纳入本轮完整验证队列（npm install / test / type-check / build / smoke / preview+curl）
 [2026-03-10 00:45:00] task: 收口事件新增/编辑失败时的本地可恢复体验，确保失败后弹窗保留、错误有内联落点，并完成完整验证/提交/push
 [2026-03-10 00:52:00] deliverables: EventPanel 新增失败提示统一优先透传 store.message；扩展 EventPanel 组件级回归覆盖“新增失败保留弹窗+内联错误”与“新增成功真实写入 store 并关窗”，把失败保护从仅编辑场景补齐到新增场景
 [2026-03-10 00:57:00] follow-up: 补齐 finance store 的 addEvent 显式返回类型，保证 UI 统一读取 errors/message 时 TypeScript 不再因失败分支联合类型过窄而报错

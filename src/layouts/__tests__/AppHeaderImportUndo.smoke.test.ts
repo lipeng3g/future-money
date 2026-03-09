@@ -345,6 +345,42 @@ describe('AppHeader import/undo smoke', () => {
     expect(messageSuccess).toHaveBeenCalledWith('已撤销上次导入/恢复');
   });
 
+  it('shows readable error when import file is not valid JSON', async () => {
+    const wrapper = mountHeader();
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+    await wrapper.find('button.trigger-import-current').trigger('click');
+
+    const fileInput = wrapper.find('input.file-input').element as HTMLInputElement;
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [{ name: 'broken.json', __text: '{broken-json' }],
+    });
+    await wrapper.find('input.file-input').trigger('change');
+    await flushPromises();
+
+    expect(modalConfirm).not.toHaveBeenCalled();
+    expect(messageError).toHaveBeenCalledWith('导入文件不是合法的 JSON');
+  });
+
+  it('shows readable error when import file misses state payload', async () => {
+    const wrapper = mountHeader();
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+    await wrapper.find('button.trigger-import-all').trigger('click');
+
+    const fileInput = wrapper.find('input.file-input').element as HTMLInputElement;
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [{ name: 'missing-state.json', __text: JSON.stringify({ version: '2.0.0', timestamp: '2026-03-10T00:00:00.000Z' }) }],
+    });
+    await wrapper.find('input.file-input').trigger('change');
+    await flushPromises();
+
+    expect(modalConfirm).not.toHaveBeenCalled();
+    expect(messageError).toHaveBeenCalledWith('导入文件格式不正确：缺少 state 数据');
+  });
+
   it('can restore all accounts via UI confirm dialog and then undo back to the original local state', async () => {
     const store = useFinanceStore();
     const originalAccountId = store.currentAccount.id;

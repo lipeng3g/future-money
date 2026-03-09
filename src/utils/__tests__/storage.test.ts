@@ -613,6 +613,20 @@ describe('LocalStorageStateRepository', () => {
     expect(saveSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('会为非法 JSON 导入提供稳定的用户可读错误', () => {
+    const storage = createMemoryStorage();
+    const repository = new LocalStorageStateRepository(storage);
+
+    expect(() => repository.importState('{not-json')).toThrowError('导入文件不是合法的 JSON');
+  });
+
+  it('会为缺少 state 的导入提供稳定的用户可读错误', () => {
+    const storage = createMemoryStorage();
+    const repository = new LocalStorageStateRepository(storage);
+
+    expect(() => repository.importState(JSON.stringify({ version: '2.0.0' }))).toThrowError('导入文件格式不正确：缺少 state 数据');
+  });
+
   it('可以保存、读取并清除导入前回滚快照', () => {
     const storage = createMemoryStorage();
     const repository = new LocalStorageStateRepository(storage);

@@ -309,6 +309,26 @@ const createEnvelope = (state: AppState, scope: 'current' | 'all' = 'all'): Pers
   state,
 });
 
+const parseImportedEnvelope = (content: string): PersistedStateEnvelope => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    throw new Error('导入文件不是合法的 JSON');
+  }
+
+  if (!parsed || typeof parsed !== 'object' || !('state' in parsed)) {
+    throw new Error('导入文件格式不正确：缺少 state 数据');
+  }
+
+  const envelope = parsed as PersistedStateEnvelope;
+  if (!envelope.state || typeof envelope.state !== 'object') {
+    throw new Error('导入文件格式不正确：state 内容无效');
+  }
+
+  return envelope;
+};
+
 const createRollbackSnapshot = (
   state: AppState,
   mode: 'current' | 'all',
@@ -472,10 +492,7 @@ export class LocalStorageStateRepository implements StateRepository {
   }
 
   importState(content: string): AppState {
-    const parsed = JSON.parse(content) as PersistedStateEnvelope;
-    if (!parsed || !parsed.state) {
-      throw new Error('导入文件格式不正确');
-    }
+    const parsed = parseImportedEnvelope(content);
     return normalizeState(parsed.state);
   }
 }
