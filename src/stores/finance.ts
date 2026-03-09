@@ -337,8 +337,13 @@ export const useFinanceStore = defineStore('finance', () => {
   };
 
   const deleteEvent = (id: string) => {
+    const exists = events.value.some((event) => event.id === id);
+    if (!exists) {
+      return { success: false as const, message: '事件不存在' };
+    }
     events.value = events.value.filter((event) => event.id !== id);
     persist();
+    return { success: true as const };
   };
 
   const toggleEvent = (id: string, enabled: boolean) => updateEvent(id, { enabled });

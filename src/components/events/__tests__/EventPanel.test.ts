@@ -371,6 +371,19 @@ describe('EventPanel', () => {
     expect(store.events.find((event) => event.id === 'evt-rent')?.enabled).toBe(false);
   });
 
+
+  it('切换事件状态失败时会提示明确错误', async () => {
+    const store = useFinanceStore();
+    const wrapper = mountPanel();
+    const toggleSpy = vi.spyOn(store, 'toggleEvent').mockReturnValue({ success: false, message: '事件不存在' });
+
+    await wrapper.find('.toggle-trigger').trigger('click');
+    await nextTick();
+
+    expect(toggleSpy).toHaveBeenCalled();
+    expect(messageError).toHaveBeenCalledWith('事件不存在');
+  });
+
   it('删除事件时会走确认框，并在确认后清掉 store 与当前焦点', async () => {
     const store = useFinanceStore();
     const wrapper = mountPanel();
@@ -392,6 +405,24 @@ describe('EventPanel', () => {
     expect(messageSuccess).toHaveBeenCalledWith('已删除事件');
     expect(wrapper.text()).not.toContain('已定位到「房租」');
     expect(wrapper.emitted('clear-focus')).toBeTruthy();
+  });
+
+
+  it('删除事件失败时会给出失败提示且不误报成功', async () => {
+    const store = useFinanceStore();
+    const wrapper = mountPanel();
+    const deleteSpy = vi.spyOn(store, 'deleteEvent').mockReturnValue({ success: false, message: '事件不存在' });
+
+    await wrapper.find('.delete-trigger').trigger('click');
+    expect(modalConfirm).toHaveBeenCalledTimes(1);
+
+    const confirmOptions = modalConfirm.mock.calls[0]?.[0] as { onOk: () => void };
+    confirmOptions.onOk();
+    await nextTick();
+
+    expect(deleteSpy).toHaveBeenCalledWith('evt-rent');
+    expect(messageError).toHaveBeenCalledWith('事件不存在');
+    expect(messageSuccess).not.toHaveBeenCalledWith('已删除事件');
   });
 
   it('载入示例时会要求正确口令，错误输入不覆盖本地事件', async () => {

@@ -263,3 +263,8 @@
 [2026-03-10 01:29:00] task: 校正文案与真实行为不一致的账户清空危险操作确认，避免用户误以为只会删事件/快照而低估影响范围
 [2026-03-10 01:29:00] deliverables: AppHeader 的清空当前账户确认框改为展示真实删除范围摘要（事件/对账/账本/覆盖记录数量、余额归零、仅影响当前账户）；同步更新 AccountManageModal 中该危险操作说明，明确会删除账本与覆盖记录并重置余额；扩展 AppHeader 组件级回归，覆盖错误确认拦截、真实摘要展示与确认后 state 清空
 [2026-03-10 01:29:00] verification: npm test ✅ (182), npm run type-check ✅, npm run build ✅, npm run dev -- --host 127.0.0.1 + curl -I/http body smoke ✅；宿主无可用浏览器，未做 GUI 浏览器自动化，但已确认 dev server 返回首页 HTML 200
+
+## 2026-03-10
+- 收口事件管理失败态：store.deleteEvent 现在会在目标不存在时返回失败结果；EventPanel 对 delete/toggle 统一补充错误提示，避免陈旧引用/竞态下静默失败或误报成功。
+- 为 EventPanel 新增回归：覆盖 toggle 失败、delete 失败提示，确保事件管理的成功/失败反馈一致。
+- 验证：npm install / npm test / npm run type-check / npm run build / npm run smoke 均通过。

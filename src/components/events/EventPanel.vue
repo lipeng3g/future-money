@@ -272,7 +272,11 @@ const confirmDelete = (event: CashFlowEvent) => {
     okButtonProps: { danger: true },
     cancelText: '取消',
     onOk: () => {
-      store.deleteEvent(event.id);
+      const result = store.deleteEvent(event.id);
+      if (!result.success) {
+        message.error(result.message ?? '删除失败');
+        return;
+      }
       message.success('已删除事件');
       if ((activeChartFocus.value && activeChartFocus.value.eventId === event.id) || activeListFocus.value?.eventIds.includes(event.id)) {
         clearFocus();
@@ -283,7 +287,10 @@ const confirmDelete = (event: CashFlowEvent) => {
 
 const handleToggle = ({ id, enabled }: { id: string; enabled: boolean }) => {
   if (guardReadOnlyAction()) return;
-  store.toggleEvent(id, enabled);
+  const result = store.toggleEvent(id, enabled);
+  if (!result.success) {
+    message.error(result.errors?.join('；') ?? result.message ?? '切换事件状态失败');
+  }
 };
 
 const loadSamples = () => {
