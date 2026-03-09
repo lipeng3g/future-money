@@ -359,7 +359,7 @@ describe('EventPanel', () => {
     expect(wrapper.find('.event-form-modal-stub').exists()).toBe(false);
   });
 
-  it('会在切换启用状态时真正更新 store', async () => {
+  it('会在切换启用状态时真正更新 store，并给出成功反馈', async () => {
     const store = useFinanceStore();
     const wrapper = mountPanel();
 
@@ -369,8 +369,14 @@ describe('EventPanel', () => {
     await nextTick();
 
     expect(store.events.find((event) => event.id === 'evt-rent')?.enabled).toBe(false);
-  });
+    expect(messageSuccess).toHaveBeenCalledWith('已暂停事件');
 
+    await wrapper.find('.toggle-trigger').trigger('click');
+    await nextTick();
+
+    expect(store.events.find((event) => event.id === 'evt-rent')?.enabled).toBe(true);
+    expect(messageSuccess).toHaveBeenCalledWith('已启用事件');
+  });
 
   it('切换事件状态失败时会提示明确错误', async () => {
     const store = useFinanceStore();

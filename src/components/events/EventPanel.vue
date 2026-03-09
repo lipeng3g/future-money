@@ -290,7 +290,10 @@ const handleToggle = ({ id, enabled }: { id: string; enabled: boolean }) => {
   const result = store.toggleEvent(id, enabled);
   if (!result.success) {
     message.error(result.errors?.join('；') ?? result.message ?? '切换事件状态失败');
+    return;
   }
+
+  message.success(enabled ? '已启用事件' : '已暂停事件');
 };
 
 const loadSamples = () => {

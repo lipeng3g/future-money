@@ -171,8 +171,8 @@ const chatHistoryScope = computed(() => ({
 }));
 
 watch(
-  () => store.isMultiAccountView,
-  (isMulti) => {
+  [() => store.isMultiAccountView, () => store.selectedAccountIds.join(','), () => store.currentAccount.id],
+  ([isMulti]) => {
     selectedAccountIds.value = isMulti ? [...store.selectedAccountIds] : [store.currentAccount.id];
   },
   { immediate: true },

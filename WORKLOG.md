@@ -270,6 +270,6 @@
 [2026-03-10 01:29:00] verification: npm test ✅ (182), npm run type-check ✅, npm run build ✅, npm run dev -- --host 127.0.0.1 + curl -I/http body smoke ✅；宿主无可用浏览器，未做 GUI 浏览器自动化，但已确认 dev server 返回首页 HTML 200
 
 ## 2026-03-10
-- 收口事件管理失败态：store.deleteEvent 现在会在目标不存在时返回失败结果；EventPanel 对 delete/toggle 统一补充错误提示，避免陈旧引用/竞态下静默失败或误报成功。
-- 为 EventPanel 新增回归：覆盖 toggle 失败、delete 失败提示，确保事件管理的成功/失败反馈一致。
-- 验证：npm install / npm test / npm run type-check / npm run build / npm run smoke 均通过。
+- 收口事件管理成功/失败反馈一致性：在已有 delete/toggle 失败提示基础上，`EventPanel` 的事件启停现在也会在成功后给出明确 toast（已暂停 / 已启用），避免用户点击开关后只能靠视觉状态变化猜测操作是否真正生效。
+- 扩展 `src/components/events/__tests__/EventPanel.test.ts`：把原“toggle 会改 store”回归升级为“禁用成功提示 + 重新启用成功提示”双向断言，同时继续保留 toggle/delete 失败分支保护，锁住事件管理操作反馈语义。
+- 验证：`npm install`、`npm test`（32 files / 200 tests 通过）、`npm run type-check`、`npm run build`、`npm run smoke`（2 files / 5 tests 通过）均通过；额外执行 `npm run dev -- --host 127.0.0.1` 并用 `curl -I http://127.0.0.1:3002/` 命中 `HTTP/1.1 200 OK` 完成运行时烟雾验证。构建过程中仍有既有 chunk size / circular chunk warning，但不影响本轮通过。

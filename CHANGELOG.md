@@ -2,6 +2,8 @@
 
 ## 2026-03-10
 
+- ux(event-toggle): 事件面板里的启停开关现在在操作成功后也会给出明确反馈：关闭时提示“已暂停事件”，重新开启时提示“已启用事件”。这样事件管理的成功/失败反馈终于和新增、编辑、删除保持一致，不再只靠开关视觉状态让用户自己猜测是否真的生效。
+- test(event-toggle): 扩展 `src/components/events/__tests__/EventPanel.test.ts`，把原本只断言 store 状态变化的启停测试升级为“暂停成功提示 + 重新启用成功提示”的双向回归，同时继续保留 toggle/delete 失败分支保护，锁住事件管理反馈语义。
 - test(ai-modal): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，补“未配置 API 时点击预设不会误发请求而是打开设置弹窗”“导出对话会按当前账户 scope 传递消息并给出成功提示”两条组件级回归；把 AI 抽屉的高风险本地交互从中止流/草稿作用域继续补到配置门禁与导出接线，降低后续 UI 轻微重构时把真实用户入口悄悄弄坏的风险。
 - refactor(chart-runtime): 新增 `src/utils/use-chart-runtime.ts`，把图表组件里重复的 `onMounted -> ensureReady()` 异步加载接线抽成共享组合式 hook；余额图 / 月度图继续复用既有 `createAsyncChartRuntime()` 状态机，但 mounted 生命周期与加载胶水代码不再散落在两个组件里，后续若继续调整图表 runtime 初始化策略只需改一处。
 - test(chart-runtime): 新增 `src/utils/__tests__/use-chart-runtime.test.ts`，覆盖“组件挂载后会自动触发 runtime 加载”的共享接线语义；同时扩展 `src/components/charts/__tests__/CashFlowChart.test.ts`，补齐“runtime 首次失败时展示错误态，点击重试后恢复渲染”回归，继续锁住本地图表 chunk 失败后的自恢复体验。
