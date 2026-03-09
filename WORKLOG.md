@@ -171,3 +171,7 @@
 [2026-03-09 13:58:00] verification: npm install ✅, npm test ✅ (146), npm run type-check ✅, npm run build ✅；npm run preview -- --host 127.0.0.1 --port 4175 + curl -I http://127.0.0.1:4175/ ✅；产物检查仍见既有 vendor-antd ~715kB / chart-balance-runtime ~556kB 告警，其中 vendor-antd 与用户为消除循环依赖所做的安全合并一致，本轮未回退
 [2026-03-09 14:15:00] task: 收口 AI 抽屉的流式取消与过期写回问题，避免关闭抽屉或账户范围切换后旧请求继续把结果灌回当前本地对话
 [2026-03-09 14:15:00] deliverables: src/utils/ai.ts 的 streamChat 支持 AbortSignal；AiAnalysisModal 在抽屉关闭、组件卸载、scope 变化时主动 abort 并清空流式态，同时用 requestId 屏蔽过期结果写回；扩展 AiAnalysisModal 组件级回归覆盖“关闭即中止”“scope 变化不写回旧结果”
+
+[2026-03-09 19:41:03] task: 收紧导入值级数据净化，过滤非法日期/NaN/异常枚举，避免坏备份污染本地状态
+[2026-03-09 19:44:30] deliverables: storage 导入链路新增值级净化，过滤非法日期/NaN/异常枚举；补 storage 回归测试覆盖坏值剔除与账户字段降级
+[2026-03-09 19:44:30] verification: npm install ✅, npm test ✅ (151), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview + curl -I ✅；lockfile/config 未发现 mirrors.tencentyun.com、私有 registry 或内网源

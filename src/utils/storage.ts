@@ -4,6 +4,7 @@ import type { CashFlowEvent } from '@/types/event';
 import type { EventOverride, LedgerEntry, Reconciliation } from '@/types/reconciliation';
 import { APP_VERSION, DEFAULT_ACCOUNT_CONFIG, DEFAULT_PREFERENCES } from '@/utils/defaults';
 import { createId } from '@/utils/id';
+import { isValidISODate, validateCashFlowEvent } from '@/utils/validators';
 
 const STORAGE_KEY = 'futureMoney.state';
 const ROLLBACK_STORAGE_KEY = 'futureMoney.rollback';
@@ -80,48 +81,179 @@ const dedupeById = <T extends { id: string }>(items: T[]): T[] => {
   });
 };
 
+const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+const isNonNegativeNumber = (value: unknown): value is number => isFiniteNumber(value) && value >= 0;
+const isTransactionCategory = (value: unknown): value is 'income' | 'expense' => value === 'income' || value === 'expense';
+
+const sanitizeAccount = (account: AccountConfig): AccountConfig | null => {
+  if (!account?.id || !account.name?.trim()) {
+    return null;
+  }
+
+  return {
+    ...account,
+    name: account.name.trim(),
+    typeLabel: account.typeLabel?.trim() || undefined,
+    initialBalance: isFiniteNumber(account.initialBalance) ? account.initialBalance : 0,
+    currency: account.currency?.trim() || DEFAULT_ACCOUNT_CONFIG().currency,
+    warningThreshold: isNonNegativeNumber(account.warningThreshold) ? account.warningThreshold : 0,
+  };
+};
+
+const sanitizeEvent = (event: CashFlowEvent): CashFlowEvent | null => {
+  if (!event?.id || !event.accountId) {
+    return null;
+  }
+
+  const normalized: CashFlowEvent = {
+    ...event,
+    name: event.name?.trim() ?? '',
+    amount: isFiniteNumber(event.amount) ? event.amount : Number.NaN,
+    enabled: typeof event.enabled === 'boolean' ? event.enabled : true,
+    notes: event.notes?.trim() || undefined,
+    color: event.color?.trim() || undefined,
+  };
+
+  return validateCashFlowEvent(normalized).length === 0 ? normalized : null;
+};
+
+const sanitizeSnapshot = (snapshot: BalanceSnapshot): BalanceSnapshot | null => {
+  if (!snapshot?.id || !snapshot.accountId || !isValidISODate(snapshot.date) || !isFiniteNumber(snapshot.balance)) {
+    return null;
+  }
+  if (!['initial', 'manual', 'import'].includes(snapshot.source)) {
+    return null;
+  }
+
+  return {
+    ...snapshot,
+    note: snapshot.note?.trim() || undefined,
+  };
+};
+
+const sanitizeReconciliation = (reconciliation: Reconciliation): Reconciliation | null => {
+  if (!reconciliation?.id || !reconciliation.accountId || !isValidISODate(reconciliation.date) || !isFiniteNumber(reconciliation.balance)) {
+    return null;
+  }
+
+  return {
+    ...reconciliation,
+    note: reconciliation.note?.trim() || undefined,
+  };
+};
+
+const sanitizeLedgerEntry = (entry: LedgerEntry): LedgerEntry | null => {
+  if (
+    !entry?.id
+    || !entry.accountId
+    || !entry.reconciliationId
+    || !entry.name?.trim()
+    || !isFiniteNumber(entry.amount)
+    || !isTransactionCategory(entry.category)
+    || !isValidISODate(entry.date)
+    || !['rule', 'manual', 'adjustment'].includes(entry.source)
+  ) {
+    return null;
+  }
+
+  return {
+    ...entry,
+    name: entry.name.trim(),
+    ruleId: entry.ruleId || undefined,
+  };
+};
+
+const isValidOverridePeriod = (period: string): boolean => (
+  /^\d{4}-\d{2}$/.test(period)
+  || isValidISODate(period)
+  || /^\d{4}$/.test(period)
+);
+
+const sanitizeEventOverride = (override: EventOverride): EventOverride | null => {
+  if (
+    !override?.id
+    || !override.accountId
+    || !override.ruleId
+    || !override.period
+    || !isValidOverridePeriod(override.period)
+    || !['confirmed', 'skipped', 'modified'].includes(override.action)
+  ) {
+    return null;
+  }
+
+  if (override.action === 'modified' && !isFiniteNumber(override.amount)) {
+    return null;
+  }
+
+  if (override.actualDate && !isValidISODate(override.actualDate)) {
+    return null;
+  }
+
+  return {
+    ...override,
+    amount: override.action === 'modified' ? override.amount : undefined,
+    actualDate: override.actualDate || undefined,
+    name: override.name?.trim() || undefined,
+  };
+};
+
 const sanitizeStateReferences = (state: AppState): AppState => {
   const accounts = dedupeById(
-    state.accounts.filter((account): account is AccountConfig => !!account?.id),
+    state.accounts
+      .map((account) => sanitizeAccount(account as AccountConfig))
+      .filter((account): account is AccountConfig => !!account),
   );
   const accountIds = new Set(accounts.map((account) => account.id));
 
   const events = dedupeById(
-    state.events.filter((event): event is CashFlowEvent => !!event?.id && accountIds.has(event.accountId)),
+    state.events
+      .map((event) => sanitizeEvent(event as CashFlowEvent))
+      .filter((event): event is CashFlowEvent => !!event && accountIds.has(event.accountId)),
   );
   const eventIds = new Set(events.map((event) => event.id));
 
   const snapshots = dedupeById(
-    state.snapshots.filter((snapshot): snapshot is BalanceSnapshot => !!snapshot?.id && accountIds.has(snapshot.accountId)),
+    state.snapshots
+      .map((snapshot) => sanitizeSnapshot(snapshot as BalanceSnapshot))
+      .filter((snapshot): snapshot is BalanceSnapshot => !!snapshot && accountIds.has(snapshot.accountId)),
   );
 
   const reconciliations = dedupeById(
-    state.reconciliations.filter((reconciliation): reconciliation is Reconciliation => (
-      !!reconciliation?.id && accountIds.has(reconciliation.accountId)
-    )),
+    state.reconciliations
+      .map((reconciliation) => sanitizeReconciliation(reconciliation as Reconciliation))
+      .filter((reconciliation): reconciliation is Reconciliation => (
+        !!reconciliation && accountIds.has(reconciliation.accountId)
+      )),
   ).sort((a, b) => a.date.localeCompare(b.date));
   const reconciliationIds = new Set(reconciliations.map((reconciliation) => reconciliation.id));
 
   const ledgerEntries = dedupeById(
-    state.ledgerEntries.filter((entry): entry is LedgerEntry => {
-      if (!entry?.id || !accountIds.has(entry.accountId) || !reconciliationIds.has(entry.reconciliationId)) {
-        return false;
-      }
-      if (entry.ruleId && !eventIds.has(entry.ruleId)) {
-        return false;
-      }
-      return true;
-    }),
+    state.ledgerEntries
+      .map((entry) => sanitizeLedgerEntry(entry as LedgerEntry))
+      .filter((entry): entry is LedgerEntry => {
+        if (!entry || !accountIds.has(entry.accountId) || !reconciliationIds.has(entry.reconciliationId)) {
+          return false;
+        }
+        if (entry.ruleId && !eventIds.has(entry.ruleId)) {
+          return false;
+        }
+        return true;
+      }),
   );
 
   const eventOverrides = dedupeById(
-    state.eventOverrides.filter((override): override is EventOverride => (
-      !!override?.id && accountIds.has(override.accountId) && eventIds.has(override.ruleId)
-    )),
+    state.eventOverrides
+      .map((override) => sanitizeEventOverride(override as EventOverride))
+      .filter((override): override is EventOverride => (
+        !!override && accountIds.has(override.accountId) && eventIds.has(override.ruleId)
+      )),
   );
 
   const fallbackAccount = accounts[0] ?? createDefaultState().account;
-  const currentAccount = accountIds.has(state.account?.id) ? state.account : fallbackAccount;
+  const sanitizedCurrentAccount = sanitizeAccount(state.account as AccountConfig);
+  const currentAccount = sanitizedCurrentAccount && accountIds.has(sanitizedCurrentAccount.id)
+    ? sanitizedCurrentAccount
+    : fallbackAccount;
 
   return {
     ...state,

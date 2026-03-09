@@ -332,6 +332,179 @@ describe('LocalStorageStateRepository', () => {
     expect(imported.eventOverrides.map((override) => override.id)).toEqual(['override-1']);
   });
 
+  it('导入时会过滤非法日期、NaN、异常枚举和值级脏数据', () => {
+    const storage = createMemoryStorage();
+    const repository = new LocalStorageStateRepository(storage);
+    const base = createDefaultState();
+
+    const imported = repository.importState(
+      JSON.stringify({
+        version: '2.0.0',
+        timestamp: '2026-03-09T00:00:00.000Z',
+        state: {
+          ...base,
+          account: {
+            ...base.account,
+            id: 'acc-1',
+            name: '  主账户  ',
+            initialBalance: Number.NaN,
+            warningThreshold: -50,
+            currency: '',
+          },
+          accounts: [
+            {
+              ...base.account,
+              id: 'acc-1',
+              name: '  主账户  ',
+              initialBalance: Number.NaN,
+              warningThreshold: -50,
+              currency: '',
+            },
+          ],
+          events: [
+            {
+              id: 'event-valid',
+              accountId: 'acc-1',
+              name: '  工资  ',
+              amount: 5000,
+              category: 'income',
+              type: 'monthly',
+              startDate: '2026-03-01',
+              monthlyDay: 1,
+              enabled: true,
+              createdAt: '2026-03-01T00:00:00.000Z',
+              updatedAt: '2026-03-01T00:00:00.000Z',
+            },
+            {
+              id: 'event-invalid-date',
+              accountId: 'acc-1',
+              name: '坏日期',
+              amount: 1,
+              category: 'income',
+              type: 'once',
+              startDate: '2026-02-30',
+              onceDate: '2026-02-30',
+              enabled: true,
+              createdAt: '2026-03-01T00:00:00.000Z',
+              updatedAt: '2026-03-01T00:00:00.000Z',
+            },
+            {
+              id: 'event-invalid-amount',
+              accountId: 'acc-1',
+              name: '坏金额',
+              amount: 'oops',
+              category: 'income',
+              type: 'monthly',
+              startDate: '2026-03-01',
+              monthlyDay: 1,
+              enabled: true,
+              createdAt: '2026-03-01T00:00:00.000Z',
+              updatedAt: '2026-03-01T00:00:00.000Z',
+            },
+          ],
+          snapshots: [
+            {
+              id: 'snapshot-valid',
+              accountId: 'acc-1',
+              date: '2026-03-01',
+              balance: 5000,
+              source: 'manual',
+              createdAt: '2026-03-01T00:00:00.000Z',
+            },
+            {
+              id: 'snapshot-invalid',
+              accountId: 'acc-1',
+              date: '2026-13-01',
+              balance: 10,
+              source: 'manual',
+              createdAt: '2026-03-01T00:00:00.000Z',
+            },
+          ],
+          reconciliations: [
+            {
+              id: 'recon-valid',
+              accountId: 'acc-1',
+              date: '2026-03-03',
+              balance: 6000,
+              note: '  对账  ',
+              createdAt: '2026-03-03T00:00:00.000Z',
+            },
+            {
+              id: 'recon-invalid',
+              accountId: 'acc-1',
+              date: 'bad-date',
+              balance: 1,
+              createdAt: '2026-03-03T00:00:00.000Z',
+            },
+          ],
+          ledgerEntries: [
+            {
+              id: 'ledger-valid',
+              accountId: 'acc-1',
+              reconciliationId: 'recon-valid',
+              ruleId: 'event-valid',
+              name: '  工资入账  ',
+              amount: 5000,
+              category: 'income',
+              date: '2026-03-03',
+              source: 'rule',
+              createdAt: '2026-03-03T00:00:00.000Z',
+              updatedAt: '2026-03-03T00:00:00.000Z',
+            },
+            {
+              id: 'ledger-invalid',
+              accountId: 'acc-1',
+              reconciliationId: 'recon-valid',
+              name: '',
+              amount: Number.NaN,
+              category: 'weird',
+              date: '2026-03-03',
+              source: 'manual',
+              createdAt: '2026-03-03T00:00:00.000Z',
+              updatedAt: '2026-03-03T00:00:00.000Z',
+            },
+          ],
+          eventOverrides: [
+            {
+              id: 'override-valid',
+              accountId: 'acc-1',
+              ruleId: 'event-valid',
+              period: '2026-03',
+              action: 'modified',
+              amount: 5200,
+              name: '  手调工资  ',
+              actualDate: '2026-03-05',
+              createdAt: '2026-03-03T00:00:00.000Z',
+            },
+            {
+              id: 'override-invalid',
+              accountId: 'acc-1',
+              ruleId: 'event-valid',
+              period: 'not-a-period',
+              action: 'modified',
+              amount: 'oops',
+              createdAt: '2026-03-03T00:00:00.000Z',
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(imported.account.name).toBe('主账户');
+    expect(imported.account.initialBalance).toBe(0);
+    expect(imported.account.warningThreshold).toBe(0);
+    expect(imported.account.currency).toBe(base.account.currency);
+    expect(imported.events.map((event) => event.id)).toEqual(['event-valid']);
+    expect(imported.events[0].name).toBe('工资');
+    expect(imported.snapshots.map((snapshot) => snapshot.id)).toEqual(['snapshot-valid']);
+    expect(imported.reconciliations.map((reconciliation) => reconciliation.id)).toEqual(['recon-valid']);
+    expect(imported.reconciliations[0].note).toBe('对账');
+    expect(imported.ledgerEntries.map((entry) => entry.id)).toEqual(['ledger-valid']);
+    expect(imported.ledgerEntries[0].name).toBe('工资入账');
+    expect(imported.eventOverrides.map((override) => override.id)).toEqual(['override-valid']);
+    expect(imported.eventOverrides[0].name).toBe('手调工资');
+  });
+
   it('连续 saveState 会立即保存首个状态，并在短时间内合并后续写入', () => {
     vi.useFakeTimers();
     const storage = createMemoryStorage();
