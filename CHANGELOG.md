@@ -10,6 +10,8 @@
 - stability(ai-context): AI 抽屉里通过预设快捷提问时，现在也会和手动发送一样复用最近几轮本地对话历史，不再因为走了“预设入口”就把同一会话的上下文突然截断；这样用户先问一轮、再点风险预警/支出优化等预设时，模型仍能接住刚才的本地分析脉络。
 - test(ai-scope): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“多账户顺序变化时仍复用同一份 scope 历史与草稿”的组件级回归，继续把 AI 抽屉多账户本地数据边界锁在真实 UI 行为层。
 - test(ai-context): 同步补“点击预设时会复用最近对话历史”的组件级回归，锁住预设入口与手动发送的上下文一致性，避免后续 UI 重构再把快捷提问变回‘单发失忆’。
+- stability(ai-retry-boundary): AI 抽屉现在会区分“同题重试”和“失败后手动改题再发送”：只有真正同题重试才会替换上一轮失败 partial；如果用户改了问题，旧 partial 会作为历史保留，新问题会按新一轮对话继续，避免把不同问题错误折叠成一次重试。
+- test(ai-retry-boundary): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“失败后手动改题再次发送时，不会把上一次 partial 当成同题重试去替换”的组件级回归，锁住 AI 抽屉失败恢复里最容易串语义的一条边界。
 
 ## 2026-03-10
 - test(ai-input): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“Enter 直接发送、Shift+Enter 仅换行不触发发送”的组件级回归，锁住 AI 抽屉最常用输入语义，避免后续替换 AntD 输入框或重构事件接线时把回车发送手感悄悄弄坏。

@@ -225,6 +225,7 @@ const thinkingBuffer = ref('');
 const userInput = ref('');
 const requestError = ref('');
 const lastSubmittedQuestion = ref('');
+const lastFailedQuestion = ref('');
 const lastFailedAssistantMessage = ref<ChatRecord | null>(null);
 const chatAreaRef = ref<HTMLElement | null>(null);
 const activeRequestController = ref<AbortController | null>(null);
@@ -307,7 +308,7 @@ const sendToAi = async (question?: string) => {
   }
 
   const hadExplicitQuestion = typeof question === 'string';
-  const isRetryingFailedQuestion = !!lastFailedAssistantMessage.value && displayQuestion === lastSubmittedQuestion.value;
+  const isRetryingFailedQuestion = !!lastFailedAssistantMessage.value && displayQuestion === lastFailedQuestion.value;
   const existingMessages = isRetryingFailedQuestion
     ? chatMessages.value.filter((message) => message !== lastFailedAssistantMessage.value)
     : [...chatMessages.value];
@@ -328,6 +329,9 @@ const sendToAi = async (question?: string) => {
 
   requestError.value = '';
   lastSubmittedQuestion.value = displayQuestion;
+  if (!isRetryingFailedQuestion) {
+    lastFailedQuestion.value = '';
+  }
   lastFailedAssistantMessage.value = null;
 
   const ctx = getFinancialContext();
@@ -379,6 +383,7 @@ const sendToAi = async (question?: string) => {
       thinking: thinkingBuffer.value || undefined,
     });
     saveChatHistory(chatMessages.value, chatHistoryScope.value);
+    lastFailedQuestion.value = '';
     lastFailedAssistantMessage.value = null;
   } catch (err: any) {
     if (requestId !== activeRequestId || err?.name === 'AbortError' || controller.signal.aborted) {
@@ -387,6 +392,8 @@ const sendToAi = async (question?: string) => {
 
     const errorMessage = err?.message || '未知错误';
     requestError.value = `请求失败: ${errorMessage}`;
+
+    lastFailedQuestion.value = lastSubmittedQuestion.value;
 
     if (contentBuffer.value || thinkingBuffer.value) {
       const partialAssistantMessage = {
@@ -437,6 +444,7 @@ watch(
   (open) => {
     if (open) return;
     requestError.value = '';
+    lastFailedQuestion.value = '';
     lastFailedAssistantMessage.value = null;
     cancelActiveRequest();
     resetStreamingState();
@@ -446,6 +454,7 @@ watch(
 watch(
   chatHistoryScope,
   () => {
+    lastFailedQuestion.value = '';
     lastFailedAssistantMessage.value = null;
     if (!streaming.value) return;
     activeRequestId += 1;
@@ -464,6 +473,7 @@ const handleClearChat = () => {
   chatMessages.value = [];
   userInput.value = '';
   requestError.value = '';
+  lastFailedQuestion.value = '';
   lastFailedAssistantMessage.value = null;
   clearChatHistory(chatHistoryScope.value);
   clearChatDraft(chatHistoryScope.value);

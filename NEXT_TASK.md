@@ -1,4 +1,4 @@
-- [ ] 继续补 AI 抽屉失败恢复的边界回归，优先覆盖“重试期间再次失败的去重语义”“连续两次 partial fail 时历史替换策略”“手动编辑问题后再重试是否应视为新问题”，避免当前修复只锁住同题重试这一路径。
+- [ ] 继续补 AI 抽屉失败恢复的边界回归，优先覆盖“重试期间再次失败的去重语义”“连续两次 partial fail 时历史替换策略”，避免当前修复只锁住同题重试这一路径。
 - [ ] 继续压缩大体积前端 chunk（当前 build 仍提示 chart-balance-runtime / vendor-antd 超 500 kB），优先从图表 runtime 与 Ant Design 组件级拆分入手。
 - [x] 继续给首页统计卡片 / 图表聚焦补更贴近真实 AntD 交互的容器级回归，尤其是 `StatisticsPanel → ChartArea → BalanceChart` 的 focus-key / focus-date 联动，避免后续重构只保住 store 层却把页面操作手感弄坏。
 

@@ -314,3 +314,4 @@
 
 ## 2026-03-10
 - AI 抽屉失败重试语义补强：同题重试时剔除上一轮失败残留的 assistant partial/thinking，避免半截建议被再次当成上下文；补组件回归并完成 install/test/type-check/build/smoke/preview 探活。
+- AI 抽屉失败恢复边界继续收口：新增 `lastFailedQuestion` 区分“同题重试”与“失败后手动改题再发送”，只在真正同题重试时替换旧 partial；如果用户改了问题，则保留旧 partial 作为历史并把新问题视为新一轮对话。同步扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts` 锁住这条组件级回归。

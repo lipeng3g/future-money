@@ -527,6 +527,45 @@ describe('AiAnalysisModal', () => {
     expect(messages.at(-1)).toEqual(expect.objectContaining({ role: 'user' }));
     expect(wrapper.text()).toContain('第二轮预设回答');
   });
+
+  it('手动修改问题后再次发送，不会把上一次失败 partial 当成同题重试去替换', async () => {
+    streamChatMock
+      .mockImplementationOnce(async function* () {
+        yield { type: 'content', text: '旧问题的半截回答' };
+        throw new Error('临时失败');
+      })
+      .mockImplementationOnce(async function* (_config: unknown, messages: ChatMessage[]) {
+        expect(messages).toEqual(expect.arrayContaining([
+          { role: 'user', content: '旧问题' },
+          { role: 'assistant', content: '旧问题的半截回答' },
+          { role: 'user', content: '新问题' },
+        ]));
+        yield { type: 'content', text: '新问题的完整回答' };
+      });
+
+    const wrapper = await mountModal();
+
+    await wrapper.find('textarea.a-textarea').setValue('旧问题');
+    await wrapper.find('button.a-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.text()).toContain('旧问题的半截回答');
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true);
+
+    await wrapper.find('textarea.a-textarea').setValue('新问题');
+    await wrapper.find('button.a-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    const rows = wrapper.findAll('.msg-row');
+    expect(rows).toHaveLength(4);
+    expect(rows[1]?.text()).toContain('旧问题的半截回答');
+    expect(rows[2]?.text()).toContain('新问题');
+    expect(rows[3]?.text()).toContain('新问题的完整回答');
+    expect(wrapper.text()).toContain('旧问题的半截回答');
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+  });
  
   it('多账户顺序变化时会复用同一份 scope 历史与草稿，不会因为顺序抖动串台', async () => {
     const store = useFinanceStore();
