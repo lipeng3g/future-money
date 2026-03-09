@@ -637,7 +637,14 @@ export const useFinanceStore = defineStore('finance', () => {
   };
 
   const setViewMonths = (months: number) => {
-    viewMonths.value = months;
+    const normalizedMonths = Number.isFinite(months) && months > 0
+      ? Math.round(months)
+      : DEFAULT_PREFERENCES().defaultViewMonths;
+    viewMonths.value = normalizedMonths;
+    preferences.value = {
+      ...preferences.value,
+      defaultViewMonths: normalizedMonths,
+    };
     persist();
   };
 

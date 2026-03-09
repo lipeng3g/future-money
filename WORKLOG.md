@@ -3,6 +3,11 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-10
+- task: 修复首页预测范围切换后刷新丢失的本地持久化缺口，避免用户把 12/24/36 个月切到新范围后只在当前会话生效、重开页面又默默回退
+- implementation: `src/stores/finance.ts` 的 `setViewMonths` 现在会在更新运行时 `viewMonths` 的同时，同步写回 `preferences.defaultViewMonths`，并对异常输入回退到默认值；扩展 `src/stores/__tests__/finance-import-export.test.ts`，新增“切换范围 → localStorage 持久化 → 通过持久化状态恢复后仍保留该范围”的回归，锁住首页时间窗的本地连续性
+- tests: `npm test -- src/stores/__tests__/finance-import-export.test.ts`
+
+## 2026-03-10
 - task: 给 AI 分析抽屉继续补高风险本地交互回归，锁住“配置缺失门禁 + 导出当前 scope 对话”两条容易被 UI 重构带坏的真实入口
 - implementation: 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“未配置 API 时点击预设不会误发请求而是打开设置弹窗”“导出对话会把当前账户 scope 的消息传给 exportChatHistory 并提示成功”两条组件级回归；继续复用真实 Pinia scope、草稿/历史 key 与 AntD 替身，避免 AI 本地分析入口只在 utils 层有覆盖、真实抽屉交互却悄悄回退
 - tests: `npm test -- src/components/ai/__tests__/AiAnalysisModal.test.ts`

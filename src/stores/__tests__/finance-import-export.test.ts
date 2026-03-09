@@ -340,6 +340,27 @@ describe('finance store import/export', () => {
     expect(store.rollbackSnapshot).toBeNull();
   });
 
+  it('切换预测范围时会同步持久化 defaultViewMonths，并能通过持久化状态恢复', () => {
+    const store = useFinanceStore();
+
+    store.setViewMonths(24);
+
+    expect(store.viewMonths).toBe(24);
+    expect(store.preferences.defaultViewMonths).toBe(24);
+
+    const persisted = readEnvelope();
+    expect(persisted.state.preferences.defaultViewMonths).toBe(24);
+
+    window.localStorage.clear();
+    setActivePinia(createPinia());
+    const restoredStore = useFinanceStore();
+
+    restoredStore.importState(JSON.stringify(persisted), 'all');
+
+    expect(restoredStore.viewMonths).toBe(24);
+    expect(restoredStore.preferences.defaultViewMonths).toBe(24);
+  });
+
   it('导入当前账户时会为事件与对账链路重建内部 ID 和引用关系', () => {
     const store = useFinanceStore();
     const targetId = store.currentAccount.id;

@@ -1,4 +1,5 @@
 - [ ] 继续压缩大体积前端 chunk（当前 build 仍提示 chart-balance-runtime / vendor-antd 超 500 kB），优先从图表 runtime 与 Ant Design 组件级拆分入手。
+- [ ] 给首页“预测范围”补一层组件级接线回归（`TimeRangeControl` → `ChartArea` → store），避免目前只靠 store 持久化测试兜底，后续若 segmented 事件签名或组件接线变动，UI 侧可能再次出现‘点了但没真正生效’。
 
 ## 刚完成
 - `npm run smoke` 已从“单账户导入 → 撤销”扩到同时覆盖“恢复全部账户 → 确认摘要 → 真恢复 → 撤销回滚”的 UI 闭环；`src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts` 现在会验证 sanitize 后摘要、账户/事件差异提示、整库恢复真实落地与回滚复原，降低高风险本地恢复链路继续只靠普通组件测试兜底的风险

@@ -2,6 +2,8 @@
 
 ## 2026-03-10
 
+- fix(view-range): 首页“预测范围”切换现在会同步写回 `preferences.defaultViewMonths`。此前 `setViewMonths()` 只改了运行时 `viewMonths`，但持久化仍保留旧默认值，导致用户把 12/24/36 个月切到新范围后，一刷新页面又悄悄回到旧值；现在本地选择会稳定跨刷新保留。
+- test(view-range): 扩展 `src/stores/__tests__/finance-import-export.test.ts`，新增“切换预测范围后 localStorage 中的 `defaultViewMonths` 会同步更新，并能通过持久化状态恢复出相同范围”的回归，锁住这个本地持久化行为，避免首页时间窗再次出现‘看起来切了、重开又丢’的回退。
 - ux(event-toggle): 事件面板里的启停开关现在在操作成功后也会给出明确反馈：关闭时提示“已暂停事件”，重新开启时提示“已启用事件”。这样事件管理的成功/失败反馈终于和新增、编辑、删除保持一致，不再只靠开关视觉状态让用户自己猜测是否真的生效。
 - test(event-toggle): 扩展 `src/components/events/__tests__/EventPanel.test.ts`，把原本只断言 store 状态变化的启停测试升级为“暂停成功提示 + 重新启用成功提示”的双向回归，同时继续保留 toggle/delete 失败分支保护，锁住事件管理反馈语义。
 - test(ai-modal): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，补“未配置 API 时点击预设不会误发请求而是打开设置弹窗”“导出对话会按当前账户 scope 传递消息并给出成功提示”两条组件级回归；把 AI 抽屉的高风险本地交互从中止流/草稿作用域继续补到配置门禁与导出接线，降低后续 UI 轻微重构时把真实用户入口悄悄弄坏的风险。
