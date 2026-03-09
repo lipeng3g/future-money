@@ -28,8 +28,9 @@
     <!-- 左右两栏：图表 | 即将发生 + 事件入口 -->
     <div class="main-grid">
       <div class="chart-column">
-        <div id="balance-chart-card" class="balance-card">
+        <div id="balance-chart-card" ref="balanceChartCardRef" class="balance-card">
           <BalanceChart
+            v-if="shouldRenderBalanceChart"
             :timeline="store.timeline"
             :warning-threshold="store.warningThreshold"
             :chart-type="store.preferences.chartType"
@@ -40,9 +41,30 @@
             :focus-date="balanceChartFocusDate"
             @select-date="handleChartDateSelect"
           />
+          <div v-else class="chart-skeleton" aria-live="polite">
+            <div class="chart-skeleton-header">
+              <span class="chart-skeleton-pill w-20"></span>
+              <span class="chart-skeleton-pill w-28"></span>
+            </div>
+            <div class="chart-skeleton-hero"></div>
+            <div class="chart-skeleton-axis">
+              <span v-for="item in 6" :key="item" class="chart-skeleton-tick"></span>
+            </div>
+            <p>正在按需加载余额图，先把首屏交互让出来。</p>
+          </div>
         </div>
-        <div id="cashflow-chart-card">
-          <CashFlowChart :months="store.analytics.months" />
+        <div id="cashflow-chart-card" ref="cashflowChartCardRef">
+          <CashFlowChart v-if="shouldRenderCashFlowChart" :months="store.analytics.months" />
+          <div v-else class="chart-skeleton compact" aria-live="polite">
+            <div class="chart-skeleton-header">
+              <span class="chart-skeleton-pill w-16"></span>
+              <span class="chart-skeleton-pill w-24"></span>
+            </div>
+            <div class="chart-skeleton-bars">
+              <span v-for="item in 8" :key="item" class="chart-skeleton-bar" :style="{ height: `${36 + (item % 4) * 18}px` }"></span>
+            </div>
+            <p>滚动到这里时再加载月度图表，减少初次打开等待。</p>
+          </div>
         </div>
       </div>
       <div class="side-column">
@@ -85,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, ref, watch } from 'vue';
+import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import type { BalanceChartFocusKey } from '@/utils/chart-options';
 import TimeRangeControl from '@/components/charts/TimeRangeControl.vue';
@@ -124,6 +146,51 @@ const aiConfigOpen = ref(false);
 const aiChatOpen = ref(false);
 const balanceChartFocusKey = ref<BalanceChartFocusKey>('latest');
 const balanceChartFocusDate = ref<string | undefined>(undefined);
+const balanceChartCardRef = ref<HTMLElement | null>(null);
+const cashflowChartCardRef = ref<HTMLElement | null>(null);
+const shouldRenderBalanceChart = ref(false);
+const shouldRenderCashFlowChart = ref(false);
+
+const chartObservers: IntersectionObserver[] = [];
+
+const canUseIntersectionObserver = () => typeof window !== 'undefined' && 'IntersectionObserver' in window;
+
+const revealChart = (type: 'balance' | 'cashflow') => {
+  if (type === 'balance') {
+    shouldRenderBalanceChart.value = true;
+    return;
+  }
+  shouldRenderCashFlowChart.value = true;
+};
+
+const observeDeferredChart = (
+  elementRef: typeof balanceChartCardRef,
+  type: 'balance' | 'cashflow',
+  rootMargin: string,
+) => {
+  if (!canUseIntersectionObserver()) {
+    revealChart(type);
+    return;
+  }
+
+  const target = elementRef.value;
+  if (!target) {
+    revealChart(type);
+    return;
+  }
+
+  const observer = new window.IntersectionObserver((entries) => {
+    if (!entries.some((entry) => entry.isIntersecting)) return;
+    revealChart(type);
+    observer.disconnect();
+  }, {
+    rootMargin,
+    threshold: 0.01,
+  });
+
+  observer.observe(target);
+  chartObservers.push(observer);
+};
 
 const handleAiClick = async () => {
   const config = await loadAiConfig();
@@ -162,6 +229,16 @@ const handleStatsFocusChart = (key: BalanceChartFocusKey) => {
 const handleChartDateSelect = (date: string) => {
   emit('focusEventsByDate', date);
 };
+
+onMounted(() => {
+  observeDeferredChart(balanceChartCardRef, 'balance', '320px 0px');
+  observeDeferredChart(cashflowChartCardRef, 'cashflow', '180px 0px');
+});
+
+onBeforeUnmount(() => {
+  chartObservers.forEach((observer) => observer.disconnect());
+  chartObservers.length = 0;
+});
 </script>
 
 <style scoped>
@@ -290,5 +367,116 @@ const handleChartDateSelect = (date: string) => {
   font-weight: 700;
   min-width: 36px;
   color: var(--fm-primary);
+}
+
+.chart-skeleton {
+  border: 1px solid var(--fm-border-subtle);
+  border-radius: 16px;
+  padding: 24px;
+  min-height: 380px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+  box-shadow: var(--fm-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chart-skeleton.compact {
+  min-height: 280px;
+}
+
+.chart-skeleton-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chart-skeleton-pill,
+.chart-skeleton-hero,
+.chart-skeleton-tick,
+.chart-skeleton-bar {
+  position: relative;
+  overflow: hidden;
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.chart-skeleton-pill::after,
+.chart-skeleton-hero::after,
+.chart-skeleton-tick::after,
+.chart-skeleton-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+  animation: chart-skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.chart-skeleton-pill {
+  display: inline-flex;
+  height: 14px;
+  border-radius: 999px;
+}
+
+.chart-skeleton-pill.w-16 {
+  width: 96px;
+}
+
+.chart-skeleton-pill.w-20 {
+  width: 128px;
+}
+
+.chart-skeleton-pill.w-24 {
+  width: 160px;
+}
+
+.chart-skeleton-pill.w-28 {
+  width: 196px;
+}
+
+.chart-skeleton-hero {
+  flex: 1;
+  min-height: 240px;
+  border-radius: 18px;
+}
+
+.chart-skeleton-axis {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.chart-skeleton-tick {
+  height: 10px;
+  border-radius: 999px;
+}
+
+.chart-skeleton-bars {
+  flex: 1;
+  min-height: 180px;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.chart-skeleton-bar {
+  flex: 1;
+  min-height: 32px;
+  border-radius: 12px 12px 4px 4px;
+}
+
+.chart-skeleton p {
+  margin: 0;
+  font-size: 0.83rem;
+  color: var(--fm-text-secondary);
+  line-height: 1.6;
+}
+
+@keyframes chart-skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }
 </style>

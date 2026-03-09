@@ -78,6 +78,9 @@
 [2026-03-09 02:43:00] deliverables: vite manualChunks 细分为 vendor-antd-core / vendor-antd-form / vendor-antd-feedback / vendor-antd-icons，并把 markdown-it、日期库单独拆仓，降低低频弹窗与主壳共享大包耦合
 [2026-03-09 02:45:00] verification: npm run type-check ✅, npm test ✅ (92), npm run build ✅；构建告警中的 vendor-antd ~718kB 已消除，当前主要 chunk 为 vendor-antd-core ~397.8kB、vendor-antd-form ~195.4kB、vendor-antd-feedback ~91.2kB、vendor-markdown ~91.9kB、vendor-date ~43.5kB、chart-options ~483.2kB，全部低于默认 500kB 告警阈值
 [2026-03-09 02:50:00] task: 修复 Vite 配置漂移并继续拆图表 option 共享块，避免“vite.config.ts 已优化但 build 仍命中旧 vite.config.js”的回退问题
+[2026-03-09 08:07:00] task: 继续优化首页首开体感，把 ChartArea 中两张异步图表改成“进入视口后再挂载”，避免统计卡与事件侧栏还没看完就被 ECharts 初始化抢走主线程
+[2026-03-09 08:07:00] deliverables: ChartArea 新增基于 IntersectionObserver 的图表延迟挂载与骨架占位；新增 src/components/charts/__tests__/ChartArea.test.ts 覆盖未入视口骨架与入视口后分别加载余额图/收支图
+[2026-03-09 08:15:00] verification: npm test ✅ (133), npm run type-check ✅, npm run build ✅；构建仍保留既有 chart-balance-runtime ~556.3kB 告警，但现在首页首开不再必须立即执行该重图表异步块
 [2026-03-09 02:50:00] deliverables: 删除历史编译产物 vite.config.js；新增 src/utils/chart-base.ts 与 src/utils/chart-options-cashflow.ts；收口 src/utils/chart-options.ts 为余额图专属逻辑；CashFlowChart 与图表测试改为按新模块引用
 [2026-03-09 02:54:00] verification: npm test ✅ (92), npm run build ✅；构建已按 vite.config.ts 生效，默认 500kB 告警消失，主要 chunk 为 vendor-antd-core ~397.8kB / vendor-antd-form ~195.4kB / vendor-antd-feedback ~91.2kB / vendor-markdown ~91.9kB / vendor-date ~43.5kB / BalanceChart ~67.5kB / CashFlowChart ~39.5kB
 [2026-03-09 03:00:00] task: 将事件表单中的 yearly/monthly 重复日期语义前移为即时字段提示，减少用户提交后才发现规则含义或非法月日组合的成本
