@@ -1,5 +1,3 @@
-- 2026-03-10: improved UpcomingEvents sidebar ordering/limit; added unit + component coverage; verified with test/type-check/build/smoke and local dev HTTP smoke.
-- 2026-03-10: extended AiAnalysisModal component tests to cover config-missing gate and scoped export wiring, tightening local AI drawer UX regression protection before broader UI refactors.
-[2026-03-10 03:34:19] task: 给首页预测范围补容器级接线回归，锁住 TimeRangeControl -> ChartArea -> store -> 图表 timeline -> localStorage 持久化 闭环
-[2026-03-10 03:37:02] implementation: 新增 ChartArea 组件级回归，覆盖预测范围切换会真实更新 store.viewMonths/defaultViewMonths，并驱动 BalanceChart timeline 扩窗；完整验证已再次通过 install/test/type-check/build/smoke/preview 探活
-[2026-03-10 03:37:18] implementation: 新增 ChartArea 组件级回归，覆盖预测范围切换会真实更新 store.viewMonths/defaultViewMonths，并驱动 BalanceChart timeline 扩窗；完整验证已再次通过 install/test/type-check/build/smoke/preview 探活
+[2026-03-10 04:12:00] task: 收口首页图表“事件定位 -> 延迟挂载余额图”状态同步，避免 focusDate 在图表进视口前到达时丢失，或清空后残留旧日期解释
+[2026-03-10 04:12:00] implementation: ChartArea 监听补上 shouldRenderBalanceChart 参与依赖，确保外部 focusDate 在图表挂载前已到达时，余额图首次挂载也能拿到最新定位日期；focusDate 清空时显式退出定位态。BalanceChart 用 activeFocus.isPinnedDate 区分“外部定位日期”与“正常快速定位”，让定位解除后恢复默认解释卡
+[2026-03-10 04:12:00] tests: 扩展 src/components/charts/__tests__/ChartArea.test.ts 与 src/components/charts/__tests__/BalanceChart.test.ts，覆盖挂载前缓存/挂载后更新/清空退出三条边界

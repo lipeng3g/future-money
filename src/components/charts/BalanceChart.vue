@@ -145,11 +145,17 @@ const activeFocus = computed(() => {
         key: activeFocusKey.value,
         label: '定位日期',
         date: matchedPoint.date,
+        isPinnedDate: true,
       };
     }
   }
 
-  return focusButtons.value.find((button) => button.key === activeFocusKey.value) ?? focusButtons.value[0];
+  const fallbackFocus = focusButtons.value.find((button) => button.key === activeFocusKey.value) ?? focusButtons.value[0];
+  if (!fallbackFocus) return undefined;
+  return {
+    ...fallbackFocus,
+    isPinnedDate: false,
+  };
 });
 
 const activeFocusLabel = computed(() => {
@@ -160,7 +166,7 @@ const activeFocusLabel = computed(() => {
 const activeInsight = computed(() => {
   if (!activeFocus.value) return null;
 
-  if (props.focusDate) {
+  if (activeFocus.value.isPinnedDate) {
     const pointIndex = props.timeline.findIndex((item) => item.date === props.focusDate);
     const point = pointIndex >= 0 ? props.timeline[pointIndex] : null;
     if (!point) return null;

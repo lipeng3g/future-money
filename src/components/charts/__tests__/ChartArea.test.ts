@@ -3,6 +3,7 @@ import { defineComponent, nextTick } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import ChartArea from '@/components/charts/ChartArea.vue';
+import type { ComponentMountingOptions } from '@vue/test-utils';
 import { useFinanceStore } from '@/stores/finance';
 
 vi.mock('ant-design-vue', async () => {
@@ -103,14 +104,17 @@ const flushAsyncComponents = async () => {
   await nextTick();
 };
 
-const mountChartArea = () => mount(ChartArea, {
+const mountChartArea = (options: ComponentMountingOptions<typeof ChartArea> = {}) => mount(ChartArea, {
+  ...options,
   global: {
+    ...(options.global ?? {}),
     stubs: {
       TimeRangeControl: TimeRangeControlStub,
       StatisticsPanel: StatisticsPanelStub,
       UpcomingEvents: UpcomingEventsStub,
       ReconciliationBanner: ReconciliationBannerStub,
       AppIcon: AppIconStub,
+      ...(options.global?.stubs ?? {}),
     },
   },
 });
@@ -216,5 +220,41 @@ describe('ChartArea', () => {
     expect(store.viewMonths).toBe(12);
     expect(store.preferences.defaultViewMonths).toBe(12);
     expect(wrapper.find('.current-range').text()).toBe('12');
+  });
+
+  it('外部 focusDate 在图表挂载前后都能正确传递，并在清空时退出事件定位态', async () => {
+    const wrapper = mountChartArea({
+      props: {
+        focusDate: '2026-03-20',
+        focusNonce: 1,
+      },
+    });
+    await nextTick();
+
+    expect(wrapper.find('.balance-chart-stub').exists()).toBe(false);
+
+    observerInstances[0]?.callback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+    await flushAsyncComponents();
+
+    let balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
+    expect(balanceChart.props('focusDate')).toBe('2026-03-20');
+
+    await wrapper.setProps({
+      focusDate: '2026-03-09',
+      focusNonce: 2,
+    });
+    await flushAsyncComponents();
+
+    balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
+    expect(balanceChart.props('focusDate')).toBe('2026-03-09');
+
+    await wrapper.setProps({
+      focusDate: null,
+      focusNonce: 3,
+    });
+    await flushAsyncComponents();
+
+    balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
+    expect(balanceChart.props('focusDate')).toBeUndefined();
   });
 });

@@ -152,7 +152,7 @@ describe('BalanceChart', () => {
     expect(wrapper.find('.focus-insight').text()).toContain('当日事件：奖金 +¥4,500');
   });
 
-  it('会响应外部 focusKey 和 focusDate 联动，优先显示指定日期解释', async () => {
+  it('会响应外部 focusKey 和 focusDate 联动，并在外部定位清空后回到正常快速定位', async () => {
     const wrapper = mountChart({ focusKey: 'reconciliation' });
     await flushPromises();
     await nextTick();
@@ -169,6 +169,14 @@ describe('BalanceChart', () => {
     expect(wrapper.find('.focus-insight').text()).toContain('当前选中事件在图表中的发生日期');
     expect(wrapper.find('.focus-insight').text()).toContain('余额变化 ¥4,500');
     expect(wrapper.find('.focus-insight').text()).toContain('当日事件：奖金 +¥4,500');
+
+    await wrapper.setProps({ focusDate: undefined });
+    await nextTick();
+
+    expect(wrapper.find('.focus-chip.active').text()).toBe('最近对账');
+    expect(wrapper.find('.toolbar-copy').text()).toContain('最近对账 · 2026-03-01');
+    expect(wrapper.find('.focus-insight').text()).toContain('最近一次对账锚点');
+    expect(wrapper.find('.focus-insight').text()).not.toContain('当前选中事件在图表中的发生日期');
   });
 
   it('点击含事件的数据点时才会发出 select-date', async () => {

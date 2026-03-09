@@ -237,9 +237,12 @@ const handleReconcileDone = () => {
 };
 
 watch(
-  () => [props.focusDate, props.focusNonce] as const,
+  () => [props.focusDate, props.focusNonce, shouldRenderBalanceChart.value] as const,
   ([focusDate]) => {
-    if (!focusDate) return;
+    if (!focusDate) {
+      balanceChartFocusDate.value = undefined;
+      return;
+    }
     balanceChartFocusDate.value = focusDate;
     balanceChartFocusKey.value = 'latest';
   },
