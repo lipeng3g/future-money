@@ -2,6 +2,7 @@
 
 ## 2026-03-09
 
+- test(smoke-browser): 新增 `scripts/browser-import-smoke.mjs` 作为页面级 smoke 草稿，并已用真实预览站点手工跑通同一条“打开账户管理 → 导入当前账户 → 检查 sanitize 后确认摘要与事件规则 diff → 确认导入 → 打开撤销入口 → 撤销回滚”的浏览器闭环；当前仓库尚未安装 `playwright`，因此本轮没有把它接入 npm 脚本，避免引入未验证的新依赖
 - safety(import-current): 单账户导入确认框现在会直接展示“当前账户事件规则 diff”，按规则名列出将新增 / 移除 / 保持存在的事件，避免用户只看到导入后总量和备份规则清单，却看不出当前账户本地哪些规则会被替掉
 - test(import-current): 扩展 `src/utils/__tests__/import-preview.test.ts` 与 `src/layouts/__tests__/AppHeader.test.ts`，补单账户事件规则 diff 的纯函数回归与确认框接线断言
 - test(import): 扩展 `src/utils/__tests__/storage.test.ts`，把导入值级净化回归从“非法日期 / NaN”继续补到“空白账户名、异常事件分类、异常快照来源、异常账本来源、异常 override 动作”等更贴近真实坏备份的脏值组合，确保本地导入只保留可安全落地的数据
