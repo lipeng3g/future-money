@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ChatMessage } from '@/utils/ai';
+import type { ChatMessage, ChatRecord } from '@/utils/ai';
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
@@ -7,11 +7,13 @@ import AiAnalysisModal from '@/components/ai/AiAnalysisModal.vue';
 import { createChatDraftScopeKey } from '@/utils/ai';
 import { useFinanceStore } from '@/stores/finance';
 
-const { messageSuccess, messageError, loadAiConfigMock, streamChatMock } = vi.hoisted(() => ({
+const { messageSuccess, messageError, messageInfo, loadAiConfigMock, streamChatMock, exportChatHistoryMock } = vi.hoisted(() => ({
   messageSuccess: vi.fn(),
   messageError: vi.fn(),
+  messageInfo: vi.fn(),
   loadAiConfigMock: vi.fn(),
   streamChatMock: vi.fn(),
+  exportChatHistoryMock: vi.fn(),
 }));
 
 vi.mock('ant-design-vue', async () => {
@@ -21,6 +23,7 @@ vi.mock('ant-design-vue', async () => {
     message: {
       success: messageSuccess,
       error: messageError,
+      info: messageInfo,
     },
   };
 });
@@ -31,6 +34,7 @@ vi.mock('@/utils/ai', async () => {
     ...actual,
     loadAiConfig: loadAiConfigMock,
     streamChat: streamChatMock,
+    exportChatHistory: exportChatHistoryMock,
   };
 });
 
@@ -119,8 +123,10 @@ describe('AiAnalysisModal', () => {
     localStorage.clear();
     messageSuccess.mockReset();
     messageError.mockReset();
+    messageInfo.mockReset();
     loadAiConfigMock.mockReset();
     streamChatMock.mockReset();
+    exportChatHistoryMock.mockReset();
 
     const store = useFinanceStore();
     store.setSimulatedToday('2026-03-09');
@@ -271,5 +277,34 @@ describe('AiAnalysisModal', () => {
 
     expect(wrapper.text()).not.toContain('旧上下文结果');
     expect(messageError).not.toHaveBeenCalled();
+  });
+
+  it('没有配置时不会误发请求，而是打开设置弹窗', async () => {
+    loadAiConfigMock.mockReturnValue(null);
+    const wrapper = await mountModal();
+
+    await wrapper.find('button.preset-item').trigger('click');
+    await nextTick();
+
+    expect(streamChatMock).not.toHaveBeenCalled();
+    expect(wrapper.find('.ai-config-modal-stub').exists()).toBe(true);
+  });
+
+  it('导出对话会带上当前 scope 的消息并给出成功提示', async () => {
+    const store = useFinanceStore();
+    const scopeAccountIds = [store.accounts[0].id, store.accounts[1].id];
+    const scopedMessages: ChatRecord[] = [
+      { role: 'user', content: '分析双账户' },
+      { role: 'assistant', content: '这是分析结果', thinking: '先看现金流' },
+    ];
+    localStorage.setItem(`fm-ai-chat:${scopeAccountIds.join(',')}`, JSON.stringify(scopedMessages));
+
+    const wrapper = await mountModal();
+    await flushPromises();
+    await nextTick();
+    await wrapper.findAll('button.icon-btn')[0].trigger('click');
+
+    expect(exportChatHistoryMock).toHaveBeenCalledWith(scopedMessages, { accountIds: scopeAccountIds });
+    expect(messageSuccess).toHaveBeenCalledWith('当前账户组合对话已导出');
   });
 });

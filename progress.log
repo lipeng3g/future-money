@@ -1,1 +1,2 @@
 - 2026-03-10: improved UpcomingEvents sidebar ordering/limit; added unit + component coverage; verified with test/type-check/build/smoke and local dev HTTP smoke.
+- 2026-03-10: extended AiAnalysisModal component tests to cover config-missing gate and scoped export wiring, tightening local AI drawer UX regression protection before broader UI refactors.

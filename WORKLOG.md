@@ -3,6 +3,11 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-10
+- task: 给 AI 分析抽屉继续补高风险本地交互回归，锁住“配置缺失门禁 + 导出当前 scope 对话”两条容易被 UI 重构带坏的真实入口
+- implementation: 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“未配置 API 时点击预设不会误发请求而是打开设置弹窗”“导出对话会把当前账户 scope 的消息传给 exportChatHistory 并提示成功”两条组件级回归；继续复用真实 Pinia scope、草稿/历史 key 与 AntD 替身，避免 AI 本地分析入口只在 utils 层有覆盖、真实抽屉交互却悄悄回退
+- tests: `npm test -- src/components/ai/__tests__/AiAnalysisModal.test.ts`
+
+## 2026-03-10
 - task: 收口图表 runtime 共享加载接线，并把失败后重试的回归补到公共层/组件层，减少两张图各自散落维护异步加载逻辑的成本
 - implementation: 新增 `src/utils/use-chart-runtime.ts`，把 `onMounted -> ensureReady()` 的组合式接线从 `BalanceChart` / `CashFlowChart` 抽成共享 hook；两张图改为直接复用该 hook，避免重复写 mounted 生命周期与 runtime 状态胶水代码。同步新增 `src/utils/__tests__/use-chart-runtime.test.ts` 覆盖“挂载即触发加载”，并在 `src/components/charts/__tests__/CashFlowChart.test.ts` 补“runtime 失败 -> 错误态 -> 重试恢复”的组件级回归，继续锁住本地图表 chunk 失败后的可恢复体验
 - tests: `npm test -- src/components/charts/__tests__/BalanceChart.test.ts src/components/charts/__tests__/CashFlowChart.test.ts src/utils/__tests__/chart-runtime.test.ts src/utils/__tests__/use-chart-runtime.test.ts`
