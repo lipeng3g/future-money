@@ -166,8 +166,12 @@ const mdRenderer = ref<(text: string) => string>(fallbackMdRenderer);
 const configOpen = ref(false);
 const allAccounts = computed(() => store.accounts);
 const selectedAccountIds = ref<string[]>([]);
+const normalizeAccountScopeIds = (accountIds: string[]) => {
+  return Array.from(new Set(accountIds.map((id) => id.trim()).filter(Boolean))).sort();
+};
+
 const chatHistoryScope = computed(() => ({
-  accountIds: [...selectedAccountIds.value],
+  accountIds: normalizeAccountScopeIds(selectedAccountIds.value),
 }));
 
 watch(

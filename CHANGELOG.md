@@ -1,6 +1,10 @@
 # Changelog
 
 ## 2026-03-10
+- stability(ai-scope): `AiAnalysisModal` 里的 scope 计算现在会先做去重 + 排序规范化，再读取/清空当前账户组合的历史与草稿；这样即便多账户勾选顺序发生变化，也会稳定命中同一份本地 AI 上下文，不会因为数组顺序抖动让已保存的对话/草稿看起来“突然消失”。
+- test(ai-scope): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“多账户顺序变化时仍复用同一份 scope 历史与草稿”的组件级回归，继续把 AI 抽屉多账户本地数据边界锁在真实 UI 行为层。
+
+## 2026-03-10
 - test(ai-input): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“Enter 直接发送、Shift+Enter 仅换行不触发发送”的组件级回归，锁住 AI 抽屉最常用输入语义，避免后续替换 AntD 输入框或重构事件接线时把回车发送手感悄悄弄坏。
 - test(ai-preset): 补“点击预设会直接发起分析，但不会清空当前 scope 草稿输入框”的回归，确保快捷提问与用户暂存草稿可以共存，不会因为点了预设把本地未发送内容静默抹掉。
 - chore(test-hygiene): 清理 `AiAnalysisModal` 测试文件中的残留 patch 标记字符，保持仓库测试源码可直接复制/编辑，避免后续人工合并或脚本处理时踩到脏文本。

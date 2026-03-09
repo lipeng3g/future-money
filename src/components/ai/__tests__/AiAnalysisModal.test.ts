@@ -375,6 +375,30 @@ describe('AiAnalysisModal', () => {
     expect(localStorage.getItem(scopeKey)).toBe('稍后再问的草稿');
   });
 
+  it('多账户顺序变化时会复用同一份 scope 历史与草稿，不会因为顺序抖动串台', async () => {
+    const store = useFinanceStore();
+    const [accountA, accountB] = store.accounts;
+    const normalizedScopeKey = `fm-ai-chat:${[accountA.id, accountB.id].sort().join(',')}`;
+    const normalizedDraftKey = createChatDraftScopeKey({ accountIds: [accountA.id, accountB.id] });
+
+    localStorage.setItem(normalizedScopeKey, JSON.stringify([
+      { role: 'user', content: '稳定的多账户问题' },
+      { role: 'assistant', content: '稳定的多账户回答' },
+    ] satisfies ChatRecord[]));
+    localStorage.setItem(normalizedDraftKey, '稳定的多账户草稿');
+
+    const wrapper = await mountModal();
+    expect(wrapper.text()).toContain('稳定的多账户问题');
+    expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('稳定的多账户草稿');
+
+    store.multiAccountSelection = [accountB.id, accountA.id];
+    await nextTick();
+    await nextTick();
+
+    expect(wrapper.text()).toContain('稳定的多账户问题');
+    expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('稳定的多账户草稿');
+  });
+
   it('清空对话只会清掉当前 scope 的历史与草稿，不影响其它 scope', async () => {
     const store = useFinanceStore();
     const [accountA, accountB] = store.accounts;
