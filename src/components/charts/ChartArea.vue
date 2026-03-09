@@ -76,7 +76,7 @@
           <span class="event-count-badge">{{ store.events.length }}</span>
         </button>
         <div class="upcoming-wrapper">
-          <UpcomingEvents :timeline="store.timeline" />
+          <UpcomingEvents :timeline="store.timeline" @focus-date="handleUpcomingFocusDate" />
         </div>
       </div>
     </div>
@@ -270,6 +270,11 @@ const handleStatsFocusChart = (key: BalanceChartFocusKey) => {
 
 const handleChartDateSelect = (date: string) => {
   emit('focusEventsByDate', date);
+};
+
+const handleUpcomingFocusDate = (date: string) => {
+  balanceChartFocusDate.value = date;
+  balanceChartFocusKey.value = 'latest';
 };
 
 onMounted(() => {

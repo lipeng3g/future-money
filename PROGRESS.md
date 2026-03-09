@@ -3,6 +3,14 @@
 ## 2026-03-10
 - Checked git status and fetched `origin` before changes.
 - Verified local `main` already matched `origin/main` after fetch.
+- Chose a new local high-value task for this pass: make the Upcoming Events sidebar clickable so users can jump from future items directly to the balance chart focus date instead of manually scanning the timeline.
+- Wiring in progress: `UpcomingEvents` now emits `focus-date`, and `ChartArea` listens so the balance chart enters pinned-date focus when a future item is clicked.
+- Added regressions for click + Enter keyboard activation on future items, plus a ChartArea container test that locks upcoming-sidebar -> balance-chart `focusDate` handoff.
+- Full validation is being rerun (`npm install`, `npm test`, `npm run type-check`, `npm run build`, `npm run smoke`, `npm run preview + curl`) before push.
+
+## 2026-03-10
+- Checked git status and fetched `origin` before changes.
+- Verified local `main` already matched `origin/main` after fetch.
 - Chose a local high-value task for this pass: harden AI analysis drawer failure recovery further so mid-stream failures do not discard already generated local analysis fragments.
 - Updated `src/components/ai/AiAnalysisModal.vue` so if a streamed reply already produced `thinking` or partial answer text before failing, the modal preserves that partial assistant output in scoped history, then shows the inline retry banner instead of silently dropping the generated fragment.
 - Further refined retry semantics in `src/components/ai/AiAnalysisModal.vue`: when the user retries the same failed question, the modal now excludes the previous failed partial assistant message from the next request context and replaces it with the retried answer, preventing half-finished advice from polluting follow-up analysis.

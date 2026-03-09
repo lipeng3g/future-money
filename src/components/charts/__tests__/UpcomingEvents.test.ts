@@ -233,4 +233,48 @@ describe('UpcomingEvents', () => {
     const wrapper = mountUpcomingEvents(timeline);
     expect(wrapper.find('.account-tag').exists()).toBe(false);
   });
+
+  it('点击未来事件时会发出 focus-date，方便联动余额图定位', async () => {
+    const store = useFinanceStore();
+    store.setSimulatedToday('2025-01-10');
+
+    const timeline: DailySnapshot[] = [{
+      date: '2025-01-11',
+      balance: 0,
+      change: 0,
+      isWeekend: false,
+      isToday: false,
+      zone: 'projected',
+      events: [
+        { id: 'rent', eventId: 'rent', name: '房租', category: 'expense', amount: 2800, date: '2025-01-11', period: '2025-01' },
+      ],
+    }];
+
+    const wrapper = mountUpcomingEvents(timeline);
+    await wrapper.find('li').trigger('click');
+
+    expect(wrapper.emitted('focus-date')?.at(-1)).toEqual(['2025-01-11']);
+  });
+
+  it('键盘回车也能触发 future item 的 focus-date，保持可访问性', async () => {
+    const store = useFinanceStore();
+    store.setSimulatedToday('2025-01-10');
+
+    const timeline: DailySnapshot[] = [{
+      date: '2025-01-11',
+      balance: 0,
+      change: 0,
+      isWeekend: false,
+      isToday: false,
+      zone: 'projected',
+      events: [
+        { id: 'salary', eventId: 'salary', name: '工资', category: 'income', amount: 5000, date: '2025-01-11', period: '2025-01' },
+      ],
+    }];
+
+    const wrapper = mountUpcomingEvents(timeline);
+    await wrapper.find('li').trigger('keydown.enter');
+
+    expect(wrapper.emitted('focus-date')?.at(-1)).toEqual(['2025-01-11']);
+  });
 });

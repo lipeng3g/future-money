@@ -3,7 +3,16 @@
     <h3>即将发生</h3>
     <template v-if="items.length">
       <ul>
-        <li v-for="item in items" :key="item.id" :class="[item.category, { overridden: item.overrideAction }]">
+        <li
+          v-for="item in items"
+          :key="item.id"
+          :class="[item.category, { overridden: item.overrideAction, clickable: !!item.eventId }]"
+          :tabindex="item.eventId ? 0 : undefined"
+          :role="item.eventId ? 'button' : undefined"
+          @click="handleFocus(item)"
+          @keydown.enter.prevent="handleFocus(item)"
+          @keydown.space.prevent="handleFocus(item)"
+        >
           <div class="event-info">
             <div class="event-header">
               <span class="event-indicator"></span>
@@ -71,6 +80,9 @@ import { useFinanceStore } from '@/stores/finance';
 import { buildUpcomingItems, type UpcomingItem } from '@/utils/upcoming-items';
 
 const props = defineProps<{ timeline: DailySnapshot[] }>();
+const emit = defineEmits<{
+  (e: 'focus-date', date: string): void;
+}>();
 const store = useFinanceStore();
 
 const modifyOpen = ref(false);
@@ -97,6 +109,11 @@ const overrideLabel = (action: string) => {
     case 'modified': return '已修改';
     default: return '';
   }
+};
+
+const handleFocus = (item: UpcomingItem) => {
+  if (!item.date) return;
+  emit('focus-date', item.date);
 };
 
 const handleAction = (key: string, item: UpcomingItem) => {
@@ -200,6 +217,15 @@ li:last-child {
 li:hover {
   background: var(--fm-surface-muted);
   transform: translateX(4px);
+}
+
+li.clickable {
+  cursor: pointer;
+}
+
+li.clickable:focus-visible {
+  outline: 2px solid rgba(79, 70, 229, 0.28);
+  outline-offset: 2px;
 }
 
 li.overridden {

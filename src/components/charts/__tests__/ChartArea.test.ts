@@ -69,7 +69,8 @@ const StatisticsPanelStub = defineComponent({
 const UpcomingEventsStub = defineComponent({
   name: 'UpcomingEvents',
   props: ['timeline'],
-  template: '<div class="upcoming-events-stub" />',
+  emits: ['focus-date'],
+  template: '<button class="upcoming-events-stub" @click="$emit(\'focus-date\', \'2026-03-20\')">upcoming</button>',
 });
 
 const ReconciliationBannerStub = defineComponent({
@@ -317,5 +318,23 @@ describe('ChartArea', () => {
     balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
     expect(balanceChart.props('focusKey')).toBe('min');
     expect(balanceChart.props('focusDate')).toBeUndefined();
+  });
+
+  it('即将发生侧栏触发 focus-date 时，容器会把日期定位传给余额图', async () => {
+    const store = useFinanceStore();
+    store.reconcile('2026-03-01', 5000, [], '初始对账');
+
+    const wrapper = mountChartArea();
+    await nextTick();
+
+    observerInstances[0]?.callback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+    await flushAsyncComponents();
+
+    await wrapper.find('.upcoming-events-stub').trigger('click');
+    await flushAsyncComponents();
+
+    const balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
+    expect(balanceChart.props('focusDate')).toBe('2026-03-20');
+    expect(balanceChart.props('focusKey')).toBe('latest');
   });
 });
