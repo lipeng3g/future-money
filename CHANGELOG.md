@@ -1,6 +1,11 @@
 # Changelog
 
 ## 2026-03-09
+
+- fix(import): 导入/恢复阶段新增状态净化，自动剔除断裂引用、跨账户脏数据与重复 ID，避免坏链路污染本地账本与对账数据
+- test(storage): 补充导入净化测试，覆盖缺失账户、失效规则引用、失效对账引用、重复记录与偏残缺 preferences 的恢复行为
+
+## 2026-03-09
 - stability(ai): AI 分析抽屉现在会在关闭抽屉、组件卸载或账户范围变化时主动中止流式请求，并通过 requestId 屏蔽旧请求的过期回灌；避免用户已经切走上下文后，旧响应仍把内容写回当前本地对话
 - test(ai): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，补“关闭抽屉即中止流式请求”“分析中切换账户范围后旧请求结果不再写回”两条组件级回归，继续把 AI 本地稳定性问题锁到真实 UI 行为层
 - absorb(build): 已吸收并保留用户在 `origin/main` 的两次构建修复：`909d43c` 先把 `@ant-design/icons-vue` 并回 antd 主 chunk，`2f918d8` 再把全部 `ant-design-vue` / `@ant-design/icons-vue` 合并到单一 `vendor-antd`，用于消除子 chunk 间 ESM 循环依赖导致的运行时未初始化崩溃；本轮开发未回退该修复边界

@@ -1,5 +1,7 @@
 import type { AppState, PersistedStateEnvelope, RollbackSnapshot } from '@/types/storage';
-import type { Reconciliation } from '@/types/reconciliation';
+import type { AccountConfig, BalanceSnapshot, UserPreferences } from '@/types/account';
+import type { CashFlowEvent } from '@/types/event';
+import type { EventOverride, LedgerEntry, Reconciliation } from '@/types/reconciliation';
 import { APP_VERSION, DEFAULT_ACCOUNT_CONFIG, DEFAULT_PREFERENCES } from '@/utils/defaults';
 import { createId } from '@/utils/id';
 
@@ -64,12 +66,83 @@ const migrateV1ToV2 = (state: AppState): AppState => {
   };
 };
 
+const normalizeUserPreferences = (preferences: Partial<UserPreferences> | undefined): UserPreferences => ({
+  ...DEFAULT_PREFERENCES(),
+  ...(preferences ?? {}),
+});
+
+const dedupeById = <T extends { id: string }>(items: T[]): T[] => {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (!item?.id || seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+};
+
+const sanitizeStateReferences = (state: AppState): AppState => {
+  const accounts = dedupeById(
+    state.accounts.filter((account): account is AccountConfig => !!account?.id),
+  );
+  const accountIds = new Set(accounts.map((account) => account.id));
+
+  const events = dedupeById(
+    state.events.filter((event): event is CashFlowEvent => !!event?.id && accountIds.has(event.accountId)),
+  );
+  const eventIds = new Set(events.map((event) => event.id));
+
+  const snapshots = dedupeById(
+    state.snapshots.filter((snapshot): snapshot is BalanceSnapshot => !!snapshot?.id && accountIds.has(snapshot.accountId)),
+  );
+
+  const reconciliations = dedupeById(
+    state.reconciliations.filter((reconciliation): reconciliation is Reconciliation => (
+      !!reconciliation?.id && accountIds.has(reconciliation.accountId)
+    )),
+  ).sort((a, b) => a.date.localeCompare(b.date));
+  const reconciliationIds = new Set(reconciliations.map((reconciliation) => reconciliation.id));
+
+  const ledgerEntries = dedupeById(
+    state.ledgerEntries.filter((entry): entry is LedgerEntry => {
+      if (!entry?.id || !accountIds.has(entry.accountId) || !reconciliationIds.has(entry.reconciliationId)) {
+        return false;
+      }
+      if (entry.ruleId && !eventIds.has(entry.ruleId)) {
+        return false;
+      }
+      return true;
+    }),
+  );
+
+  const eventOverrides = dedupeById(
+    state.eventOverrides.filter((override): override is EventOverride => (
+      !!override?.id && accountIds.has(override.accountId) && eventIds.has(override.ruleId)
+    )),
+  );
+
+  const fallbackAccount = accounts[0] ?? createDefaultState().account;
+  const currentAccount = accountIds.has(state.account?.id) ? state.account : fallbackAccount;
+
+  return {
+    ...state,
+    account: currentAccount,
+    accounts: accounts.length ? accounts : [fallbackAccount],
+    events,
+    preferences: normalizeUserPreferences(state.preferences),
+    snapshots,
+    reconciliations,
+    ledgerEntries,
+    eventOverrides,
+  };
+};
+
 const normalizeState = (rawState: Partial<AppState>): AppState => {
   const base = createDefaultState();
   const state: AppState = {
     ...base,
     ...rawState,
     version: APP_VERSION,
+    preferences: normalizeUserPreferences(rawState.preferences),
   };
 
   if (!state.accounts || state.accounts.length === 0) {
@@ -94,7 +167,7 @@ const normalizeState = (rawState: Partial<AppState>): AppState => {
   if (!state.ledgerEntries) state.ledgerEntries = [];
   if (!state.eventOverrides) state.eventOverrides = [];
 
-  return state;
+  return sanitizeStateReferences(state);
 };
 
 const createEnvelope = (state: AppState, scope: 'current' | 'all' = 'all'): PersistedStateEnvelope => ({

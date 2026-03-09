@@ -2,6 +2,10 @@
 
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
+## 2026-03-09
+- task: 强化导入/恢复稳定性，给 `storage.importState()` 增加状态净化，防止断裂引用、重复 ID、跨账户脏数据进入本地状态
+- implementation: 在 `src/utils/storage.ts` 中补齐 preferences 默认值，并按账户 → 事件 → 对账 → 账本/覆盖 的引用链过滤非法记录
+- tests: 在 `src/utils/__tests__/storage.test.ts` 增加坏备份回归用例，覆盖缺失账户、重复记录、失效 ruleId / reconciliationId 的导入行为
 
 ## 2026-03-08
 - 建立长期工作器方案：不再把 isolated cron 误当成持续开发本体，改为 `tmux` 长期工作器 + 文件化上下文 + 每小时汇报。

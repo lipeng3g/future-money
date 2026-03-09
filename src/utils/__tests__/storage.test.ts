@@ -150,6 +150,188 @@ describe('LocalStorageStateRepository', () => {
     expect(imported.reconciliations).toEqual([]);
   });
 
+  it('导入时会剔除断裂引用、跨账户脏数据与重复 id，避免坏链路进入本地', () => {
+    const storage = createMemoryStorage();
+    const repository = new LocalStorageStateRepository(storage);
+    const base = createDefaultState();
+
+    const imported = repository.importState(
+      JSON.stringify({
+        version: '2.0.0',
+        timestamp: '2026-03-09T00:00:00.000Z',
+        state: {
+          ...base,
+          account: {
+            ...base.account,
+            id: 'missing-account',
+            name: '失效当前账户',
+          },
+          accounts: [
+            {
+              ...base.account,
+              id: 'acc-1',
+              name: '主账户',
+            },
+            {
+              ...base.account,
+              id: 'acc-1',
+              name: '重复账户',
+            },
+          ],
+          preferences: {
+            showWeekends: false,
+          },
+          events: [
+            {
+              id: 'event-1',
+              accountId: 'acc-1',
+              name: '工资',
+              amount: 5000,
+              category: 'income',
+              type: 'monthly',
+              startDate: '2026-03-01',
+              monthlyDay: 1,
+              enabled: true,
+              createdAt: '2026-03-01T00:00:00.000Z',
+              updatedAt: '2026-03-01T00:00:00.000Z',
+            },
+            {
+              id: 'event-1',
+              accountId: 'acc-1',
+              name: '工资（重复）',
+              amount: 5000,
+              category: 'income',
+              type: 'monthly',
+              startDate: '2026-03-01',
+              monthlyDay: 1,
+              enabled: true,
+              createdAt: '2026-03-01T00:00:00.000Z',
+              updatedAt: '2026-03-01T00:00:00.000Z',
+            },
+            {
+              id: 'event-orphan',
+              accountId: 'acc-missing',
+              name: '脏事件',
+              amount: 1,
+              category: 'expense',
+              type: 'once',
+              startDate: '2026-03-02',
+              onceDate: '2026-03-02',
+              enabled: true,
+              createdAt: '2026-03-02T00:00:00.000Z',
+              updatedAt: '2026-03-02T00:00:00.000Z',
+            },
+          ],
+          snapshots: [
+            {
+              id: 'snapshot-1',
+              accountId: 'acc-1',
+              date: '2026-03-01',
+              balance: 5000,
+              source: 'manual',
+              createdAt: '2026-03-01T00:00:00.000Z',
+            },
+            {
+              id: 'snapshot-orphan',
+              accountId: 'acc-missing',
+              date: '2026-03-02',
+              balance: 10,
+              source: 'manual',
+              createdAt: '2026-03-02T00:00:00.000Z',
+            },
+          ],
+          reconciliations: [
+            {
+              id: 'recon-1',
+              accountId: 'acc-1',
+              date: '2026-03-03',
+              balance: 6000,
+              createdAt: '2026-03-03T00:00:00.000Z',
+            },
+            {
+              id: 'recon-1',
+              accountId: 'acc-1',
+              date: '2026-03-04',
+              balance: 7000,
+              createdAt: '2026-03-04T00:00:00.000Z',
+            },
+          ],
+          ledgerEntries: [
+            {
+              id: 'ledger-1',
+              accountId: 'acc-1',
+              reconciliationId: 'recon-1',
+              ruleId: 'event-1',
+              name: '工资入账',
+              amount: 5000,
+              category: 'income',
+              date: '2026-03-03',
+              source: 'rule',
+              createdAt: '2026-03-03T00:00:00.000Z',
+              updatedAt: '2026-03-03T00:00:00.000Z',
+            },
+            {
+              id: 'ledger-missing-recon',
+              accountId: 'acc-1',
+              reconciliationId: 'recon-missing',
+              name: '断裂对账引用',
+              amount: 1,
+              category: 'expense',
+              date: '2026-03-03',
+              source: 'manual',
+              createdAt: '2026-03-03T00:00:00.000Z',
+              updatedAt: '2026-03-03T00:00:00.000Z',
+            },
+            {
+              id: 'ledger-missing-rule',
+              accountId: 'acc-1',
+              reconciliationId: 'recon-1',
+              ruleId: 'event-missing',
+              name: '断裂规则引用',
+              amount: 1,
+              category: 'expense',
+              date: '2026-03-03',
+              source: 'rule',
+              createdAt: '2026-03-03T00:00:00.000Z',
+              updatedAt: '2026-03-03T00:00:00.000Z',
+            },
+          ],
+          eventOverrides: [
+            {
+              id: 'override-1',
+              accountId: 'acc-1',
+              ruleId: 'event-1',
+              period: '2026-03',
+              action: 'modified',
+              amount: 5200,
+              createdAt: '2026-03-03T00:00:00.000Z',
+            },
+            {
+              id: 'override-missing-rule',
+              accountId: 'acc-1',
+              ruleId: 'event-missing',
+              period: '2026-03',
+              action: 'skipped',
+              createdAt: '2026-03-03T00:00:00.000Z',
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(imported.account.id).toBe('acc-1');
+    expect(imported.accounts).toHaveLength(1);
+    expect(imported.accounts[0].name).toBe('主账户');
+    expect(imported.preferences.defaultViewMonths).toBe(base.preferences.defaultViewMonths);
+    expect(imported.preferences.chartType).toBe(base.preferences.chartType);
+    expect(imported.preferences.showWeekends).toBe(false);
+    expect(imported.events.map((event) => event.id)).toEqual(['event-1']);
+    expect(imported.snapshots.map((snapshot) => snapshot.id)).toEqual(['snapshot-1']);
+    expect(imported.reconciliations.map((reconciliation) => reconciliation.id)).toEqual(['recon-1']);
+    expect(imported.ledgerEntries.map((entry) => entry.id)).toEqual(['ledger-1']);
+    expect(imported.eventOverrides.map((override) => override.id)).toEqual(['override-1']);
+  });
+
   it('连续 saveState 会立即保存首个状态，并在短时间内合并后续写入', () => {
     vi.useFakeTimers();
     const storage = createMemoryStorage();
