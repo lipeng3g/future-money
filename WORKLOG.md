@@ -139,3 +139,6 @@
 [2026-03-09 07:45:00] task: 打磨多账户视图入口，让弹窗打开时自动补齐可汇总整组账户，而不是只保留单个当前账户
 [2026-03-09 07:45:00] deliverables: AccountMultiSelectModal 新增“同最新对账日整组自动预选 + 无基准时回退到人数最多且日期最新的可汇总组”；新增 src/components/account/__tests__/AccountMultiSelectModal.test.ts 覆盖自动预选、分组回退与单账户阻断确认
 [2026-03-09 07:52:00] verification: npm test -- AccountMultiSelectModal ✅, npm run type-check ✅；全量 npm test / npm run build 已启动，待结果回填
+[2026-03-09 08:25:00] task: 给账户管理里的危险操作补组件级回归，避免“清空当前账户 / 删除账户”只在 store 层有测试而缺少真实界面接线验证
+[2026-03-09 08:28:00] deliverables: 扩展 src/layouts/__tests__/AppHeader.test.ts；新增“清空当前账户”与“删除账户”两条组件级测试，覆盖账户管理弹层到确认框的接线、错误确认文案拦截、以及确认后的真实 state 变化与账户切换
+[2026-03-09 08:29:00] verification: npm test ✅ (135), npm run type-check ✅, npm run build ✅；本轮把账户危险操作也补齐到组件层，当前主要性能余项仍是 chart-balance-runtime ~556.26kB

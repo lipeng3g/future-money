@@ -122,6 +122,8 @@ const AccountManageModalStub = defineComponent({
       <div class="can-undo">{{ canUndoImport ? 'yes' : 'no' }}</div>
       <button class="trigger-import-all" @click="$emit('import', 'all')">恢复全部账户</button>
       <button class="trigger-undo" @click="$emit('undo-import')">撤销上次导入</button>
+      <button class="trigger-clear" @click="$emit('clear')">清空当前账户</button>
+      <button class="trigger-delete" @click="$emit('delete')">删除账户</button>
     </div>
   `,
 });
@@ -541,5 +543,84 @@ describe('AppHeader', () => {
     expect(store.currentAccount.name).toBe(originalAccountName);
     expect(store.rollbackSnapshot).toBeNull();
     expect(messageSuccess).toHaveBeenCalledWith('已撤销上次导入/恢复');
+  });
+
+  it('账户管理里的清空当前账户会弹确认框并在确认后清空当前账户数据', async () => {
+    const store = useFinanceStore();
+
+    store.addEvent({
+      name: '工资',
+      amount: 5000,
+      category: 'income',
+      type: 'monthly',
+      startDate: '2026-01-01',
+      monthlyDay: 10,
+      enabled: true,
+    });
+    store.reconcile('2026-03-09', 8000, [], '首次对账');
+    expect(store.events).toHaveLength(1);
+    expect(store.reconciliations).toHaveLength(1);
+
+    const wrapper = mountHeader();
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+
+    await wrapper.find('button.trigger-clear').trigger('click');
+
+    expect(modalConfirm).toHaveBeenCalledTimes(1);
+    const config = modalConfirm.mock.calls[0][0];
+    const contentText = extractText(config.content);
+
+    expect(config.title).toBe('确定清空当前账户数据？');
+    expect(contentText).toContain('仅清空当前选中账户的所有事件和快照，此操作不可恢复');
+
+    await expect(config.onOk()).rejects.toBeUndefined();
+    expect(messageError).toHaveBeenCalledWith('输入的文字不正确，操作已取消');
+    expect(store.events).toHaveLength(1);
+    expect(store.reconciliations).toHaveLength(1);
+
+    const inputNode = config.content.children[2];
+    inputNode.props.onInput({ target: { value: '清空当前账户' } });
+    await config.onOk();
+
+    expect(store.events).toHaveLength(0);
+    expect(store.reconciliations).toHaveLength(0);
+    expect(store.ledgerEntries).toHaveLength(0);
+    expect(store.eventOverrides).toHaveLength(0);
+    expect(store.currentAccount.initialBalance).toBe(0);
+    expect(messageSuccess).toHaveBeenCalledWith('当前账户数据已清空');
+  });
+
+  it('账户管理里的删除账户会弹确认框并在确认后删除当前账户并切换到剩余账户', async () => {
+    const store = useFinanceStore();
+    const originalAccountId = store.currentAccount.id;
+    const secondAccount = store.addAccount({ name: '旅行基金', warningThreshold: 300 });
+    store.currentAccountId = originalAccountId;
+
+    const wrapper = mountHeader();
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+
+    await wrapper.find('button.trigger-delete').trigger('click');
+
+    expect(modalConfirm).toHaveBeenCalledTimes(1);
+    const config = modalConfirm.mock.calls[0][0];
+    const contentText = extractText(config.content);
+
+    expect(config.title).toBe('确定删除账户「主账户」？');
+    expect(contentText).toContain('该账户及其所有数据将被永久删除，不可恢复');
+
+    await expect(config.onOk()).rejects.toBeUndefined();
+    expect(messageError).toHaveBeenCalledWith('输入的文字不正确，操作已取消');
+    expect(store.accounts.map((account) => account.id)).toContain(originalAccountId);
+
+    const inputNode = config.content.children[2];
+    inputNode.props.onInput({ target: { value: '主账户' } });
+    await config.onOk();
+
+    expect(store.accounts.map((account) => account.id)).not.toContain(originalAccountId);
+    expect(store.accounts.map((account) => account.id)).toContain(secondAccount.id);
+    expect(store.currentAccount.id).toBe(secondAccount.id);
+    expect(messageSuccess).toHaveBeenCalledWith('账户已删除');
   });
 });

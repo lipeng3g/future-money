@@ -5,6 +5,7 @@
 - test(chart-loading): 新增 `src/components/charts/__tests__/ChartArea.test.ts`，真实覆盖“未进入视口前仅显示骨架”“余额图 / 月度图分别在各自卡片进入视口后才加载”的组件级回归，避免按需加载被无意回退
 - ux(multi-account): 多账户选择弹窗打开时，现在会优先自动补齐“与当前入口账户同一最新对账日”的整组可汇总账户，而不是只保留单个当前账户；若当前入口没有可用基准，则会回退到“人数最多且日期最新”的可汇总账户组，减少用户每次都要手动再勾一遍的成本
 - test(multi-account): 新增 `src/components/account/__tests__/AccountMultiSelectModal.test.ts` 组件级回归，覆盖“同对账日整组自动预选”“入口账户无基准时自动回退到最佳可汇总组”以及“只剩一个账户时阻断确认”三条关键交互，避免多账户入口再次退回到只能手工试探
+- test(account-danger): 扩展 `src/layouts/__tests__/AppHeader.test.ts`，补“清空当前账户 / 删除账户”两条高风险操作的组件级回归，真实覆盖账户管理面板到确认框的接线、错误口令拦截，以及确认后的真实清空/删除结果，避免这些危险动作只靠 store 单测兜底
 - fix(chart-focus): `ChartArea` 现在会在首次挂载时立刻把外部传入的 `focusDate` 同步给余额图，不再需要等第二次 prop 变化；修复了“事件清单首次打开就要求跳图，但余额图初始仍停在默认焦点”的接线缺口
 - test(chart-ui): 新增 `src/components/charts/__tests__/ChartArea.test.ts` 组件级回归，真实覆盖“统计卡片 → 余额图 focusKey”“外部 focusDate/focusNonce → 余额图 focusDate”以及“余额图点击日期 → 回传给父层”三条联动链路，避免图表容器层继续只靠纯函数测试兜底
 - feat(event-navigation): 事件抽屉里的图表定位横幅新增“当前时间窗内发生日”总览；当某条规则在当前时间窗出现多次时，现在会直接列出所有发生日期，并允许点击任意日期跳图，不再只能靠“上一个 / 下一个日期”来回试探
