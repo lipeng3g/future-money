@@ -3,6 +3,10 @@
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
 ## 2026-03-09
+- task: 继续验证并收紧图表首开加载链路，确认 `chart-balance-runtime` 的真实瓶颈到底在业务代码还是 ECharts runtime 本体
+- implementation: `src/components/charts/BalanceChart.vue` / `CashFlowChart.vue` 改为在 `onMounted` 后异步 `import('@/utils/echarts-balance')` / `import('@/utils/echarts-cashflow')`，并在 runtime ready 前展示轻量加载态；这样图表组件自身不再因为顶层静态 import 过早绑定 ECharts 注册模块
+- tests: 调整 `src/components/charts/__tests__/BalanceChart.test.ts`，显式等待 runtime 初始化完成后再断言点击与联动，锁住新的异步初始化语义
+- verification: 重新构建后 `BalanceChart` 组件壳体约 11.8kB、`CashFlowChart` 约 4.8kB，`chart-balance-runtime` 仍约 556kB，确认大块主要来自 ECharts runtime 本体；后续如继续优化，应优先找 runtime 级拆分点而非再细拆业务 option 代码
 - task: 单账户导入确认框补“当前账户事件规则 diff”，减少只看总量和导入清单却不知道会替掉哪些本地规则的风险
 - implementation: `src/utils/import-preview.ts` 新增 `buildImportSingleAccountEventDiffSummary`，按规则名去重/trim 后输出新增、移除、保留三类事件；`src/layouts/AppHeader.vue` 将单账户导入确认框从“导入清单”升级为“当前账户事件规则 diff”摘要
 - tests: 扩展 `src/utils/__tests__/import-preview.test.ts` 与 `src/layouts/__tests__/AppHeader.test.ts`，覆盖单账户规则 diff 纯函数与确认框接线

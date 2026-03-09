@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
 import BalanceChart from '@/components/charts/BalanceChart.vue';
 import type { DailySnapshot } from '@/types/timeline';
@@ -14,6 +14,13 @@ vi.mock('vue-echarts', () => ({
 }));
 
 vi.mock('@/utils/echarts-balance', () => ({}));
+
+beforeEach(() => {
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+    cb(0);
+    return 1;
+  });
+});
 
 const createDay = (overrides: Partial<DailySnapshot> & Pick<DailySnapshot, 'date' | 'balance' | 'change'>): DailySnapshot => ({
   date: overrides.date,
@@ -138,6 +145,8 @@ describe('BalanceChart', () => {
 
   it('点击含事件的数据点时才会发出 select-date', async () => {
     const wrapper = mountChart();
+    await flushPromises();
+    await nextTick();
 
     await wrapper.findComponent({ name: 'VChart' }).vm.$emit('click', { dataIndex: 1 });
     expect(wrapper.emitted('select-date')).toEqual([['2026-03-09']]);
@@ -163,6 +172,8 @@ describe('BalanceChart', () => {
         warningThreshold: 500,
       },
     });
+    await flushPromises();
+    await nextTick();
 
     await wrapper.findComponent({ name: 'VChart' }).vm.$emit('click', { dataIndex: 0 });
     expect(wrapper.emitted('select-date')).toBeUndefined();

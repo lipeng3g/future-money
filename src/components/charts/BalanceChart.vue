@@ -37,16 +37,16 @@
         <small v-if="activeInsight.eventSummary" class="event-summary">{{ activeInsight.eventSummary }}</small>
       </div>
 
-      <VChart :option="chartOption" autoresize class="chart" @click="handleChartClick" />
+      <VChart v-if="chartRuntimeReady" :option="chartOption" autoresize class="chart" @click="handleChartClick" />
+      <div v-else class="chart-loading-state">正在加载图表引擎…</div>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import type { ECElementEvent } from 'echarts/core';
 import VChart from 'vue-echarts';
-import '@/utils/echarts-balance';
 import type { DailySnapshot } from '@/types/timeline';
 import {
   buildBalanceChartFocusInsight,
@@ -77,6 +77,13 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   (e: 'select-date', date: string): void;
 }>();
+
+const chartRuntimeReady = ref(false);
+
+onMounted(async () => {
+  await import('@/utils/echarts-balance');
+  chartRuntimeReady.value = true;
+});
 
 const focusButtons = computed(() => buildBalanceChartFocusTargets(
   props.timeline,
@@ -211,8 +218,20 @@ const handleChartClick = (params: ECElementEvent) => {
   box-shadow: var(--fm-shadow-md);
 }
 
-.chart {
+.chart,
+.chart-loading-state {
   height: 380px;
+}
+
+.chart-loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--fm-border-subtle);
+  border-radius: 14px;
+  color: var(--fm-text-secondary);
+  background: var(--fm-surface-muted);
+  font-size: 0.9rem;
 }
 
 .chart-toolbar {

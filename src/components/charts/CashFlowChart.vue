@@ -5,18 +5,25 @@
       <strong>还没有月度收支数据</strong>
       <p>当时间线中开始出现收入或支出事件后，这里会自动汇总每月现金流。</p>
     </div>
-    <VChart v-else :option="chartOption" autoresize class="chart" />
+    <VChart v-else-if="chartRuntimeReady" :option="chartOption" autoresize class="chart" />
+    <div v-else class="chart-loading-state">正在加载图表引擎…</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import VChart from 'vue-echarts';
-import '@/utils/echarts-cashflow';
 import type { MonthlySnapshot } from '@/types/analytics';
 import { buildCashFlowChartOption } from '@/utils/chart-options-cashflow';
 
 const props = defineProps<{ months: MonthlySnapshot[] }>();
+
+const chartRuntimeReady = ref(false);
+
+onMounted(async () => {
+  await import('@/utils/echarts-cashflow');
+  chartRuntimeReady.value = true;
+});
 
 const chartOption = computed(() => buildCashFlowChartOption(props.months));
 </script>
@@ -42,8 +49,20 @@ const chartOption = computed(() => buildCashFlowChartOption(props.months));
   color: var(--fm-text-primary);
 }
 
-.chart {
+.chart,
+.chart-loading-state {
   height: 280px;
+}
+
+.chart-loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--fm-border-subtle);
+  border-radius: 14px;
+  color: var(--fm-text-secondary);
+  background: var(--fm-surface-muted);
+  font-size: 0.9rem;
 }
 
 .chart-empty-state {
