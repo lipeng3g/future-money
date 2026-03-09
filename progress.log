@@ -4,3 +4,5 @@
 
 [2026-03-10 04:24:53] task: 收口构建产物 chunk 边界与自动烟雾守卫，避免图表依赖重新并入 UI vendor 包导致本地首屏/缓存退化
 [2026-03-10 04:24:53] implementation: vite.config.ts 显式把 echarts/zrender/vue-echarts 收口到 vendor-charts；新增 scripts/check-build-chunks.mjs 与 npm run build:check，自动检查 index 入口轻量、vendor-charts 与两张图表 runtime chunk 存在，且图表 vendor 不重新膨胀到与 vendor-antd 同级
+
+- 2026-03-10 07:22 修复多账户聚合时间线在账户日期缺口时把余额误算为 0 的问题；已补测试并通过 test/type-check/build/smoke。

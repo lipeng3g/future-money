@@ -8,6 +8,19 @@ const buildTimelineDateIndex = (timeline: DailySnapshot[]): Map<string, DailySna
   return index;
 };
 
+const findLatestSnapshotOnOrBeforeDate = (
+  timeline: DailySnapshot[],
+  date: string,
+): DailySnapshot | null => {
+  for (let i = timeline.length - 1; i >= 0; i -= 1) {
+    if (timeline[i].date <= date) {
+      return timeline[i];
+    }
+  }
+
+  return null;
+};
+
 export const aggregateAccountTimelines = (
   timelinesByAccount: Record<string, DailySnapshot[]>,
   selectedAccountIds: string[],
@@ -17,10 +30,11 @@ export const aggregateAccountTimelines = (
 
   const allDates = new Set<string>();
   const indexedTimelines = normalizedAccountIds.map((accountId) => {
-    const timeline = timelinesByAccount[accountId] ?? [];
+    const timeline = [...(timelinesByAccount[accountId] ?? [])].sort((a, b) => a.date.localeCompare(b.date));
     timeline.forEach((snapshot) => allDates.add(snapshot.date));
     return {
       accountId,
+      timeline,
       index: buildTimelineDateIndex(timeline),
     };
   });
@@ -37,25 +51,31 @@ export const aggregateAccountTimelines = (
       let reconciliationId: string | undefined;
       let snapshotId: string | undefined;
 
-      indexedTimelines.forEach(({ accountId, index }) => {
-        const day = index.get(date);
-        if (!day) return;
+      indexedTimelines.forEach(({ accountId, timeline, index }) => {
+        const exactDay = index.get(date);
+        const effectiveDay = exactDay ?? findLatestSnapshotOnOrBeforeDate(timeline, date);
+        if (!effectiveDay) return;
 
-        balance += day.balance;
-        change += day.change;
+        balance += effectiveDay.balance;
+        isWeekend ||= effectiveDay.isWeekend;
+        isToday ||= effectiveDay.isToday;
+        if (effectiveDay.zone === 'frozen') {
+          zone = 'frozen';
+        }
+        reconciliationId ??= effectiveDay.reconciliationId;
+        snapshotId ??= effectiveDay.snapshotId;
+
+        if (!exactDay) {
+          return;
+        }
+
+        change += exactDay.change;
         events.push(
-          ...day.events.map((event) => ({
+          ...exactDay.events.map((event) => ({
             ...event,
             accountId: event.accountId ?? accountId,
           })),
         );
-        isWeekend ||= day.isWeekend;
-        isToday ||= day.isToday;
-        if (day.zone === 'frozen') {
-          zone = 'frozen';
-        }
-        reconciliationId ??= day.reconciliationId;
-        snapshotId ??= day.snapshotId;
       });
 
       return {

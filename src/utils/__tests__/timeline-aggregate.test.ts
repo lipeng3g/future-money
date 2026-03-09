@@ -92,4 +92,65 @@ describe('aggregateAccountTimelines', () => {
     expect(aggregated.map((day) => day.date)).toEqual(['2025-01-01', '2025-01-03']);
     expect(aggregated[0].isToday).toBe(true);
   });
+
+  it('会沿用缺失账户最近一个有效余额，而不是把缺口算成 0', () => {
+    const aggregated = aggregateAccountTimelines(
+      {
+        'acc-1': [
+          createDay({ date: '2025-01-01', balance: 100, change: 0, zone: 'frozen', reconciliationId: 'recon-a' }),
+          createDay({ date: '2025-01-03', balance: 130, change: 30, events: [
+            {
+              id: 'occ-1',
+              eventId: 'evt-1',
+              name: '工资',
+              category: 'income',
+              amount: 30,
+              date: '2025-01-03',
+            },
+          ] }),
+        ],
+        'acc-2': [
+          createDay({ date: '2025-01-01', balance: 200, change: 0, zone: 'frozen', reconciliationId: 'recon-b' }),
+          createDay({ date: '2025-01-02', balance: 150, change: -50, events: [
+            {
+              id: 'occ-2',
+              eventId: 'evt-2',
+              name: '房租',
+              category: 'expense',
+              amount: 50,
+              date: '2025-01-02',
+            },
+          ] }),
+        ],
+      },
+      ['acc-1', 'acc-2'],
+    );
+
+    expect(aggregated.map((day) => ({ date: day.date, balance: day.balance, change: day.change }))).toEqual([
+      { date: '2025-01-01', balance: 300, change: 0 },
+      { date: '2025-01-02', balance: 250, change: -50 },
+      { date: '2025-01-03', balance: 280, change: 30 },
+    ]);
+    expect(aggregated[1].events).toEqual([
+      expect.objectContaining({ eventId: 'evt-2', accountId: 'acc-2' }),
+    ]);
+    expect(aggregated[2].events).toEqual([
+      expect.objectContaining({ eventId: 'evt-1', accountId: 'acc-1' }),
+    ]);
+  });
+
+  it('不会把账户首个时间点之前的日期错误补成余额', () => {
+    const aggregated = aggregateAccountTimelines(
+      {
+        'acc-1': [createDay({ date: '2025-01-05', balance: 500, change: 0 })],
+        'acc-2': [createDay({ date: '2025-01-01', balance: 100, change: 0 })],
+      },
+      ['acc-1', 'acc-2'],
+    );
+
+    expect(aggregated.map((day) => ({ date: day.date, balance: day.balance }))).toEqual([
+      { date: '2025-01-01', balance: 100 },
+      { date: '2025-01-05', balance: 600 },
+    ]);
+  });
 });
