@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-03-10
+- smoke(chart-preview): 新增 `scripts/browser-chart-smoke.mjs`，为真实预览站点生成两份首页图表 smoke 夹具：`tmp-browser-chart-smoke/empty-state.json`（空库/无图表数据）与 `tmp-browser-chart-smoke/seeded-state.json`（有时间线/有月度数据）。这样页面级验证不再需要手工在控制台拼 localStorage，可直接复用仓库内固定夹具检查空态与延迟加载两条高风险路径。
+- docs(chart-preview): 新增 `docs/browser-chart-smoke.md`，把首页图表的真实页面 smoke 收口成可重复执行的仓库内手册，明确验证“空库直出真实空态、不闪 deferred skeleton”以及“有数据时先 skeleton、再在视口/兜底后加载图表”两条组合语义。
+- chore(smoke): `npm run smoke` 现在会在现有 store/UI 烟雾回归之后，顺手生成首页图表页面级 smoke 所需夹具，减少每轮手工准备成本，也让仓库里的页面 smoke 资产和常规验证入口保持同步。
 - ux(chart-empty): 首页在“还没有任何时间线 / 月度数据”时，现在会直接渲染图表组件自己的真实空态，不再先经过 IntersectionObserver / fallback skeleton 的延迟壳。这样首次进入空库、刚清空数据、或切到无对账账户时，用户会立刻看到明确说明，而不是先等一轮“正在按需加载图表”的假等待。
 - test(chart-empty): 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“无图表数据时直接渲染真实空态、不显示延迟骨架”的容器级回归；同时把既有延迟加载/focus 联动用例改成先造出真实时间线数据，避免测试前提混淆。
 

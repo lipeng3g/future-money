@@ -1,6 +1,11 @@
 # future-money 工作日志（非权威草稿）
 
 ## 2026-03-10
+- task: 给首页图表补真实预览级 smoke 夹具与手册，收口“空库直出空态 / 有数据 deferred skeleton + runtime 加载”两条组合路径，避免当前优化只锁在组件测试层
+- implementation: 新增 `scripts/browser-chart-smoke.mjs`，生成 `tmp-browser-chart-smoke/empty-state.json` 与 `seeded-state.json` 两份页面级 localStorage 夹具；新增 `docs/browser-chart-smoke.md`，明确如何在 `vite preview` + OpenClaw/browser 下验证首页图表空态与延迟加载；并把夹具生成接入 `npm run smoke`，减少后续手工准备成本
+- tests: 本轮主要补真实预览 smoke 资产，不新增 Playwright；常规验证继续覆盖 `npm test` / `npm run type-check` / `npm run build` / `npm run smoke`，页面级验证通过仓库文档重复执行
+
+## 2026-03-10
 - task: 收口首页图表在空库/无数据场景下的首屏反馈，避免用户明明没有任何可画数据，却还要先经历一轮“按需加载图表”的骨架等待
 - implementation: `src/components/charts/ChartArea.vue` 新增 `hasBalanceTimelineData / hasCashFlowData` 判断；当余额时间线或月度汇总为空时，直接渲染 `BalanceChart / CashFlowChart` 自己的空态，不再挂 defer skeleton / observer / fallback timer。保留有数据时的延迟加载策略，避免回退首屏性能优化
 - tests: 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“无图表数据时直接渲染真实空态、不显示延迟骨架”的容器级回归，并把其余延迟/focus 用例显式补上对账前置数据，锁住测试语义

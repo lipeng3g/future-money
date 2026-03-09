@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "timestamp": "2026-03-10T01:00:00.000Z",
+  "scope": "all",
+  "state": {
+    "version": "2.0.0",
+    "account": {
+      "id": "account-empty",
+      "name": "空数据账户",
+      "typeLabel": "现金",
+      "initialBalance": 0,
+      "currency": "¥",
+      "warningThreshold": 500,
+      "color": "#3b82f6",
+      "iconKey": "wallet",
+      "createdAt": "2026-03-10T00:00:00.000Z",
+      "updatedAt": "2026-03-10T00:00:00.000Z"
+    },
+    "accounts": [
+      {
+        "id": "account-empty",
+        "name": "空数据账户",
+        "typeLabel": "现金",
+        "initialBalance": 0,
+        "currency": "¥",
+        "warningThreshold": 500,
+        "color": "#3b82f6",
+        "iconKey": "wallet",
+        "createdAt": "2026-03-10T00:00:00.000Z",
+        "updatedAt": "2026-03-10T00:00:00.000Z"
+      }
+    ],
+    "preferences": {
+      "defaultViewMonths": 12,
+      "chartType": "line",
+      "showWeekends": true,
+      "theme": "light",
+      "language": "zh-CN",
+      "currency": "¥",
+      "compactMode": false,
+      "aiProviderType": "openai-compatible",
+      "aiBaseUrl": "",
+      "aiModel": "",
+      "aiApiKey": "",
+      "aiSystemPrompt": "",
+      "enableAiProxy": false
+    },
+    "events": [],
+    "snapshots": [],
+    "reconciliations": [],
+    "ledgerEntries": [],
+    "eventOverrides": []
+  }
+}

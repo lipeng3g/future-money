@@ -128,9 +128,10 @@ npm run build
 npm run smoke
 ```
 
-其中 `npm run smoke` 会额外跑两条高风险本地烟雾链路：
+其中 `npm run smoke` 会额外跑三类高风险本地烟雾链路：
 - store 级：导出全部账户 → 清空当前账户 → 恢复全部账户 → 撤销恢复
 - UI 级：账户管理中导入当前账户 → 检查确认摘要 → 确认导入 → 撤销上次导入
+- 页面级夹具：生成首页图表真实预览 smoke 所需的 `tmp-browser-chart-smoke/*.json`，用于验证“空库直出空态 / 有数据时先 deferred skeleton 再加载图表”
 
 ### 启动开发服务器
 
