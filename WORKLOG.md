@@ -149,3 +149,5 @@
 [2026-03-09 08:29:00] verification: npm test ✅ (135), npm run type-check ✅, npm run build ✅；本轮把账户危险操作也补齐到组件层，当前主要性能余项仍是 chart-balance-runtime ~556.26kB
 [2026-03-09 09:16:00] task: 给账户管理里的导入/导出按钮补组件级接线回归，避免高风险文件流继续只靠 store / 纯函数测试兜底
 [2026-03-09 09:16:00] deliverables: 扩展 src/layouts/__tests__/AppHeader.test.ts；新增“导入当前账户误选整库备份拦截不污染本地状态”与“导出当前/全部账户走对模式并生成对应文件名”两条组件级测试；顺手统一了测试里的账户名断言，避免被前序状态污染
+[2026-03-09 10:18:00] task: 收口账户管理文件导入的失败分支，给 FileReader onerror 真正补 UI 级回归，避免读取失败时悄悄卡在错误模式
+[2026-03-09 10:18:00] deliverables: AppHeader 的 handleFileChange 增加 reader.onerror 与统一 resetImportState；扩展 src/layouts/__tests__/AppHeader.test.ts，覆盖“恢复全部账户/导入当前账户在文件读取失败时分别提示错误，且不会误弹确认框”的组件级回归；同步更新 CHANGELOG

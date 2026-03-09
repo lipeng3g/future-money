@@ -466,6 +466,11 @@ const handleFileChange = (event: Event) => {
   const mode = fileActionMode.value;
   const fileName = file.name;
   const reader = new FileReader();
+  const resetImportState = () => {
+    target.value = '';
+    fileActionMode.value = 'current';
+  };
+
   reader.onload = () => {
     try {
       const content = String(reader.result);
@@ -480,10 +485,15 @@ const handleFileChange = (event: Event) => {
       console.error(error);
       message.error(error instanceof Error ? error.message : (mode === 'all' ? '恢复失败，请检查备份文件内容' : '导入失败，请检查文件内容'));
     } finally {
-      target.value = '';
-      fileActionMode.value = 'current';
+      resetImportState();
     }
   };
+
+  reader.onerror = () => {
+    message.error(mode === 'all' ? '文件读取失败，无法恢复全部账户' : '文件读取失败，无法导入当前账户');
+    resetImportState();
+  };
+
   reader.readAsText(file, 'utf-8');
 };
 

@@ -34,7 +34,14 @@ class MockFileReader {
 
   onload: null | (() => void) = null;
 
-  readAsText(file: Blob | { __text?: string }) {
+  onerror: null | (() => void) = null;
+
+  readAsText(file: Blob | { __text?: string; __failRead?: boolean }) {
+    if ((file as { __failRead?: boolean }).__failRead) {
+      this.onerror?.();
+      return;
+    }
+
     this.result = typeof (file as { __text?: string }).__text === 'string'
       ? (file as { __text: string }).__text
       : '';
@@ -336,6 +343,39 @@ describe('AppHeader', () => {
     expect(createObjectURLMock).toHaveBeenCalledTimes(2);
     expect(messageSuccess).toHaveBeenCalledWith('已导出全部账户数据');
     expect(createdAnchors[1]?.download).toMatch(/^future-money-all-accounts-\d{4}-\d{2}-\d{2}\.json$/);
+  });
+
+  it('账户管理里的导入在文件读取失败时会提示错误并重置导入模式', async () => {
+    const wrapper = mountHeader();
+
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+    await wrapper.find('button.trigger-import-all').trigger('click');
+
+    const fileInput = wrapper.find('input.file-input').element as HTMLInputElement;
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [{ name: 'broken-all.json', __failRead: true }],
+    });
+    await wrapper.find('input.file-input').trigger('change');
+    await flushPromises();
+
+    expect(messageError).toHaveBeenCalledWith('文件读取失败，无法恢复全部账户');
+    expect(modalConfirm).not.toHaveBeenCalled();
+
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+    await wrapper.find('button.trigger-import-current').trigger('click');
+
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [{ name: 'broken-current.json', __failRead: true }],
+    });
+    await wrapper.find('input.file-input').trigger('change');
+    await flushPromises();
+
+    expect(messageError).toHaveBeenCalledWith('文件读取失败，无法导入当前账户');
+    expect(modalConfirm).not.toHaveBeenCalled();
   });
 
   it('恢复全部账户前会在确认框展示账户差异与数据规模变化摘要', async () => {
