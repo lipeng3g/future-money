@@ -3,6 +3,7 @@ import { defineComponent, nextTick } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import ChartArea from '@/components/charts/ChartArea.vue';
+import { useFinanceStore } from '@/stores/finance';
 
 vi.mock('ant-design-vue', async () => {
   const actual = await vi.importActual<typeof import('ant-design-vue')>('ant-design-vue');
@@ -20,25 +21,30 @@ const createAsyncComponentMock = (name: string, className: string) => ({
   __isKeepAlive: false,
   default: defineComponent({
     name,
-    template: `<div class="${className}">${name}</div>`,
+    props: name === 'BalanceChart'
+      ? ['timeline', 'warningThreshold', 'chartType', 'showWeekends', 'reconciliationDate', 'reconciliationBalance', 'focusKey', 'focusDate']
+      : name === 'CashFlowChart'
+        ? ['months']
+        : [],
+    emits: name === 'BalanceChart' ? ['select-date'] : [],
+    template: `<div :class="className">${name}</div>`,
+    setup() {
+      return { className };
+    },
   }),
 });
 
 vi.mock('@/components/charts/BalanceChart.vue', () => createAsyncComponentMock('BalanceChart', 'balance-chart-stub'));
-
 vi.mock('@/components/charts/CashFlowChart.vue', () => createAsyncComponentMock('CashFlowChart', 'cashflow-chart-stub'));
-
 vi.mock('@/components/reconciliation/ReconciliationModal.vue', () => createAsyncComponentMock('ReconciliationModal', 'reconciliation-modal-stub'));
-
 vi.mock('@/components/ai/AiAnalysisModal.vue', () => createAsyncComponentMock('AiAnalysisModal', 'ai-analysis-modal-stub'));
-
 vi.mock('@/components/ai/AiConfigModal.vue', () => createAsyncComponentMock('AiConfigModal', 'ai-config-modal-stub'));
 
 const TimeRangeControlStub = defineComponent({
   name: 'TimeRangeControl',
   props: ['value'],
   emits: ['change'],
-  template: '<div class="time-range-control-stub" />',
+  template: '<button class="time-range-control-stub" @click="$emit(\'change\', 24)">{{ value }}</button>',
 });
 
 const StatisticsPanelStub = defineComponent({
@@ -106,6 +112,7 @@ const mountChartArea = () => mount(ChartArea, {
 describe('ChartArea', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    window.localStorage.clear();
     setActivePinia(createPinia());
     observerInstances = [];
     vi.stubGlobal('IntersectionObserver', MockIntersectionObserver as unknown as typeof IntersectionObserver);
@@ -159,5 +166,31 @@ describe('ChartArea', () => {
     await flushAsyncComponents();
 
     expect(wrapper.find('.cashflow-chart-stub').exists()).toBe(true);
+  });
+
+  it('切换预测范围时会通过容器接线更新 store，并把新范围传给图表数据源', async () => {
+    const store = useFinanceStore();
+    store.reconcile('2026-03-01', 5000, [], '初始对账');
+
+    const wrapper = mountChartArea();
+    await nextTick();
+
+    observerInstances[0]?.callback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+    observerInstances[1]?.callback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+    await flushAsyncComponents();
+
+    const balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
+    const initialTimelineLength = (balanceChart.props('timeline') as unknown[]).length;
+    expect(store.viewMonths).toBe(12);
+    expect(initialTimelineLength).toBeGreaterThan(0);
+
+    await wrapper.find('.time-range-control-stub').trigger('click');
+    await flushAsyncComponents();
+
+    const updatedBalanceChart = wrapper.findComponent({ name: 'BalanceChart' });
+
+    expect(store.viewMonths).toBe(24);
+    expect(store.preferences.defaultViewMonths).toBe(24);
+    expect((updatedBalanceChart.props('timeline') as unknown[]).length).toBeGreaterThan(initialTimelineLength);
   });
 });

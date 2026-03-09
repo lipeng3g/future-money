@@ -278,3 +278,13 @@
 - 收口事件管理成功/失败反馈一致性：在已有 delete/toggle 失败提示基础上，`EventPanel` 的事件启停现在也会在成功后给出明确 toast（已暂停 / 已启用），避免用户点击开关后只能靠视觉状态变化猜测操作是否真正生效。
 - 扩展 `src/components/events/__tests__/EventPanel.test.ts`：把原“toggle 会改 store”回归升级为“禁用成功提示 + 重新启用成功提示”双向断言，同时继续保留 toggle/delete 失败分支保护，锁住事件管理操作反馈语义。
 - 验证：`npm install`、`npm test`（32 files / 200 tests 通过）、`npm run type-check`、`npm run build`、`npm run smoke`（2 files / 5 tests 通过）均通过；额外执行 `npm run dev -- --host 127.0.0.1` 并用 `curl -I http://127.0.0.1:3002/` 命中 `HTTP/1.1 200 OK` 完成运行时烟雾验证。构建过程中仍有既有 chunk size / circular chunk warning，但不影响本轮通过。
+
+## 2026-03-10
+- task: 给首页“预测范围”补容器级接线回归，锁住 TimeRangeControl -> ChartArea -> store -> BalanceChart timeline 这条首页关键链路
+- implementation: 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“切换预测范围会真实更新 `viewMonths/defaultViewMonths`，并让余额图拿到更长 timeline”回归；避免后续 segmented 控件或容器接线改动时出现“按钮看着切了，但图表其实没收到新范围”的静默回退
+- verification: `npm install` ✅, `npm test` ✅ (202), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅, `npm run preview -- --host 127.0.0.1 --port 4175` + `curl -I` ✅
+
+## 2026-03-10
+- task: 给首页“预测范围”补容器级接线回归，锁住 TimeRangeControl -> ChartArea -> store -> BalanceChart timeline 这条首页关键链路
+- implementation: 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“切换预测范围会真实更新 `viewMonths/defaultViewMonths`，并让余额图拿到更长 timeline”回归；避免后续 segmented 控件或容器接线改动时出现“按钮看着切了，但图表其实没收到新范围”的静默回退
+- verification: `npm install` ✅, `npm test` ✅ (202), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅, `npm run preview -- --host 127.0.0.1 --port 4175` + `curl -I` ✅

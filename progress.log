@@ -1,2 +1,5 @@
 - 2026-03-10: improved UpcomingEvents sidebar ordering/limit; added unit + component coverage; verified with test/type-check/build/smoke and local dev HTTP smoke.
 - 2026-03-10: extended AiAnalysisModal component tests to cover config-missing gate and scoped export wiring, tightening local AI drawer UX regression protection before broader UI refactors.
+[2026-03-10 03:34:19] task: 给首页预测范围补容器级接线回归，锁住 TimeRangeControl -> ChartArea -> store -> 图表 timeline -> localStorage 持久化 闭环
+[2026-03-10 03:37:02] implementation: 新增 ChartArea 组件级回归，覆盖预测范围切换会真实更新 store.viewMonths/defaultViewMonths，并驱动 BalanceChart timeline 扩窗；完整验证已再次通过 install/test/type-check/build/smoke/preview 探活
+[2026-03-10 03:37:18] implementation: 新增 ChartArea 组件级回归，覆盖预测范围切换会真实更新 store.viewMonths/defaultViewMonths，并驱动 BalanceChart timeline 扩窗；完整验证已再次通过 install/test/type-check/build/smoke/preview 探活

@@ -2,6 +2,7 @@
 
 ## 2026-03-10
 
+- test(chart-range): 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“预测范围”容器级接线回归，真实覆盖 `TimeRangeControl -> ChartArea -> store -> BalanceChart timeline` 这条首页关键链路；现在不仅会断言范围切换确实改到 `viewMonths/defaultViewMonths`，也会检查图表拿到的时间线窗口随之变长，避免后续 UI 还显示按钮但实际没把新范围传进图表。
 - fix(view-range): 首页“预测范围”切换现在会同步写回 `preferences.defaultViewMonths`。此前 `setViewMonths()` 只改了运行时 `viewMonths`，但持久化仍保留旧默认值，导致用户把 12/24/36 个月切到新范围后，一刷新页面又悄悄回到旧值；现在本地选择会稳定跨刷新保留。
 - test(view-range): 扩展 `src/stores/__tests__/finance-import-export.test.ts`，新增“切换预测范围后 localStorage 中的 `defaultViewMonths` 会同步更新，并能通过持久化状态恢复出相同范围”的回归，锁住这个本地持久化行为，避免首页时间窗再次出现‘看起来切了、重开又丢’的回退。
 - ux(event-toggle): 事件面板里的启停开关现在在操作成功后也会给出明确反馈：关闭时提示“已暂停事件”，重新开启时提示“已启用事件”。这样事件管理的成功/失败反馈终于和新增、编辑、删除保持一致，不再只靠开关视觉状态让用户自己猜测是否真的生效。
