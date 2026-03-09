@@ -2,6 +2,7 @@
 
 ## 2026-03-09
 
+- test(import): 扩展 `src/utils/__tests__/storage.test.ts`，把导入值级净化回归从“非法日期 / NaN”继续补到“空白账户名、异常事件分类、异常快照来源、异常账本来源、异常 override 动作”等更贴近真实坏备份的脏值组合，确保本地导入只保留可安全落地的数据
 - test(smoke): 新增 `src/stores/__tests__/finance-smoke.test.ts` 与 `npm run smoke`，把“导出全部账户 → 清空当前账户 → 恢复全部账户 → 撤销恢复”的本地闭环收口成可重复执行的 CLI 级烟雾验证，后续每轮都能快速确认导入/恢复关键路径未被回归破坏
 - fix(ai): AI 分析抽屉现在会在关闭抽屉、组件卸载或账户范围变化时主动中止流式请求，并通过 requestId 屏蔽旧请求的过期回灌；避免用户已经切走上下文后，旧响应仍把内容写回当前本地对话
 - test(ai): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，补“关闭抽屉即中止流式请求”“分析中切换账户范围后旧请求结果不再写回”两条组件级回归，继续把 AI 本地稳定性问题锁到真实 UI 行为层

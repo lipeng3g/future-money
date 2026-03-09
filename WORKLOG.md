@@ -175,3 +175,6 @@
 [2026-03-09 19:41:03] task: 收紧导入值级数据净化，过滤非法日期/NaN/异常枚举，避免坏备份污染本地状态
 [2026-03-09 19:44:30] deliverables: storage 导入链路新增值级净化，过滤非法日期/NaN/异常枚举；补 storage 回归测试覆盖坏值剔除与账户字段降级
 [2026-03-09 19:44:30] verification: npm install ✅, npm test ✅ (151), npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview + curl -I ✅；lockfile/config 未发现 mirrors.tencentyun.com、私有 registry 或内网源
+[2026-03-09 19:49:00] task: 扩展导入值级净化回归，把坏备份脏值覆盖到更多真实枚举/空白字段组合
+[2026-03-09 19:49:00] deliverables: 扩展 src/utils/__tests__/storage.test.ts，新增空白账户名、异常事件 category、异常 snapshot source、异常 ledger source、异常 override action 等值级坏数据回归，确保 sanitize 链路继续只保留可安全落地的数据
+[2026-03-09 19:49:00] verification: npm test -- src/utils/__tests__/storage.test.ts ✅ (10), npm test ✅, npm run type-check ✅, npm run build ✅, npm run smoke ✅, npm run preview + curl -I ✅；预览探活返回 200，组合命令末尾因主动收尾 preview 进程触发 SIGTERM，不影响实际 smoke 结果

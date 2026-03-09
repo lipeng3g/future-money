@@ -360,6 +360,12 @@ describe('LocalStorageStateRepository', () => {
               warningThreshold: -50,
               currency: '',
             },
+            {
+              ...base.account,
+              id: 'acc-blank',
+              name: '   ',
+              currency: 'USD',
+            },
           ],
           events: [
             {
@@ -401,6 +407,19 @@ describe('LocalStorageStateRepository', () => {
               createdAt: '2026-03-01T00:00:00.000Z',
               updatedAt: '2026-03-01T00:00:00.000Z',
             },
+            {
+              id: 'event-invalid-category',
+              accountId: 'acc-1',
+              name: '坏分类',
+              amount: 100,
+              category: 'transfer',
+              type: 'monthly',
+              startDate: '2026-03-01',
+              monthlyDay: 1,
+              enabled: true,
+              createdAt: '2026-03-01T00:00:00.000Z',
+              updatedAt: '2026-03-01T00:00:00.000Z',
+            },
           ],
           snapshots: [
             {
@@ -418,6 +437,14 @@ describe('LocalStorageStateRepository', () => {
               balance: 10,
               source: 'manual',
               createdAt: '2026-03-01T00:00:00.000Z',
+            },
+            {
+              id: 'snapshot-invalid-source',
+              accountId: 'acc-1',
+              date: '2026-03-02',
+              balance: 11,
+              source: 'sync',
+              createdAt: '2026-03-02T00:00:00.000Z',
             },
           ],
           reconciliations: [
@@ -463,6 +490,18 @@ describe('LocalStorageStateRepository', () => {
               createdAt: '2026-03-03T00:00:00.000Z',
               updatedAt: '2026-03-03T00:00:00.000Z',
             },
+            {
+              id: 'ledger-invalid-source',
+              accountId: 'acc-1',
+              reconciliationId: 'recon-valid',
+              name: '未知来源',
+              amount: 10,
+              category: 'expense',
+              date: '2026-03-03',
+              source: 'sync',
+              createdAt: '2026-03-03T00:00:00.000Z',
+              updatedAt: '2026-03-03T00:00:00.000Z',
+            },
           ],
           eventOverrides: [
             {
@@ -485,11 +524,20 @@ describe('LocalStorageStateRepository', () => {
               amount: 'oops',
               createdAt: '2026-03-03T00:00:00.000Z',
             },
+            {
+              id: 'override-invalid-action',
+              accountId: 'acc-1',
+              ruleId: 'event-valid',
+              period: '2026-03',
+              action: 'merged',
+              createdAt: '2026-03-03T00:00:00.000Z',
+            },
           ],
         },
       }),
     );
 
+    expect(imported.accounts).toHaveLength(1);
     expect(imported.account.name).toBe('主账户');
     expect(imported.account.initialBalance).toBe(0);
     expect(imported.account.warningThreshold).toBe(0);
