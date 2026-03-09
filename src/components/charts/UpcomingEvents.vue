@@ -65,7 +65,7 @@ import { computed, ref } from 'vue';
 import { message } from 'ant-design-vue';
 import type { DailySnapshot } from '@/types/timeline';
 import { useFinanceStore } from '@/stores/finance';
-import { getUpcomingCutoffDate } from '@/utils/upcoming';
+import { buildUpcomingItems, type UpcomingItem } from '@/utils/upcoming-items';
 
 const props = defineProps<{ timeline: DailySnapshot[] }>();
 const store = useFinanceStore();
@@ -74,37 +74,7 @@ const modifyOpen = ref(false);
 const modifyAmount = ref<number | null>(null);
 const modifyTarget = ref<{ eventId: string; period: string } | null>(null);
 
-interface UpcomingItem {
-  id: string;
-  eventId: string;
-  name: string;
-  amount: number;
-  category: string;
-  date: string;
-  period?: string;
-  overrideId?: string;
-  overrideAction?: string;
-}
-
-const items = computed<UpcomingItem[]>(() => {
-  const today = store.todayStr;
-  const cutoffStr = getUpcomingCutoffDate(today);
-  const flattened = props.timeline.flatMap((day) =>
-    day.events.map((event) => ({
-      id: `${event.id}-${day.date}`,
-      eventId: event.eventId,
-      name: event.name,
-      amount: event.amount,
-      category: event.category,
-      date: day.date,
-      period: event.period,
-      overrideId: event.overrideId,
-      overrideAction: event.overrideAction,
-    })),
-  );
-  return flattened
-    .filter((item) => item.date >= today && item.date <= cutoffStr);
-});
+const items = computed<UpcomingItem[]>(() => buildUpcomingItems(props.timeline, store.todayStr));
 
 const overrideLabel = (action: string) => {
   switch (action) {

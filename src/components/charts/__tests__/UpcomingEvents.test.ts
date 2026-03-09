@@ -1,0 +1,188 @@
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { mount } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
+import { defineComponent, nextTick } from 'vue';
+import UpcomingEvents from '@/components/charts/UpcomingEvents.vue';
+import { useFinanceStore } from '@/stores/finance';
+import type { DailySnapshot } from '@/types/timeline';
+import { message } from 'ant-design-vue';
+
+vi.mock('ant-design-vue', async () => {
+  const actual = await vi.importActual<typeof import('ant-design-vue')>('ant-design-vue');
+  return {
+    ...actual,
+    message: { success: vi.fn() },
+  };
+});
+
+const DropdownStub = defineComponent({
+  name: 'ADropdown',
+  template: '<div class="dropdown-stub"><slot /><slot name="overlay" /></div>',
+});
+
+const MenuStub = defineComponent({
+  name: 'AMenu',
+  emits: ['click'],
+  template: '<div class="menu-stub"><slot /></div>',
+});
+
+const MenuItemStub = defineComponent({
+  name: 'AMenuItem',
+  template: '<button class="menu-item-stub"><slot /></button>',
+});
+
+const ButtonStub = defineComponent({
+  name: 'AButton',
+  template: '<button class="button-stub"><slot /></button>',
+});
+
+const ModalStub = defineComponent({
+  name: 'AModal',
+  props: ['open'],
+  emits: ['ok', 'cancel'],
+  template: '<div v-if="open" class="modal-stub"><slot /></div>',
+});
+
+const FormStub = defineComponent({
+  name: 'AForm',
+  template: '<form class="form-stub"><slot /></form>',
+});
+
+const FormItemStub = defineComponent({
+  name: 'AFormItem',
+  template: '<div class="form-item-stub"><slot /></div>',
+});
+
+const InputNumberStub = defineComponent({
+  name: 'AInputNumber',
+  props: ['value'],
+  emits: ['update:value'],
+  template: '<input class="input-number-stub" />',
+});
+
+const mountUpcomingEvents = (timeline: DailySnapshot[]) => mount(UpcomingEvents, {
+  props: { timeline },
+  global: {
+    stubs: {
+      'a-dropdown': DropdownStub,
+      'a-menu': MenuStub,
+      'a-menu-item': MenuItemStub,
+      'a-button': ButtonStub,
+      'a-modal': ModalStub,
+      'a-form': FormStub,
+      'a-form-item': FormItemStub,
+      'a-input-number': InputNumberStub,
+    },
+  },
+});
+
+describe('UpcomingEvents', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.mocked(message.success).mockReset();
+  });
+
+  it('按日期升序展示，且同日优先支出和大额事件', () => {
+    const store = useFinanceStore();
+    store.setSimulatedToday('2025-01-10');
+
+    const timeline: DailySnapshot[] = [
+      {
+        date: '2025-01-11',
+        balance: 0,
+        change: 0,
+        isWeekend: false,
+        isToday: false,
+        zone: 'projected',
+        events: [
+          { id: 'income-small', eventId: 'e1', name: '工资补贴', category: 'income', amount: 500, date: '2025-01-11', period: '2025-01' },
+          { id: 'expense-big', eventId: 'e2', name: '房租', category: 'expense', amount: 3000, date: '2025-01-11', period: '2025-01' },
+          { id: 'expense-small', eventId: 'e3', name: '午餐', category: 'expense', amount: 30, date: '2025-01-11', period: '2025-01' },
+        ],
+      },
+      {
+        date: '2025-01-12',
+        balance: 0,
+        change: 0,
+        isWeekend: false,
+        isToday: false,
+        zone: 'projected',
+        events: [
+          { id: 'later-income', eventId: 'e4', name: '奖金', category: 'income', amount: 888, date: '2025-01-12', period: '2025-01' },
+        ],
+      },
+    ];
+
+    const wrapper = mountUpcomingEvents(timeline);
+    const names = wrapper.findAll('.event-name').map((node) => node.text());
+    expect(names).toEqual(['房租', '午餐', '工资补贴', '奖金']);
+  });
+
+  it('默认只渲染有限条目，避免长时间线侧栏过载', () => {
+    const store = useFinanceStore();
+    store.setSimulatedToday('2025-01-01');
+
+    const timeline: DailySnapshot[] = Array.from({ length: 30 }, (_, index) => ({
+      date: `2025-01-${String(index + 1).padStart(2, '0')}`,
+      balance: 0,
+      change: 0,
+      isWeekend: false,
+      isToday: false,
+      zone: 'projected' as const,
+      events: [
+        { id: `event-${index + 1}`, eventId: `event-${index + 1}`, name: `事件 ${index + 1}`, category: 'expense' as const, amount: index + 1, date: `2025-01-${String(index + 1).padStart(2, '0')}`, period: `2025-01-${String(index + 1).padStart(2, '0')}` },
+      ],
+    }));
+
+    const wrapper = mountUpcomingEvents(timeline);
+    expect(wrapper.findAll('li')).toHaveLength(18);
+    expect(wrapper.text()).toContain('事件 18');
+    expect(wrapper.text()).not.toContain('事件 19');
+  });
+
+  it('操作覆盖时调用 store action 并给出成功提示', async () => {
+    const store = useFinanceStore();
+    store.setSimulatedToday('2025-01-10');
+    const addEventOverride = vi.spyOn(store, 'addEventOverride');
+
+    const timeline: DailySnapshot[] = [{
+      date: '2025-01-11',
+      balance: 0,
+      change: 0,
+      isWeekend: false,
+      isToday: false,
+      zone: 'projected',
+      events: [
+        { id: 'expense-big', eventId: 'rule-rent', name: '房租', category: 'expense', amount: 3000, date: '2025-01-11', period: '2025-01' },
+      ],
+    }];
+
+    const wrapper = mountUpcomingEvents(timeline);
+    await (wrapper.vm as any).handleAction('skipped', (wrapper.vm as any).items[0]);
+    await nextTick();
+
+    expect(addEventOverride).toHaveBeenCalledWith('rule-rent', '2025-01', 'skipped');
+    expect(message.success).toHaveBeenCalledWith('已跳过本期');
+  });
+
+  it('只读视图下不展示事件操作入口', () => {
+    const store = useFinanceStore();
+    store.setSimulatedToday('2025-01-10');
+    store.viewMode = 'multi';
+
+    const timeline: DailySnapshot[] = [{
+      date: '2025-01-11',
+      balance: 0,
+      change: 0,
+      isWeekend: false,
+      isToday: false,
+      zone: 'projected',
+      events: [
+        { id: 'expense-big', eventId: 'rule-rent', name: '房租', category: 'expense', amount: 3000, date: '2025-01-11', period: '2025-01' },
+      ],
+    }];
+
+    const wrapper = mountUpcomingEvents(timeline);
+    expect(wrapper.find('.event-actions').exists()).toBe(false);
+  });
+});

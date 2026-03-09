@@ -1,0 +1,1 @@
+- 2026-03-10: improved UpcomingEvents sidebar ordering/limit; added unit + component coverage; verified with test/type-check/build/smoke and local dev HTTP smoke.
