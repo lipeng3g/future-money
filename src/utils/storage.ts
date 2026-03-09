@@ -147,11 +147,11 @@ export class LocalStorageStateRepository implements StateRepository {
       const state = normalizeState(parsed.state);
 
       const shouldPersistMigration = parsed.version !== APP_VERSION
-        || !parsed.state.reconciliations
-        || !parsed.state.ledgerEntries
-        || !parsed.state.eventOverrides
-        || !parsed.state.accounts?.length
-        || !parsed.state.snapshots?.length;
+        || !Array.isArray(parsed.state.reconciliations)
+        || !Array.isArray(parsed.state.ledgerEntries)
+        || !Array.isArray(parsed.state.eventOverrides)
+        || !Array.isArray(parsed.state.accounts)
+        || !Array.isArray(parsed.state.snapshots);
 
       if (shouldPersistMigration) {
         this.writeState(state);

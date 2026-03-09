@@ -73,6 +73,36 @@ describe('LocalStorageStateRepository', () => {
     expect(saveSpy).toHaveBeenCalled();
   });
 
+  it('空数组字段会被视为已完成迁移，不会在加载时重复回写 localStorage', () => {
+    const storage = createMemoryStorage();
+    const repository = new LocalStorageStateRepository(storage);
+    const state = createDefaultState();
+
+    const envelope: PersistedStateEnvelope = {
+      version: APP_VERSION,
+      timestamp: '2025-01-15T00:00:00.000Z',
+      state: {
+        ...state,
+        accounts: [state.account],
+        snapshots: [],
+        reconciliations: [],
+        ledgerEntries: [],
+        eventOverrides: [],
+      },
+    };
+
+    storage.setItem('futureMoney.state', JSON.stringify(envelope));
+
+    const saveSpy = vi.spyOn(storage, 'setItem');
+    const loaded = repository.loadState();
+
+    expect(loaded.snapshots).toEqual([]);
+    expect(loaded.reconciliations).toEqual([]);
+    expect(loaded.ledgerEntries).toEqual([]);
+    expect(loaded.eventOverrides).toEqual([]);
+    expect(saveSpy).not.toHaveBeenCalled();
+  });
+
   it('导入旧格式数据时会补齐默认字段，但不会伪造初始快照/对账', () => {
     const storage = createMemoryStorage();
     const repository = new LocalStorageStateRepository(storage);

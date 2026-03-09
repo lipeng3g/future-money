@@ -123,6 +123,26 @@ describe('parseImportPreview', () => {
     expect(risk.replacementScope).toMatch(/全部账户/);
   });
 
+  it('会为单账户备份生成低风险提示，避免误判成未标记备份', () => {
+    const risk = buildImportRiskSummary({
+      envelopeVersion: '2.0.0',
+      stateVersion: '2.0.0',
+      timestamp: '2026-03-08T14:00:00.000Z',
+      scope: 'current',
+      accountsCount: 1,
+      eventsCount: 3,
+      reconciliationsCount: 1,
+      ledgerEntriesCount: 2,
+      eventOverridesCount: 0,
+      accountNames: ['现金账户'],
+    });
+
+    expect(risk.level).toBe('low');
+    expect(risk.title).toMatch(/低风险/);
+    expect(risk.consequence).toMatch(/只覆盖一个账户/);
+    expect(risk.replacementScope).toMatch(/单个账户/);
+  });
+
   it('会为旧版未标记备份生成中风险提示', () => {
     const risk = buildImportRiskSummary({
       envelopeVersion: '1.0.0',

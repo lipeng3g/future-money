@@ -21,7 +21,7 @@ export interface RollbackPreviewSummary extends ImportPreviewSummary {
 }
 
 export interface ImportRiskSummary {
-  level: 'medium' | 'high';
+  level: 'low' | 'medium' | 'high';
   title: string;
   consequence: string;
   replacementScope: string;
@@ -175,6 +175,15 @@ export const buildImportRiskSummary = (
       title: '高风险：将整体替换当前浏览器内的整套本地数据',
       consequence: `当前本地的 ${currentAccounts} 个账户、${currentEvents} 条事件、${currentReconciliations} 次对账、${currentLedgerEntries} 条账本记录和 ${currentOverrides} 条覆盖记录都会被备份内容替换。`,
       replacementScope: '替换范围：全部账户、事件、对账、账本、覆盖记录与偏好设置。',
+    };
+  }
+
+  if (summary.scope === 'current') {
+    return {
+      level: 'low',
+      title: '低风险：这是单账户备份',
+      consequence: '这份备份只覆盖一个账户的数据，更适合用于单账户迁移、局部恢复或替换当前账户。',
+      replacementScope: '替换范围通常只应落在单个账户；若你正在执行整库恢复，请先确认这正是你想要的来源文件。',
     };
   }
 

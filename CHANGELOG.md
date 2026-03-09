@@ -1,6 +1,10 @@
 # Changelog
 
 ## 2026-03-09
+- perf(storage): `LocalStorageStateRepository.loadState()` 现在只在字段缺失或类型异常时才判定需要迁移并回写本地存储；对于已经是合法空数组的 `snapshots / reconciliations / ledgerEntries / eventOverrides`，不再误判成“未迁移”并在每次打开应用时多做一次无意义 `localStorage` 写入
+- safety(import): 导入预览的风险分级新增 `scope=current` 的明确低风险提示；单账户备份不再被笼统落到“旧版/未标记备份”，恢复语义更清楚，也为后续单账户导入/恢复确认流留下更准确的风险基线
+- test(storage): 扩展 `src/utils/__tests__/storage.test.ts`，新增“空数组字段不会触发重复迁移回写”回归，避免本地持久化层再次因为空集合被误判而反复落盘
+- test(import-preview): 扩展 `src/utils/__tests__/import-preview.test.ts`，补单账户备份低风险提示回归，防止导入确认的风险文案再次漂移
 - perf(chart-loading): `ChartArea` 里的余额图和月度收支图改为“进入视口后再真正挂载异步图表组件”，首屏先展示轻量骨架，占位同时把交互机会优先让给统计卡、事件入口和即将发生列表，降低打开首页时被重图表初始化拖慢的体感
 - test(chart-loading): 新增 `src/components/charts/__tests__/ChartArea.test.ts`，真实覆盖“未进入视口前仅显示骨架”“余额图 / 月度图分别在各自卡片进入视口后才加载”的组件级回归，避免按需加载被无意回退
 - ux(multi-account): 多账户选择弹窗打开时，现在会优先自动补齐“与当前入口账户同一最新对账日”的整组可汇总账户，而不是只保留单个当前账户；若当前入口没有可用基准，则会回退到“人数最多且日期最新”的可汇总账户组，减少用户每次都要手动再勾一遍的成本

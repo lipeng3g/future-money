@@ -1,10 +1,9 @@
 # Next Task（worker 更新）
 
 ## 刚完成
-- 已把首页两张重图表从“页面一挂载就开始初始化”改成“图表卡片进入视口后才真正挂载” ：
-  - `ChartArea` 现在会先展示轻量骨架，占位期间把首屏交互优先让给统计卡、事件入口和即将发生列表，降低首页初开时被 ECharts 初始化拖慢的体感
-  - 余额图与月度收支图分别独立观察、独立加载，不会因为上半屏先出现就把下半屏图表也一起拉起
-  - 已新增 `src/components/charts/__tests__/ChartArea.test.ts` 组件级回归，真实覆盖“未入视口只显示骨架”“两张图分别在各自进入视口后才加载”
+- 已收紧本地存储迁移回写条件：`storage.loadState()` 现在只在字段缺失或类型异常时才会判定需要迁移并回写；对于已经是合法空数组的 `snapshots / reconciliations / ledgerEntries / eventOverrides`，不再在每次打开应用时多做一次无意义 `localStorage` 写入
+- 已补齐单账户备份的明确风险分级：`import-preview` 现在会把 `scope=current` 识别成“低风险：这是单账户备份”，不再把这类文件混入“旧版/未标记备份”文案里
+- 已新增对应回归测试，分别覆盖“空数组不重复回写”和“单账户备份低风险提示”
 
 ## 下一轮优先级
 1. **继续压包**：当前构建已把图表共享块拆散，但 `chart-balance-runtime` 仍约 556kB；下一步可评估 tooltip formatter、markArea/markLine 或 ECharts 依赖是否还能再拆，进一步降低余额图首次打开成本
