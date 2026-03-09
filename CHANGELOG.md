@@ -6,6 +6,9 @@
 - chore(smoke): `npm run smoke` 现在会在现有 store/UI 烟雾回归之后，顺手生成首页图表页面级 smoke 所需夹具，减少每轮手工准备成本，也让仓库里的页面 smoke 资产和常规验证入口保持同步。
 - ux(chart-empty): 首页在“还没有任何时间线 / 月度数据”时，现在会直接渲染图表组件自己的真实空态，不再先经过 IntersectionObserver / fallback skeleton 的延迟壳。这样首次进入空库、刚清空数据、或切到无对账账户时，用户会立刻看到明确说明，而不是先等一轮“正在按需加载图表”的假等待。
 - test(chart-empty): 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“无图表数据时直接渲染真实空态、不显示延迟骨架”的容器级回归；同时把既有延迟加载/focus 联动用例改成先造出真实时间线数据，避免测试前提混淆。
+- stability(ai-chat-keys): `ChatRecord` 现在支持持久化唯一 `id`；AI 抽屉消息列表的 vnode key 已从 `content + role` 碰撞式临时值改为稳定 `id`，避免同题重试、连续失败 partial、或旧历史里多条相同文案消息时出现列表复用错位。
+- compat(ai-chat-keys): `loadChatHistory()` / `saveChatHistory()` 现在会在读取旧历史时自动补齐缺失的消息 `id`，无需清空用户本地 AI 对话；历史兼容迁移在读取期完成，不引入额外外部依赖或数据格式破坏。
+- test(ai-chat-keys): 扩展 `src/utils/__tests__/ai-chat-history.test.ts`，覆盖“旧历史缺失 id 时会自动补齐，且重复内容消息会获得不同 id”回归，锁住本地 AI 历史迁移与列表稳定性。
 
 ## 2026-03-10
 - test(ai-retry-failures): 扩展 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，新增“同题重试再次失败时，只保留最新一轮 partial、不把多次失败残片叠进历史，后续再重试成功也会正确替换”的组件级回归，继续收紧 AI 抽屉失败恢复边界，避免连续两次 partial fail 后历史里残留多份半截回答。

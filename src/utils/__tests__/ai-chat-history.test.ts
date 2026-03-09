@@ -33,15 +33,15 @@ describe('AI chat history scoping', () => {
     saveChatHistory([{ role: 'user', content: 'A' }], { accountIds: ['acc-a'] });
     saveChatHistory([{ role: 'user', content: 'B' }], { accountIds: ['acc-b'] });
 
-    expect(loadChatHistory({ accountIds: ['acc-a'] })).toEqual([{ role: 'user', content: 'A' }]);
-    expect(loadChatHistory({ accountIds: ['acc-b'] })).toEqual([{ role: 'user', content: 'B' }]);
+    expect(loadChatHistory({ accountIds: ['acc-a'] })).toEqual([expect.objectContaining({ role: 'user', content: 'A' })]);
+    expect(loadChatHistory({ accountIds: ['acc-b'] })).toEqual([expect.objectContaining({ role: 'user', content: 'B' })]);
     expect(loadChatHistory({ accountIds: ['acc-c'] })).toEqual([]);
   });
 
   it('兼容读取旧版全局对话历史，避免升级后历史瞬间丢失', () => {
     window.localStorage.setItem('fm-ai-chat', JSON.stringify(sampleMessages));
 
-    expect(loadChatHistory({ accountIds: ['acc-a'] })).toEqual(sampleMessages);
+    expect(loadChatHistory({ accountIds: ['acc-a'] })).toEqual(sampleMessages.map((message) => expect.objectContaining(message)));
   });
 
   it('清空时仅删除当前 scope 的对话历史', () => {
@@ -51,7 +51,7 @@ describe('AI chat history scoping', () => {
     clearChatHistory({ accountIds: ['acc-a'] });
 
     expect(loadChatHistory({ accountIds: ['acc-a'] })).toEqual([]);
-    expect(loadChatHistory({ accountIds: ['acc-b'] })).toEqual([{ role: 'user', content: 'B' }]);
+    expect(loadChatHistory({ accountIds: ['acc-b'] })).toEqual([expect.objectContaining({ role: 'user', content: 'B' })]);
   });
 
   it('导出文件名会带上账户 scope，避免多账户导出互相覆盖', () => {
@@ -109,5 +109,28 @@ describe('AI chat history scoping', () => {
   it('空白草稿不会持久化，避免无意义残留', () => {
     saveChatDraft('   ', { accountIds: ['acc-a'] });
     expect(window.localStorage.getItem('fm-ai-draft:acc-a')).toBeNull();
+  });
+
+  it('保存和读取对话历史时会为缺失 id 的消息补稳定标识，兼容旧数据', () => {
+    const stored = [
+      { role: 'user', content: '重复问题' },
+      { role: 'assistant', content: '重复问题' },
+    ] satisfies ChatRecord[];
+
+    window.localStorage.setItem('fm-ai-chat:acc-a', JSON.stringify(stored));
+
+    const loaded = loadChatHistory({ accountIds: ['acc-a'] });
+    expect(loaded).toHaveLength(2);
+    expect(loaded[0]?.id).toBeTruthy();
+    expect(loaded[1]?.id).toBeTruthy();
+    expect(loaded[0]?.id).not.toBe(loaded[1]?.id);
+    expect(loaded[0]).toEqual(expect.objectContaining(stored[0]));
+    expect(loaded[1]).toEqual(expect.objectContaining(stored[1]));
+
+    saveChatHistory(loaded, { accountIds: ['acc-a'] });
+    const persisted = JSON.parse(window.localStorage.getItem('fm-ai-chat:acc-a') ?? '[]') as ChatRecord[];
+    expect(persisted[0]?.id).toBeTruthy();
+    expect(persisted[1]?.id).toBeTruthy();
+    expect(persisted[0]?.id).not.toBe(persisted[1]?.id);
   });
 });

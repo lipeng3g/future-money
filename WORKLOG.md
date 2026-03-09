@@ -6,6 +6,11 @@
 - tests: 本轮主要补真实预览 smoke 资产，不新增 Playwright；常规验证继续覆盖 `npm test` / `npm run type-check` / `npm run build` / `npm run smoke`，页面级验证通过仓库文档重复执行
 
 ## 2026-03-10
+- task: 收口 AI 抽屉消息列表的稳定 key，避免相同内容/相同角色消息在重试、失败 partial、旧历史迁移后发生 vnode key 冲突，导致消息 DOM 复用错位或更新不稳定
+- implementation: `src/utils/ai.ts` 的 `ChatRecord` 新增可选 `id`；`loadChatHistory()` / `saveChatHistory()` 现在会为缺失 id 的旧历史自动补唯一标识并保持本地持久化兼容；`src/components/ai/AiAnalysisModal.vue` 的消息列表 key 改为直接使用 `msg.id`，不再使用 `content.slice(0, 30) + role` 这种会碰撞的临时 key
+- tests: 扩展 `src/utils/__tests__/ai-chat-history.test.ts`，覆盖“旧历史缺失 id 时读取会自动补 id，且重复内容消息会拿到不同 id”回归；并完成 `npm install` / `npm test` / `npm run type-check` / `npm run build` / `npm run smoke` / `npm run preview + curl -I` 验证
+
+## 2026-03-10
 - task: 收口首页图表在空库/无数据场景下的首屏反馈，避免用户明明没有任何可画数据，却还要先经历一轮“按需加载图表”的骨架等待
 - implementation: `src/components/charts/ChartArea.vue` 新增 `hasBalanceTimelineData / hasCashFlowData` 判断；当余额时间线或月度汇总为空时，直接渲染 `BalanceChart / CashFlowChart` 自己的空态，不再挂 defer skeleton / observer / fallback timer。保留有数据时的延迟加载策略，避免回退首屏性能优化
 - tests: 扩展 `src/components/charts/__tests__/ChartArea.test.ts`，新增“无图表数据时直接渲染真实空态、不显示延迟骨架”的容器级回归，并把其余延迟/focus 用例显式补上对账前置数据，锁住测试语义

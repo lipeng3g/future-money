@@ -64,7 +64,7 @@
       </div>
 
       <!-- 消息列表 -->
-      <template v-for="msg in chatMessages" :key="msg.content.slice(0, 30) + msg.role">
+      <template v-for="msg in chatMessages" :key="msg.id">
         <div class="msg-row" :class="msg.role">
           <div class="msg-bubble">
             <!-- 思考过程（折叠） -->

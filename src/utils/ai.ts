@@ -154,22 +154,35 @@ export const saveAiConfig = (config: AiConfig) => {
 // ---- 对话持久化 ----
 
 export interface ChatRecord {
+    id?: string;
     role: 'user' | 'assistant';
     content: string;
     thinking?: string;
 }
+
+const createChatRecordId = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const normalizeChatRecord = (record: ChatRecord): ChatRecord => ({
+    ...record,
+    id: record.id?.trim() || createChatRecordId(),
+});
 
 export const loadChatHistory = (scope?: ChatHistoryScope): ChatRecord[] => {
     try {
         const scopedKey = createChatHistoryScopeKey(scope);
         const raw = localStorage.getItem(scopedKey);
         if (raw) {
-            return JSON.parse(raw);
+            return (JSON.parse(raw) as ChatRecord[]).map(normalizeChatRecord);
         }
 
         if (scopedKey !== CHAT_KEY) {
             const legacyRaw = localStorage.getItem(CHAT_KEY);
-            return legacyRaw ? JSON.parse(legacyRaw) : [];
+            return legacyRaw ? (JSON.parse(legacyRaw) as ChatRecord[]).map(normalizeChatRecord) : [];
         }
 
         return [];
@@ -179,7 +192,7 @@ export const loadChatHistory = (scope?: ChatHistoryScope): ChatRecord[] => {
 };
 
 export const saveChatHistory = (messages: ChatRecord[], scope?: ChatHistoryScope) => {
-    localStorage.setItem(createChatHistoryScopeKey(scope), JSON.stringify(messages));
+    localStorage.setItem(createChatHistoryScopeKey(scope), JSON.stringify(messages.map(normalizeChatRecord)));
 };
 
 export const clearChatHistory = (scope?: ChatHistoryScope) => {
