@@ -12,3 +12,5 @@ tmp-browser-chart-smoke/
 
 # TS build outputs
 tsconfig.*.tsbuildinfo
+tsconfig.app.tsbuildinfo
+tsconfig.node.tsbuildinfo
