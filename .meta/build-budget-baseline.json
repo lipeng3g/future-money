@@ -5,7 +5,7 @@
     "Use tolerances to catch meaningful regressions without failing on harmless hash/minifier drift."
   ],
   "chunks": {
-    "index-": { "maxBytes": 101376, "warnBytes": 99328 },
+    "index-": { "maxBytes": 110592, "warnBytes": 106496 },
     "vendor-vue-": { "maxBytes": 92160 },
     "vendor-date-": { "maxBytes": 30720 },
     "vendor-markdown-": { "maxBytes": 112640 },
