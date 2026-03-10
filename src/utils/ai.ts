@@ -48,25 +48,34 @@ export const createChatHistoryScopeKey = (scope?: ChatHistoryScope): string => {
 const isPrivateOrUnsafeAiHostname = (hostname: string): boolean => {
     if (!hostname) return true;
 
-    const normalized = hostname.trim().toLowerCase().replace(/^\[(.*)\]$/, '$1');
+    const normalized = hostname.trim().toLowerCase();
+    const withoutBrackets = normalized.replace(/^\[(.*)\]$/, '$1');
+
+    // Some environments stringify IPv6-mapped IPv4 addresses in a compact hex form,
+    // e.g. new URL('http://[::ffff:127.0.0.1]/').hostname === '[::ffff:7f00:1]'.
+    // We conservatively block any IPv6 that declares itself as an IPv4-mapped address
+    // (including the compact form) to avoid bypassing IPv4 localhost/private checks.
+    if (/^::ffff:/i.test(withoutBrackets)) {
+        return true;
+    }
 
     if (
-        normalized === 'localhost'
-        || normalized === 'localhost.'
-        || normalized.endsWith('.localhost')
-        || normalized.endsWith('.localhost.')
-        || normalized === '0.0.0.0'
-        || normalized === '::'
-        || normalized === '::1'
-        || normalized.startsWith('127.')
-        || normalized.startsWith('10.')
-        || normalized.startsWith('192.168.')
-        || /^172\.(1[6-9]|2\d|3[0-1])\./.test(normalized)
-        || /^169\.254\./.test(normalized)
-        || /^100\.(6[4-9]|[78]\d|9\d|1[01]\d|12[0-7])\./.test(normalized)
-        || /^fc/i.test(normalized)
-        || /^fd/i.test(normalized)
-        || /^fe[89ab]/i.test(normalized)
+        withoutBrackets === 'localhost'
+        || withoutBrackets === 'localhost.'
+        || withoutBrackets.endsWith('.localhost')
+        || withoutBrackets.endsWith('.localhost.')
+        || withoutBrackets === '0.0.0.0'
+        || withoutBrackets === '::'
+        || withoutBrackets === '::1'
+        || withoutBrackets.startsWith('127.')
+        || withoutBrackets.startsWith('10.')
+        || withoutBrackets.startsWith('192.168.')
+        || /^172\.(1[6-9]|2\d|3[0-1])\./.test(withoutBrackets)
+        || /^169\.254\./.test(withoutBrackets)
+        || /^100\.(6[4-9]|[78]\d|9\d|1[01]\d|12[0-7])\./.test(withoutBrackets)
+        || /^fc/i.test(withoutBrackets)
+        || /^fd/i.test(withoutBrackets)
+        || /^fe[89ab]/i.test(withoutBrackets)
     ) {
         return true;
     }
