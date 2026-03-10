@@ -372,3 +372,4 @@
 - 加固 AI API 地址安全校验：补拒绝链路本地/内网/ULA/链路本地 IPv6 与 CGNAT 地址，避免前端直连配置误指向私网代理。
 - 补充 ai-proxy-guard 测试覆盖上述地址段。
 - 待完成：全量安装/测试/type-check/build/烟雾验证，验证后提交并推送。
+2026-03-11\n\n- Ran full verification (test/type-check/build/smoke/preview). No code changes needed; working tree clean after discarding tsbuildinfo.\n- Next: consider chart runtime chunk optimization & SSRF rebinding guard note.\n
