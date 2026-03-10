@@ -3,7 +3,7 @@
 本项目继续保持**零新增浏览器测试依赖**。首页图表的真实页面验证采用：
 - `npm run build`
 - `npm run smoke`（会生成本页所需状态夹具）
-- `npm run preview -- --host 127.0.0.1 --port 4175`（端口可能被占用，注意以终端输出为准）
+- `npm run preview -- --host 127.0.0.1 --port 4175 --strictPort`（推荐：端口被占用就直接失败，避免自动跳端口导致文档/脚本引用的地址不一致）
 - OpenClaw `browser` 工具
 
 目标是把首页图表当前最脆弱的两条真实组合路径固定下来：
@@ -17,7 +17,7 @@
 ```bash
 npm run build
 npm run smoke
-npm run preview -- --host 127.0.0.1 --port 4175
+npm run preview -- --host 127.0.0.1 --port 4175 --strictPort
 ```
 
 其中 `npm run smoke` 会额外生成：

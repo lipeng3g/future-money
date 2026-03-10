@@ -11,7 +11,7 @@
 ```bash
 npm install
 npm run build
-npm run preview -- --host 127.0.0.1 --port 4173
+npm run preview -- --host 127.0.0.1 --port 4173 --strictPort
 ```
 
 2. 打开：<http://127.0.0.1:4173/>
