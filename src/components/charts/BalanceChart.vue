@@ -69,12 +69,13 @@
       </div>
 
       <VChart v-if="chartRuntimeReady" :option="chartOption" autoresize class="chart" @click="handleChartClick" />
-      <div v-else-if="chartRuntimeError" class="chart-runtime-error" role="alert">
-        <strong>图表暂时没加载出来</strong>
-        <p>{{ chartRuntimeError }}</p>
-        <small v-if="chartRuntimeErrorAction" class="chart-runtime-error-action">{{ chartRuntimeErrorAction }}</small>
-        <button type="button" class="retry-button" @click="retryChartRuntime">重试加载</button>
-      </div>
+      <ChartRuntimeErrorNotice
+        v-else-if="chartRuntimeError && !dismissedRuntimeError"
+        :message="chartRuntimeError"
+        :action="chartRuntimeErrorAction"
+        @retry="retryChartRuntime"
+        @dismiss="dismissChartRuntimeError"
+      />
       <div v-else class="chart-loading-state">正在加载图表引擎…</div>
     </template>
   </div>
@@ -84,6 +85,7 @@
 import { computed, ref, watch } from 'vue';
 import type { ECElementEvent } from 'echarts/core';
 import VChart from 'vue-echarts';
+import ChartRuntimeErrorNotice from '@/components/charts/ChartRuntimeErrorNotice.vue';
 import type { DailySnapshot, EventOccurrence } from '@/types/timeline';
 import { useChartRuntime } from '@/utils/use-chart-runtime';
 import {
@@ -122,8 +124,18 @@ const chartRuntime = useChartRuntime('balance', () => import('@/utils/echarts-ba
 const chartRuntimeReady = chartRuntime.ready;
 const chartRuntimeError = chartRuntime.error;
 const chartRuntimeErrorAction = chartRuntime.errorAction;
+const dismissedRuntimeError = ref(false);
 
-const retryChartRuntime = () => chartRuntime.retry();
+const retryChartRuntime = async () => {
+  dismissedRuntimeError.value = false;
+  await chartRuntime.retry();
+};
+
+const dismissChartRuntimeError = () => {
+  // 组件本地把错误横幅“收起”，避免用户在无网/限流时反复被挡住；
+  // runtime 的真实状态仍保留在内部，后续重试会重新计算。
+  dismissedRuntimeError.value = true;
+};
 
 const focusButtons = computed(() => buildBalanceChartFocusTargets(
   props.timeline,
