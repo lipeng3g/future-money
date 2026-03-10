@@ -25,7 +25,7 @@ import { useChartRuntime } from '@/utils/use-chart-runtime';
 
 const props = defineProps<{ months: MonthlySnapshot[] }>();
 
-const chartRuntime = useChartRuntime(() => import('@/utils/echarts-cashflow'));
+const chartRuntime = useChartRuntime('cashflow', () => import('@/utils/echarts-cashflow'));
 const chartRuntimeReady = chartRuntime.ready;
 const chartRuntimeError = chartRuntime.error;
 const chartRuntimeErrorAction = chartRuntime.errorAction;

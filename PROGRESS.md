@@ -7,6 +7,7 @@
 - Wiring in progress: `UpcomingEvents` now emits `focus-date`, and `ChartArea` listens so the balance chart enters pinned-date focus when a future item is clicked.
 - Added regressions for click + Enter keyboard activation on future items, plus a ChartArea container test that locks upcoming-sidebar -> balance-chart `focusDate` handoff.
 - Full validation is being rerun (`npm install`, `npm test`, `npm run type-check`, `npm run build`, `npm run smoke`, `npm run preview + curl`) before push.
+- 新开一轮本地图表体验打磨：首页 `ChartArea` 挂载后会在浏览器空闲时静默预热余额图/月度图 runtime，并让 `BalanceChart` / `CashFlowChart` 挂载时复用共享加载状态，减少首次看图还要从零下载 runtime 的等待；对应新增 `chart-runtime-preload` 公共层测试、`use-chart-runtime` 共享缓存回归，以及 `ChartArea` 的“空闲预热但仍保持 defer skeleton”容器级测试。
 - 追加一轮本地 UX 打磨：余额图焦点摘要在多账户日期下已改为显示真实账户名 + 颜色点，而不是内部 `accountId`；容器同步把账户映射传给 `BalanceChart`，并补测试锁住 upcoming 点击后的 focusDate / accountLabels 透传语义。
 - 新增一轮多账户图表体验打磨：`BalanceChart` 当前焦点日期下的账户分组现在按净变化绝对值稳定排序，组头摘要从原先只显示 `+收入/-支出` 调整为 `净变化 + 收入/支出拆分`，让用户更快判断哪张账户在当天贡献了主要流入/流出；对应补充 `src/components/charts/__tests__/BalanceChart.test.ts` 回归，锁住排序与摘要格式。
 - 本轮继续补首页本地交互闭环：即将发生侧栏现在支持“当前已定位日期”高亮，并允许再次点击同项时取消图表日期定位，减少用户在侧栏与余额图之间来回确认是否已生效；已补 `UpcomingEvents` / `ChartArea` 回归锁住 activeDate 透传与清空语义。

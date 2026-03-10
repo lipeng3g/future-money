@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
 import BalanceChart from '@/components/charts/BalanceChart.vue';
 import type { DailySnapshot } from '@/types/timeline';
+import { __resetChartRuntimeRegistryForTests } from '@/utils/chart-runtime-preload';
 
 vi.mock('vue-echarts', () => ({
   default: defineComponent({
@@ -26,6 +27,10 @@ beforeEach(() => {
     cb(0);
     return 1;
   });
+});
+
+afterEach(() => {
+  __resetChartRuntimeRegistryForTests();
 });
 
 const createDay = (overrides: Partial<DailySnapshot> & Pick<DailySnapshot, 'date' | 'balance' | 'change'>): DailySnapshot => ({

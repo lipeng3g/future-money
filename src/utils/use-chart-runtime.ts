@@ -1,11 +1,12 @@
 import { onMounted } from 'vue';
-import { createAsyncChartRuntime } from '@/utils/chart-runtime';
+import { getSharedChartRuntime } from '@/utils/chart-runtime-preload';
 
 export const useChartRuntime = (
+  key: string,
   loader: () => Promise<unknown>,
   errorMessage?: string,
 ) => {
-  const runtime = createAsyncChartRuntime(loader, errorMessage);
+  const runtime = getSharedChartRuntime(key, loader, errorMessage);
 
   onMounted(() => {
     void runtime.ensureReady();

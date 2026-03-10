@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, nextTick } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import CashFlowChart from '@/components/charts/CashFlowChart.vue';
 import type { MonthlySnapshot } from '@/types/analytics';
+import { __resetChartRuntimeRegistryForTests } from '@/utils/chart-runtime-preload';
 
 vi.mock('vue-echarts', () => ({
   default: defineComponent({
@@ -36,6 +37,10 @@ const months: MonthlySnapshot[] = [
 beforeEach(() => {
   cashflowRuntimeHook.mockReset();
   cashflowRuntimeHook.mockResolvedValue(undefined);
+});
+
+afterEach(() => {
+  __resetChartRuntimeRegistryForTests();
 });
 
 describe('CashFlowChart', () => {

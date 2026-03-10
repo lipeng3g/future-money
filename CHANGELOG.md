@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-03-10
+- perf(chart-runtime): 首页 `ChartArea` 现在会在挂载后利用浏览器空闲时段静默预热余额图与月度收支图的 ECharts runtime；真正滚动到图表卡片、或 fallback timer 揭示图表时，会直接复用这次共享加载状态，减少首次看图仍要从零拉起 runtime 的等待与抖动。
+- refactor(chart-runtime): 新增 `src/utils/chart-runtime-preload.ts` 作为共享 runtime 注册表，把“空闲预热”和“组件挂载时 ensureReady”收口到同一份状态机，避免 Balance/CashFlow 两张图各自重复下载或各自维护一套缓存语义。
+- test(chart-runtime): 新增 `src/utils/__tests__/chart-runtime-preload.test.ts`，并扩展 `src/utils/__tests__/use-chart-runtime.test.ts`、`src/components/charts/__tests__/ChartArea.test.ts`，锁住“预热静默执行、失败不打断 UI、同 key 组件复用同一 runtime、ChartArea 会在保持 defer skeleton 的同时安排 idle preload”这几条本地体验语义。
 - ux(chart-runtime): 图表 runtime 失败态现在会额外给出差异化的下一步建议：离线时引导先检查网络再重试，chunk / 动态 import 下载失败时优先建议刷新页面重新下载资源，其它未知失败则保持通用“先重试、再刷新”的本地恢复路径，减少用户只看到一条笼统报错却不知道下一步该怎么做的摩擦。
 - test(chart-runtime): 扩展 `src/utils/__tests__/chart-runtime.test.ts`，新增错误动作建议的纯函数回归，并把 `CashFlowChart` 组件测试补到错误建议文案渲染，锁住图表失败态从“仅报错”升级为“报错 + 可执行建议”的 UI 语义。
 - 改进余额图多账户焦点摘要：当图表聚焦到含多账户事件的日期时，摘要分组不再显示生硬的 account id，而是复用账户名称与颜色点，降低用户在多账户视图中理解“哪笔事件来自哪张卡/账户”的成本。

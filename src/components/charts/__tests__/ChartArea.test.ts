@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { __resetChartRuntimeRegistryForTests } from '@/utils/chart-runtime-preload';
 import { defineComponent, nextTick } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import ChartArea from '@/components/charts/ChartArea.vue';
 import type { ComponentMountingOptions } from '@vue/test-utils';
 import { useFinanceStore } from '@/stores/finance';
+import { preloadChartRuntime } from '@/utils/chart-runtime-preload';
 
 vi.mock('ant-design-vue', async () => {
   const actual = await vi.importActual<typeof import('ant-design-vue')>('ant-design-vue');
@@ -40,6 +42,14 @@ vi.mock('@/components/charts/CashFlowChart.vue', () => createAsyncComponentMock(
 vi.mock('@/components/reconciliation/ReconciliationModal.vue', () => createAsyncComponentMock('ReconciliationModal', 'reconciliation-modal-stub'));
 vi.mock('@/components/ai/AiAnalysisModal.vue', () => createAsyncComponentMock('AiAnalysisModal', 'ai-analysis-modal-stub'));
 vi.mock('@/components/ai/AiConfigModal.vue', () => createAsyncComponentMock('AiConfigModal', 'ai-config-modal-stub'));
+
+vi.mock('@/utils/chart-runtime-preload', async () => {
+  const actual = await vi.importActual<typeof import('@/utils/chart-runtime-preload')>('@/utils/chart-runtime-preload');
+  return {
+    ...actual,
+    preloadChartRuntime: vi.fn().mockResolvedValue(undefined),
+  };
+});
 
 const TimeRangeControlStub = defineComponent({
   name: 'TimeRangeControl',
@@ -137,14 +147,16 @@ describe('ChartArea', () => {
     window.localStorage.clear();
     setActivePinia(createPinia());
     observerInstances = [];
+    vi.mocked(preloadChartRuntime).mockClear();
     vi.stubGlobal('IntersectionObserver', MockIntersectionObserver as unknown as typeof IntersectionObserver);
   });
 
   afterEach(() => {
+    __resetChartRuntimeRegistryForTests();
     vi.useRealTimers();
   });
 
-  it('图表进入视口前先展示骨架，占位不立即加载重图表', async () => {
+  it('图表进入视口前先展示骨架，占位不立即加载重图表，并在浏览器空闲时静默预热 runtime', async () => {
     const store = useFinanceStore();
     store.reconcile('2026-03-01', 5000, [], '初始对账');
 
@@ -152,8 +164,15 @@ describe('ChartArea', () => {
     await nextTick();
 
     expect(observerInstances).toHaveLength(2);
-    expect(wrapper.text()).toContain('正在按需加载余额图');
-    expect(wrapper.text()).toContain('滚动到这里时再加载月度图表');
+    expect(preloadChartRuntime).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(0);
+    await flushAsyncComponents();
+
+    expect(preloadChartRuntime).toHaveBeenCalledTimes(2);
+    expect(preloadChartRuntime).toHaveBeenNthCalledWith(1, 'balance', expect.any(Function));
+    expect(preloadChartRuntime).toHaveBeenNthCalledWith(2, 'cashflow', expect.any(Function));
+    expect(wrapper.html()).toContain('chart-skeleton');
     expect(wrapper.find('.balance-chart-stub').exists()).toBe(false);
     expect(wrapper.find('.cashflow-chart-stub').exists()).toBe(false);
   });

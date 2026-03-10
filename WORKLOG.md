@@ -1,6 +1,11 @@
 # future-money 工作日志（非权威草稿）
 
 ## 2026-03-10
+- task: 给首页图表补“空闲预热 + 共享 runtime 缓存”，减少余额图/月度图首次真正揭示时还要从零拉起 ECharts runtime 的等待，同时不回退现有 defer skeleton / IntersectionObserver / fallback timer 语义
+- implementation: 新增 `src/utils/chart-runtime-preload.ts`，以 key 为维度共享 `createAsyncChartRuntime()` 状态，并提供 `scheduleChartRuntimePreload()` 在浏览器空闲时静默预热；`ChartArea.vue` 挂载后会安排 balance/cashflow 两个 runtime 的 idle preload，`useChartRuntime()` 则改为复用同一注册表，让预热与真正挂载共享加载结果而不重复下载。失败仍只在图表真正渲染时展示，不在预热阶段打断界面
+- tests: 新增 `src/utils/__tests__/chart-runtime-preload.test.ts`，扩展 `src/utils/__tests__/use-chart-runtime.test.ts` 与 `src/components/charts/__tests__/ChartArea.test.ts`，锁住共享缓存、idle 预热与容器接线语义；完整仓库验证待继续执行
+
+## 2026-03-10
 - task: 继续打磨图表 runtime 失败态的本地可恢复体验，避免用户即便看到了更明确的失败原因，仍不知道下一步应该“检查网络”“重试”还是“刷新页面重新拉 chunk”
 - implementation: `src/utils/chart-runtime.ts` 在现有错误消息之外继续新增 `getChartRuntimeErrorAction()`，把运行时失败再细分成“离线 → 先检查网络再重试”“chunk / 动态 import 下载失败 → 连续失败时优先刷新页面”“未知失败 → 先重试再刷新”的建议动作；`BalanceChart.vue` 与 `CashFlowChart.vue` 的错误卡片同步展示这条辅助说明，让图表失败态从单条报错升级为‘原因 + 下一步’。
 - tests: 重写 `src/utils/__tests__/chart-runtime.test.ts`，补齐 `errorAction` 状态、离线/chunk/未知失败三类建议动作回归；扩展 `src/components/charts/__tests__/CashFlowChart.test.ts` 断言错误建议文案已渲染。完整验证：`npm test -- src/utils/__tests__/chart-runtime.test.ts src/components/charts/__tests__/CashFlowChart.test.ts`、`npm run type-check`、`npm run build`、`npm run smoke` 全通过；构建仍保留既有 `vendor-charts ~560kB` / `vendor-antd ~734kB` 告警，本轮未触碰用户已验证的拆包策略。

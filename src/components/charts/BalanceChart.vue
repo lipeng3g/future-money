@@ -118,7 +118,7 @@ const emit = defineEmits<{
   (e: 'select-date', date: string): void;
 }>();
 
-const chartRuntime = useChartRuntime(() => import('@/utils/echarts-balance'));
+const chartRuntime = useChartRuntime('balance', () => import('@/utils/echarts-balance'));
 const chartRuntimeReady = chartRuntime.ready;
 const chartRuntimeError = chartRuntime.error;
 const chartRuntimeErrorAction = chartRuntime.errorAction;

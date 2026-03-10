@@ -115,6 +115,7 @@
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import type { BalanceChartFocusKey } from '@/utils/chart-options';
+import { preloadChartRuntime, scheduleChartRuntimePreload } from '@/utils/chart-runtime-preload';
 import TimeRangeControl from '@/components/charts/TimeRangeControl.vue';
 import StatisticsPanel from '@/components/charts/StatisticsPanel.vue';
 import UpcomingEvents from '@/components/charts/UpcomingEvents.vue';
@@ -167,6 +168,7 @@ const BALANCE_CHART_FALLBACK_DELAY = 1800;
 const CASHFLOW_CHART_FALLBACK_DELAY = 2600;
 const chartObservers: IntersectionObserver[] = [];
 const chartFallbackTimers: number[] = [];
+let cancelChartRuntimePreload: (() => void) | null = null;
 
 const canUseIntersectionObserver = () => typeof window !== 'undefined' && 'IntersectionObserver' in window;
 
@@ -286,11 +288,20 @@ const handleUpcomingFocusDate = (date: string) => {
 };
 
 onMounted(() => {
+  cancelChartRuntimePreload = scheduleChartRuntimePreload([
+    () => preloadChartRuntime('balance', () => import('@/utils/echarts-balance')),
+    () => preloadChartRuntime('cashflow', () => import('@/utils/echarts-cashflow')),
+  ], {
+    timeoutMs: 1400,
+  });
+
   observeDeferredChart(balanceChartCardRef, 'balance', '320px 0px');
   observeDeferredChart(cashflowChartCardRef, 'cashflow', '180px 0px');
 });
 
 onBeforeUnmount(() => {
+  cancelChartRuntimePreload?.();
+  cancelChartRuntimePreload = null;
   chartObservers.forEach((observer) => observer.disconnect());
   chartObservers.length = 0;
   chartFallbackTimers.splice(0).forEach((timerId) => {
