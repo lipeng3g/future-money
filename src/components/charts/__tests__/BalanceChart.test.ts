@@ -70,6 +70,16 @@ const richTimeline: DailySnapshot[] = [
         category: 'expense',
         amount: 2300,
         date: '2026-03-09',
+        accountId: 'cash',
+      },
+      {
+        id: 'occ-2b',
+        eventId: 'food-1',
+        name: '买菜',
+        category: 'expense',
+        amount: 120,
+        date: '2026-03-09',
+        accountId: 'card',
       },
     ],
   }),
@@ -141,8 +151,14 @@ describe('BalanceChart', () => {
     expect(chips.map((node) => node.text())).toEqual(['最新区间', '今天', '首次预警', '最低点', '最高点', '最近对账']);
     expect(wrapper.find('.toolbar-copy').text()).toContain('首次预警 · 2026-03-09');
     expect(wrapper.find('.focus-insight').text()).toContain('首次跌破预警线');
-    expect(wrapper.find('.focus-event-chip').text()).toContain('房租');
-    expect(wrapper.find('.focus-event-chip').text()).toContain('-¥2,300');
+    const groupHeaders = wrapper.findAll('.focus-event-group-header');
+    expect(groupHeaders).toHaveLength(2);
+    expect(groupHeaders[0].text()).toContain('账户 cash');
+    expect(groupHeaders[0].text()).toContain('1 笔 · -¥2,300');
+    expect(groupHeaders[1].text()).toContain('账户 card');
+    expect(groupHeaders[1].text()).toContain('1 笔 · -¥120');
+    expect(wrapper.find('.focus-event-groups').text()).toContain('房租');
+    expect(wrapper.find('.focus-event-groups').text()).toContain('买菜');
 
     await chips.find((node) => node.text() === '最高点')?.trigger('click');
     await nextTick();
@@ -152,6 +168,8 @@ describe('BalanceChart', () => {
     expect(wrapper.find('.focus-insight').classes()).toContain('success');
     expect(wrapper.find('.focus-insight').text()).toContain('达到当前视图最高余额');
     expect(wrapper.find('.focus-insight').text()).toContain('当日事件：奖金 +¥4,500');
+    expect(wrapper.find('.focus-event-group-header').text()).toContain('当日事件');
+    expect(wrapper.find('.focus-event-group-header').text()).toContain('1 笔');
     expect(wrapper.find('.focus-event-chip').text()).toContain('奖金');
     expect(wrapper.find('.focus-event-chip').text()).toContain('+¥4,500');
   });

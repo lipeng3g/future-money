@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-03-10
+- chart: 余额图焦点解释卡的事件摘要现在支持按账户分组展示；多账户同日多笔事件时，会显示“账户名 / 笔数 / 收支汇总”，并保留组内可点击事件 chips，减少只看平铺事件名时的理解成本
+
+## 2026-03-10
 - ux(chart-focus): 余额图焦点解释卡现在会把当前日期的事件拆成可点击摘要 chips，直接展示事件名与正负金额；用户在图上定位到某个关键日期后，不用再先读一整行长文本、再去侧边事件抽屉里找，点摘要即可继续按该日期联动到事件列表。
 - test(chart-focus): 扩展 `src/components/charts/__tests__/BalanceChart.test.ts`，新增“焦点解释卡会展示事件摘要 chips，且点击 chips 也会触发 `select-date`”回归，锁住余额图从‘看见说明’到‘继续定位事件’这条本地浏览链路。
 - smoke(chart-preview): 新增 `scripts/browser-chart-smoke.mjs`，为真实预览站点生成两份首页图表 smoke 夹具：`tmp-browser-chart-smoke/empty-state.json`（空库/无图表数据）与 `tmp-browser-chart-smoke/seeded-state.json`（有时间线/有月度数据）。这样页面级验证不再需要手工在控制台拼 localStorage，可直接复用仓库内固定夹具检查空态与延迟加载两条高风险路径。

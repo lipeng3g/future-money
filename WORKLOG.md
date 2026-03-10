@@ -1,9 +1,9 @@
 # future-money 工作日志（非权威草稿）
 
 ## 2026-03-10
-- task: 给余额图焦点解释卡补可点击事件摘要 chips，把“图上关键日期 -> 事件抽屉”这条本地浏览链从纯文字说明推进到更直接的交互落点
-- implementation: `src/components/charts/BalanceChart.vue` 在焦点解释卡下新增事件摘要 chips，直接展示事件名与正负金额；当前焦点日期存在事件时可一键再次触发 `select-date`，减少用户读完说明后还要去图上重新点一次同日期的摩擦。同步扩展 `src/components/charts/__tests__/BalanceChart.test.ts`，锁住 chips 展示与点击联动。
-- tests: 计划执行 `npm install`、`npm test`、`npm run type-check`、`npm run build`、`npm run smoke`，并补 dev server + curl 运行时烟雾验证
+- task: 给余额图焦点解释卡补按账户分组的事件摘要 chips，提升多账户视图下同日多笔事件的可解释性，避免只平铺事件名看不出是哪笔账户在出血/回血
+- implementation: `src/components/charts/BalanceChart.vue` 现在会把当前焦点日期的事件按 `accountId` 分组展示；每组新增“账户名 + 笔数 + 收入/支出汇总”头部，组内继续保留可点击 event chips，用于跳回对应日期。若当天没有账户维度，则回退为单组“当日事件”，不影响单账户体验。同步扩展 `src/components/charts/__tests__/BalanceChart.test.ts`，锁住多账户分组摘要与单账户回退展示。
+- tests: 已完成 `npm install`、`npm test`、`npm run type-check`、`npm run build`、`npm run smoke`，并补充 `npm run dev -- --host 127.0.0.1` + `curl -I` 运行时烟雾验证（HTTP 200）
 
 ## 2026-03-10
 - task: 给首页图表补真实预览级 smoke 夹具与手册，收口“空库直出空态 / 有数据 deferred skeleton + runtime 加载”两条组合路径，避免当前优化只锁在组件测试层

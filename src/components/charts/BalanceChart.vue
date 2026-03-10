@@ -35,17 +35,29 @@
         <p>{{ activeInsight.summary }}</p>
         <small>{{ activeInsight.detail }}</small>
         <small v-if="activeInsight.eventSummary" class="event-summary">{{ activeInsight.eventSummary }}</small>
-        <div v-if="activeFocusEvents.length" class="focus-event-list" aria-label="当前焦点日期事件摘要">
-          <button
-            v-for="event in activeFocusEvents"
-            :key="event.id"
-            type="button"
-            class="focus-event-chip"
-            @click="emit('select-date', event.date)"
+        <div v-if="activeFocusEventGroups.length" class="focus-event-groups" aria-label="当前焦点日期事件摘要">
+          <section
+            v-for="group in activeFocusEventGroups"
+            :key="group.key"
+            class="focus-event-group"
           >
-            <span class="event-chip-name">{{ event.name }}</span>
-            <span class="event-chip-amount" :class="event.category">{{ formatSignedAmount(event.category, event.amount) }}</span>
-          </button>
+            <div class="focus-event-group-header">
+              <strong>{{ group.label }}</strong>
+              <span>{{ group.summary }}</span>
+            </div>
+            <div class="focus-event-list">
+              <button
+                v-for="event in group.events"
+                :key="event.id"
+                type="button"
+                class="focus-event-chip"
+                @click="emit('select-date', event.date)"
+              >
+                <span class="event-chip-name">{{ event.name }}</span>
+                <span class="event-chip-amount" :class="event.category">{{ formatSignedAmount(event.category, event.amount) }}</span>
+              </button>
+            </div>
+          </section>
         </div>
       </div>
 
@@ -225,6 +237,48 @@ const activeFocusEvents = computed<EventOccurrence[]>(() => {
 
 const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
 const formatSignedAmount = (category: EventOccurrence['category'], amount: number) => `${category === 'income' ? '+' : '-'}${formatCurrency(amount)}`;
+
+const activeFocusEventGroups = computed(() => {
+  if (!activeFocusEvents.value.length) return [];
+
+  const hasMultipleAccounts = activeFocusEvents.value.some((event) => event.accountId);
+  if (!hasMultipleAccounts) {
+    return [{
+      key: 'all',
+      label: '当日事件',
+      summary: `${activeFocusEvents.value.length} 笔`,
+      events: activeFocusEvents.value,
+    }];
+  }
+
+  const grouped = new Map<string, EventOccurrence[]>();
+  activeFocusEvents.value.forEach((event) => {
+    const accountKey = event.accountId?.trim() || '__unknown__';
+    const bucket = grouped.get(accountKey) ?? [];
+    bucket.push(event);
+    grouped.set(accountKey, bucket);
+  });
+
+  return Array.from(grouped.entries()).map(([accountKey, events]) => {
+    const income = events
+      .filter((event) => event.category === 'income')
+      .reduce((sum, event) => sum + event.amount, 0);
+    const expense = events
+      .filter((event) => event.category === 'expense')
+      .reduce((sum, event) => sum + event.amount, 0);
+
+    const parts: string[] = [`${events.length} 笔`];
+    if (income > 0) parts.push(`+${formatCurrency(income)}`);
+    if (expense > 0) parts.push(`-${formatCurrency(expense)}`);
+
+    return {
+      key: accountKey,
+      label: accountKey === '__unknown__' ? '未标记账户' : `账户 ${accountKey}`,
+      summary: parts.join(' · '),
+      events,
+    };
+  });
+});
 
 const handleChartClick = (params: ECElementEvent) => {
   const index = typeof params.dataIndex === 'number' ? params.dataIndex : -1;
@@ -439,11 +493,41 @@ const handleChartClick = (params: ECElementEvent) => {
   color: var(--fm-text-primary);
 }
 
+.focus-event-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.focus-event-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.focus-event-group-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.focus-event-group-header strong {
+  color: var(--fm-text-primary);
+  font-size: 0.8rem;
+}
+
+.focus-event-group-header span {
+  color: var(--fm-text-secondary);
+  font-size: 0.76rem;
+}
+
 .focus-event-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 4px;
 }
 
 .focus-event-chip {
