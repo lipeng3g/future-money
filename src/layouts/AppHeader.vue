@@ -616,7 +616,17 @@ const handleFileChange = (event: Event) => {
         confirmImportCurrent(content, fileName);
       }
     } catch (error) {
-      console.error(error);
+      const isExpectedImportError = (err: unknown) => {
+        if (!(err instanceof Error)) return false;
+        const msg = err.message || '';
+        return msg.startsWith('导入文件不是合法的 JSON')
+          || msg.startsWith('导入文件格式不正确')
+          || msg.startsWith('你选择的是');
+      };
+
+      if (!isExpectedImportError(error)) {
+        console.error(error);
+      }
       message.error(error instanceof Error ? error.message : (mode === 'all' ? '恢复失败，请检查备份文件内容' : '导入失败，请检查文件内容'));
     } finally {
       resetImportState();
