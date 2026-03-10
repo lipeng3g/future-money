@@ -15,25 +15,32 @@ type ProxyFunctionContext = {
 const isPrivateOrUnsafeAiHostname = (hostname: string): boolean => {
     if (!hostname) return true;
 
-    const normalized = hostname.trim().toLowerCase().replace(/^\[(.*)\]$/, '$1');
+    const normalized = hostname.trim().toLowerCase();
+    const withoutBrackets = normalized.replace(/^\[(.*)\]$/, '$1');
+
+    // Cloudflare / URL parsing may normalize IPv6-mapped IPv4 into a compact hex form,
+    // e.g. [::ffff:7f00:1]. Block any IPv6-mapped IPv4 to prevent bypassing IPv4 checks.
+    if (/^::ffff:/i.test(withoutBrackets)) {
+        return true;
+    }
 
     if (
-        normalized === 'localhost'
-        || normalized === 'localhost.'
-        || normalized.endsWith('.localhost')
-        || normalized.endsWith('.localhost.')
-        || normalized === '0.0.0.0'
-        || normalized === '::'
-        || normalized === '::1'
-        || normalized.startsWith('127.')
-        || normalized.startsWith('10.')
-        || normalized.startsWith('192.168.')
-        || /^172\.(1[6-9]|2\d|3[0-1])\./.test(normalized)
-        || /^169\.254\./.test(normalized)
-        || /^100\.(6[4-9]|[78]\d|9\d|1[01]\d|12[0-7])\./.test(normalized)
-        || /^fc/i.test(normalized)
-        || /^fd/i.test(normalized)
-        || /^fe[89ab]/i.test(normalized)
+        withoutBrackets === 'localhost'
+        || withoutBrackets === 'localhost.'
+        || withoutBrackets.endsWith('.localhost')
+        || withoutBrackets.endsWith('.localhost.')
+        || withoutBrackets === '0.0.0.0'
+        || withoutBrackets === '::'
+        || withoutBrackets === '::1'
+        || withoutBrackets.startsWith('127.')
+        || withoutBrackets.startsWith('10.')
+        || withoutBrackets.startsWith('192.168.')
+        || /^172\.(1[6-9]|2\d|3[0-1])\./.test(withoutBrackets)
+        || /^169\.254\./.test(withoutBrackets)
+        || /^100\.(6[4-9]|[78]\d|9\d|1[01]\d|12[0-7])\./.test(withoutBrackets)
+        || /^fc/i.test(withoutBrackets)
+        || /^fd/i.test(withoutBrackets)
+        || /^fe[89ab]/i.test(withoutBrackets)
     ) {
         return true;
     }
