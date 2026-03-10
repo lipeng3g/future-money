@@ -61,6 +61,10 @@ function aiProxyPlugin(): Plugin {
         }
         const body = Buffer.concat(chunks);
 
+        const controller = new AbortController();
+        const timeoutMs = 60_000;
+        const timeoutTimer = setTimeout(() => controller.abort(), timeoutMs);
+
         try {
           const proxyRes = await fetch(targetUrl, {
             method: 'POST',
@@ -69,6 +73,7 @@ function aiProxyPlugin(): Plugin {
               ...(authorization ? { Authorization: authorization } : {}),
             },
             body,
+            signal: controller.signal,
           });
 
           // 转发响应头
@@ -95,7 +100,13 @@ function aiProxyPlugin(): Plugin {
           }
         } catch (err: any) {
           res.writeHead(502, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: `Proxy error: ${err.message}` }));
+          res.end(
+            JSON.stringify({
+              error: `Proxy error: ${err?.name === 'AbortError' ? 'Request aborted (timeout)' : err.message}`,
+            }),
+          );
+        } finally {
+          clearTimeout(timeoutTimer);
         }
       });
     },
