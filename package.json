@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
+    "build:verify": "sh -c 'npm run build 2>&1 | tee build.log && npm run build:check && npm run build:log-check build.log'",
     "preview": "vite preview",
     "type-check": "vue-tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run",

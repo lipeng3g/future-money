@@ -12,11 +12,10 @@
 - 在 `vite.config.ts` 中显式把 `echarts` / `zrender` / `vue-echarts` 收口到 `vendor-charts`，避免这些图表依赖跟 `ant-design-vue` 混入同一 vendor chunk。
 - 把 `dayjs` 从通用 `vendor-date` 调整为跟随 `vendor-antd`，仅保留 `date-fns` 在 `vendor-date`，从而消除生产构建里真实出现的 `vendor-date -> vendor-antd -> vendor-date` circular chunk 警告。
 - 新增 `scripts/check-build-chunks.mjs`，在构建后自动检查：
-  - 应用入口 `index-*.js` 仍维持轻量；
-  - `vendor-charts` 必须存在；
-  - `chart-balance-runtime` / `chart-cashflow-runtime` 必须存在；
-  - `vendor-charts` 与 `vendor-antd` 不得回退到当前确认过的软阈值之外。
-- 新增 `scripts/check-build-log.mjs`，配合保留的 `build.log` 检查构建输出里是否出现 circular chunk 警告，避免只看 `dist/assets` 时漏掉运行时装配风险。
+  - 关键 chunk（`index-*`、`vendor-vue`、`vendor-antd`、`vendor-charts`、两条 chart runtime）必须存在；
+  - 预算不再只靠拍脑袋的单点阈值，而是读取 `.meta/build-budget-baseline.json` 中的基线与容差，允许少量 hash/minify 漂移，但会在真正超预算时失败；
+  - 接近上限时打印 warning，方便继续跟踪大块趋势，而不是一有 1~2kB 抖动就整轮误报失败。
+- 新增 `scripts/check-build-log.mjs`，支持显式日志路径 / `BUILD_LOG_PATH` / 默认 `build.log` 三种读取方式；`npm run build:verify` 会自动 tee 出 `build.log`，再检查构建输出里是否出现 circular chunk 警告，避免只看 `dist/assets` 时漏掉运行时装配风险。
 
 ## 预期收益
 

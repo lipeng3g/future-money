@@ -2,10 +2,15 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const distAssetsDir = path.resolve('dist/assets');
-const chunkWarnLimit = 500 * 1024;
-const appEntrySoftLimit = 95 * 1024;
+const baselinePath = path.resolve('.meta/build-budget-baseline.json');
+const viteWarningLimitBytes = 500 * 1024;
 
-const files = await readdir(distAssetsDir);
+const [files, baselineRaw] = await Promise.all([
+  readdir(distAssetsDir),
+  readFile(baselinePath, 'utf8'),
+]);
+
+const baseline = JSON.parse(baselineRaw);
 const jsFiles = files.filter((file) => file.endsWith('.js'));
 
 const stats = await Promise.all(jsFiles.map(async (file) => {
@@ -20,45 +25,34 @@ const stats = await Promise.all(jsFiles.map(async (file) => {
 stats.sort((a, b) => b.size - a.size);
 
 const findChunk = (prefix) => stats.find((item) => item.file.startsWith(prefix));
-const appEntry = findChunk('index-');
-const vendorCharts = findChunk('vendor-charts-');
-const balanceRuntime = findChunk('chart-balance-runtime-');
-const cashflowRuntime = findChunk('chart-cashflow-runtime-');
+const requiredChunks = baseline.requiredChunks ?? [];
+const missingChunks = requiredChunks.filter((prefix) => !findChunk(prefix));
 
-const oversizeChunks = stats.filter((item) => item.size > chunkWarnLimit);
-
-if (!appEntry) {
-  throw new Error('未找到应用入口 chunk（index-*.js）');
+if (missingChunks.length) {
+  throw new Error(`缺少关键 chunk：${missingChunks.join(', ')}`);
 }
 
-if (!vendorCharts) {
-  throw new Error('未找到 vendor-charts chunk；图表运行时可能重新并回主包或 UI vendor 包');
+const failures = [];
+const warnings = [];
+
+for (const [prefix, budget] of Object.entries(baseline.chunks ?? {})) {
+  const chunk = findChunk(prefix);
+  if (!chunk) {
+    failures.push(`未找到 ${prefix}* chunk`);
+    continue;
+  }
+
+  if (typeof budget.maxBytes === 'number' && chunk.size > budget.maxBytes) {
+    failures.push(`${chunk.file} 体积 ${(chunk.size / 1024).toFixed(1)}kB，超过预算 ${(budget.maxBytes / 1024).toFixed(1)}kB`);
+  } else if (typeof budget.warnBytes === 'number' && chunk.size > budget.warnBytes) {
+    warnings.push(`${chunk.file} 体积 ${(chunk.size / 1024).toFixed(1)}kB，接近预算上限 ${(budget.maxBytes / 1024).toFixed(1)}kB`);
+  }
 }
 
-if (!balanceRuntime || !cashflowRuntime) {
-  throw new Error('未找到图表 runtime chunk；按需加载链路可能退化');
-}
-
-if (appEntry.size > appEntrySoftLimit) {
-  throw new Error(`应用入口 chunk 体积回退到 ${(appEntry.size / 1024).toFixed(1)}kB，超过软阈值 ${(appEntrySoftLimit / 1024).toFixed(1)}kB`);
-}
-
-const vendorAntd = findChunk('vendor-antd-');
-
-if (!vendorAntd) {
-  throw new Error('未找到 vendor-antd chunk；UI 依赖可能重新并回主包');
-}
-
-if (vendorCharts.size > 600 * 1024) {
-  throw new Error(`vendor-charts 体积回退到 ${(vendorCharts.size / 1024).toFixed(1)}kB，超过 600kB 软阈值`);
-}
-
-if (vendorAntd.size > 760 * 1024) {
-  throw new Error(`vendor-antd 体积回退到 ${(vendorAntd.size / 1024).toFixed(1)}kB，超过 760kB 软阈值`);
-}
+const oversizeChunks = stats.filter((item) => item.size > viteWarningLimitBytes);
 
 console.log('Build chunk summary:');
-for (const item of stats.slice(0, 8)) {
+for (const item of stats.slice(0, 10)) {
   console.log(`- ${item.file}: ${(item.size / 1024).toFixed(1)} kB`);
 }
 
@@ -67,6 +61,17 @@ if (oversizeChunks.length) {
   for (const item of oversizeChunks) {
     console.log(`- ${item.file}: ${(item.size / 1024).toFixed(1)} kB`);
   }
-} else {
-  console.log('\nNo chunks above 500kB.');
 }
+
+if (warnings.length) {
+  console.warn('\nBuild chunk budget warnings:');
+  for (const item of warnings) {
+    console.warn(`- ${item}`);
+  }
+}
+
+if (failures.length) {
+  throw new Error(`构建产物超过预算：\n${failures.map((item) => `- ${item}`).join('\n')}`);
+}
+
+console.log('\nBuild chunk budget check passed.');

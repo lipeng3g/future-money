@@ -1,6 +1,10 @@
 # Changelog
 
 ## 2026-03-10
+- perf(build): 将 chunk 预算检查改为读取 `.meta/build-budget-baseline.json` 的基线与容差，不再因入口包 1~2kB 漂移而误报失败，同时继续强制要求关键图表 runtime/vendor chunk 存在。
+- chore(build): 新增 `npm run build:verify`，自动生成 `build.log` 并串联 chunk 预算与 circular chunk 日志检查，便于本地持续验证构建质量。
+
+## 2026-03-10
 - ux(chart-tooltip): 余额图 tooltip 在多账户同日事件场景下，除了继续列出事件名与金额外，现在还会补充账户级摘要：每个账户的事件笔数、净变动、收入/支出拆分，以及按当前展示顺序推导的“当日余额落点”。这样 hover 到关键日期时，不用只看一串事件名猜哪张卡在出血，能直接看出主要波动来自哪个账户、落点大概到哪。
 - refactor(chart-tooltip): 新增 `buildBalanceChartTooltipAccountSummaries()`，把多账户 tooltip 的账户分组、净变动排序、余额落点推导从 ECharts formatter 字符串里抽成纯函数，避免图表解释逻辑继续散落在模板字符串中，也方便后续继续补更深的 hover/tooltip 解释。
 - test(chart-tooltip): 扩展 `src/utils/__tests__/chart-options.test.ts` 与 `src/components/charts/__tests__/BalanceChart.test.ts`，分别锁住账户级 tooltip 摘要纯函数和最终注入到 ECharts option 的 HTML 内容，避免后续重构把多账户 hover 解释悄悄打回“只有事件名列表”。

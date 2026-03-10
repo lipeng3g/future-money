@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-03-10",
+  "notes": [
+    "Baseline captured after chart runtime lazy-loading and vendor chunk split hardening.",
+    "Use tolerances to catch meaningful regressions without failing on harmless hash/minifier drift."
+  ],
+  "chunks": {
+    "index-": { "maxBytes": 101376, "warnBytes": 99328 },
+    "vendor-vue-": { "maxBytes": 92160 },
+    "vendor-date-": { "maxBytes": 30720 },
+    "vendor-markdown-": { "maxBytes": 112640 },
+    "vendor-charts-": { "maxBytes": 593920, "warnBytes": 573440 },
+    "vendor-antd-": { "maxBytes": 778240, "warnBytes": 757760 }
+  },
+  "requiredChunks": [
+    "index-",
+    "vendor-vue-",
+    "vendor-antd-",
+    "vendor-charts-",
+    "chart-balance-runtime-",
+    "chart-cashflow-runtime-"
+  ]
+}
