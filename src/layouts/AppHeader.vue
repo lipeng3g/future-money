@@ -646,13 +646,22 @@ const exportData = (mode: ImportExportMode) => {
   const blob = new Blob([content], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  const accountSlug = store.currentAccount.name.trim().replace(/\s+/g, '-');
+
+  const accountSlug = store.currentAccount.name
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[\\/:*?"<>|]+/g, '')
+    .slice(0, 48);
+
   link.href = url;
   link.download = mode === 'all'
     ? `future-money-all-accounts-${formatLocalISODate()}.json`
     : `future-money-${accountSlug || 'account'}-${formatLocalISODate()}.json`;
+
   link.click();
+
   URL.revokeObjectURL(url);
+
   message.success(mode === 'all' ? '已导出全部账户数据' : '已导出当前账户数据');
 };
 
