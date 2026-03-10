@@ -33,6 +33,7 @@ export interface BalanceChartTooltipAccountSummary {
   expense: number;
   netChange: number;
   balanceAfter?: number;
+  balanceAfterEstimated?: boolean;
   eventCount: number;
 }
 
@@ -313,13 +314,17 @@ export const buildBalanceChartTooltipAccountSummaries = (
       return left.label.localeCompare(right.label, 'zh-CN');
     });
 
+  // NOTE: We only have the total balance timeline here. If we don't have
+  // per-account historical balances, the "balanceAfter" for each account is an
+  // approximation derived by walking the net-change groups.
   let runningBalance = point.balance;
-  return sortedGroups.map((group) => {
+  return sortedGroups.map((group, index) => {
     const balanceAfter = runningBalance;
     runningBalance -= group.netChange;
     return {
       ...group,
       balanceAfter,
+      balanceAfterEstimated: index !== 0 || sortedGroups.length > 1,
     };
   });
 };
@@ -439,10 +444,14 @@ export const buildBalanceChartOption = ({
         const accountSummaries = buildBalanceChartTooltipAccountSummaries(point, accountLabels)
           .map((group) => {
             const signedNet = `${group.netChange >= 0 ? '+' : '-'}¥${Math.abs(group.netChange).toLocaleString('zh-CN')}`;
+            const resolvedBalanceAfter = group.balanceAfter ?? point.balance;
+            const balanceAfterLabel = group.balanceAfterEstimated
+              ? `落点≈ ${formatCurrency(resolvedBalanceAfter)}`
+              : `落点 ${formatCurrency(resolvedBalanceAfter)}`;
             const parts = [
               `${group.eventCount} 笔`,
               `净变动 ${signedNet}`,
-              `落点 ¥${(group.balanceAfter ?? point.balance).toLocaleString('zh-CN')}`,
+              balanceAfterLabel,
             ];
             if (group.income > 0) parts.push(`收入 ¥${group.income.toLocaleString('zh-CN')}`);
             if (group.expense > 0) parts.push(`支出 ¥${group.expense.toLocaleString('zh-CN')}`);

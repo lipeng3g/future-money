@@ -261,6 +261,7 @@ describe('chart-options', () => {
         expense: 1800,
         netChange: -600,
         balanceAfter: 2150,
+        balanceAfterEstimated: true,
         eventCount: 2,
       },
       {
@@ -271,6 +272,7 @@ describe('chart-options', () => {
         expense: 50,
         netChange: -50,
         balanceAfter: 2750,
+        balanceAfterEstimated: true,
         eventCount: 1,
       },
     ]);
