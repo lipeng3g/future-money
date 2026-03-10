@@ -4,6 +4,7 @@ import type { CashFlowEvent } from '@/types/event';
 import type { EventOverride, LedgerEntry, Reconciliation } from '@/types/reconciliation';
 import { APP_VERSION, DEFAULT_ACCOUNT_CONFIG, DEFAULT_PREFERENCES } from '@/utils/defaults';
 import { createId } from '@/utils/id';
+import { sanitizeHexColor } from '@/utils/color';
 import { isValidISODate, validateCashFlowEvent } from '@/utils/validators';
 
 const STORAGE_KEY = 'futureMoney.state';
@@ -90,6 +91,8 @@ const sanitizeAccount = (account: AccountConfig): AccountConfig | null => {
     return null;
   }
 
+  const normalizedColor = sanitizeHexColor(account.color);
+
   return {
     ...account,
     name: account.name.trim(),
@@ -97,6 +100,7 @@ const sanitizeAccount = (account: AccountConfig): AccountConfig | null => {
     initialBalance: isFiniteNumber(account.initialBalance) ? account.initialBalance : 0,
     currency: account.currency?.trim() || DEFAULT_ACCOUNT_CONFIG().currency,
     warningThreshold: isNonNegativeNumber(account.warningThreshold) ? account.warningThreshold : 0,
+    color: normalizedColor,
   };
 };
 
