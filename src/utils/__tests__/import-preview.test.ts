@@ -449,11 +449,11 @@ describe('parseImportPreview', () => {
 
   it('会汇总 sanitize 过滤统计，提示各类数据被丢弃的数量与原因', () => {
     const discards = buildImportSanitizeDiscardSummary({
-      accounts: [{ id: 'a' }, { id: 'b' }],
-      events: [{ id: 'e1' }, { id: 'e2' }, { id: 'e3' }],
-      reconciliations: [{ id: 'r1' }],
-      ledgerEntries: [{ id: 'l1' }, { id: 'l2' }],
-      eventOverrides: [{ id: 'o1' }, { id: 'o2' }],
+      accounts: [{ id: 'a', name: '账户A' }, { id: 'b', name: '账户B' }],
+      events: [{ id: 'e1', accountId: 'a', name: '工资', amount: 1, category: 'income', type: 'monthly', startDate: '2026-01-01', monthlyDay: 1 }, { id: 'e2', accountId: 'a' }, { id: 'e3', accountId: 'missing' }],
+      reconciliations: [{ id: 'r1', accountId: 'a', date: '2026-01-01', balance: 0 }],
+      ledgerEntries: [{ id: 'l1', accountId: 'a', reconciliationId: 'r1', name: '手动', amount: 1, category: 'expense', date: '2026-01-01', source: 'manual' }, { id: 'l2', accountId: 'a', reconciliationId: 'missing' }],
+      eventOverrides: [{ id: 'o1', accountId: 'a', ruleId: 'e1', period: '2026-01', action: 'confirmed' }, { id: 'o2', accountId: 'a', ruleId: 'missing' }],
     } as never, {
       accounts: [{ id: 'a' }],
       events: [{ id: 'e1' }],
@@ -462,35 +462,20 @@ describe('parseImportPreview', () => {
       eventOverrides: [],
     } as never);
 
-    expect(discards).toEqual([
-      {
-        label: '账户',
-        rawCount: 2,
-        sanitizedCount: 1,
-        discardedCount: 1,
-        reason: '空白账户名、缺少 id 的账户，或重复账户会被过滤。',
-      },
-      {
-        label: '事件',
-        rawCount: 3,
-        sanitizedCount: 1,
-        discardedCount: 2,
-        reason: '非法日期、金额/分类异常，或找不到所属账户的事件会被过滤。',
-      },
-      {
-        label: '账本记录',
-        rawCount: 2,
-        sanitizedCount: 1,
-        discardedCount: 1,
-        reason: '断裂的 ruleId / reconciliationId、非法分类/来源/日期，或缺少所属账户的记录会被过滤。',
-      },
-      {
-        label: '覆盖记录',
-        rawCount: 2,
-        sanitizedCount: 0,
-        discardedCount: 2,
-        reason: '非法 period / action、缺少 ruleId，或找不到所属账户/事件的覆盖记录会被过滤。',
-      },
+    expect(discards.map(({ label, rawCount, sanitizedCount, discardedCount }) => ({
+      label,
+      rawCount,
+      sanitizedCount,
+      discardedCount,
+    }))).toEqual([
+      { label: '账户', rawCount: 2, sanitizedCount: 1, discardedCount: 1 },
+      { label: '事件', rawCount: 3, sanitizedCount: 1, discardedCount: 2 },
+      { label: '账本记录', rawCount: 2, sanitizedCount: 1, discardedCount: 1 },
+      { label: '覆盖记录', rawCount: 2, sanitizedCount: 0, discardedCount: 2 },
     ]);
+
+    discards.forEach((item) => {
+      expect(item.reason).toContain('规则：');
+    });
   });
 });

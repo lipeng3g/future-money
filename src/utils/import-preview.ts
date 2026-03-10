@@ -437,41 +437,380 @@ export const buildImportSanitizeDiscardSummary = (
   const rawLedgerEntries = Array.isArray(rawState?.ledgerEntries) ? rawState.ledgerEntries.length : 0;
   const rawOverrides = Array.isArray(rawState?.eventOverrides) ? rawState.eventOverrides.length : 0;
 
+  const genericReason = {
+    account: '空白账户名、缺少 id 的账户，或重复账户会被过滤。',
+    event: '非法日期、金额/分类异常，或找不到所属账户的事件会被过滤。',
+    reconciliation: '非法日期/余额，或找不到所属账户的对账记录会被过滤。',
+    ledger: '断裂的 ruleId / reconciliationId、非法分类/来源/日期，或缺少所属账户的记录会被过滤。',
+    override: '非法 period / action、缺少 ruleId，或找不到所属账户/事件的覆盖记录会被过滤。',
+  };
+
+  const toArray = <T>(value: unknown): T[] => (Array.isArray(value) ? value as T[] : []);
+  const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+  const isNonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
+  const isISODateLike = (value: unknown): boolean => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+
+  const bump = (map: Record<string, number>, key: string) => {
+    map[key] = (map[key] ?? 0) + 1;
+  };
+
+  const joinBreakdown = (map: Record<string, number>, total: number) => {
+    const entries = Object.entries(map).filter(([, count]) => count > 0);
+    const sum = entries.reduce((acc, [, count]) => acc + count, 0);
+    if (total > sum) {
+      entries.push(['其他', total - sum]);
+    }
+
+    return entries
+      .sort((a, b) => b[1] - a[1])
+      .map(([key, count]) => `${key} ${count}`)
+      .join('；');
+  };
+
+  const buildReason = (breakdown: Record<string, number>, total: number, fallback: string) => {
+    const detail = joinBreakdown(breakdown, total);
+    if (!detail) return fallback;
+    return `主要原因：${detail}。规则：${fallback}`;
+  };
+
+  // --- 账户 ---
+  const accountBreakdown: Record<string, number> = {};
+  const accountIds = new Set<string>();
+  toArray<Record<string, unknown>>(rawState?.accounts).forEach((raw) => {
+    const id = typeof raw?.id === 'string' ? raw.id : '';
+    const name = typeof raw?.name === 'string' ? raw.name.trim() : '';
+
+    if (!id) {
+      bump(accountBreakdown, '缺少 id');
+      return;
+    }
+
+    if (!name) {
+      bump(accountBreakdown, '账户名为空');
+      return;
+    }
+
+    if (accountIds.has(id)) {
+      bump(accountBreakdown, '重复 id');
+      return;
+    }
+
+    accountIds.add(id);
+  });
+
+  // --- 事件 ---
+  const eventBreakdown: Record<string, number> = {};
+  const eventIds = new Set<string>();
+  const validEventIds = new Set<string>();
+  const isValidCategory = (value: unknown) => value === 'income' || value === 'expense';
+  const isValidRecurrence = (value: unknown) => (
+    value === 'once'
+    || value === 'monthly'
+    || value === 'quarterly'
+    || value === 'semi-annual'
+    || value === 'yearly'
+  );
+
+  const isValidISODate = (value: unknown) => {
+    if (!isISODateLike(value)) return false;
+    const timestamp = Date.parse(`${value}T00:00:00Z`);
+    return Number.isFinite(timestamp);
+  };
+
+  const validateEvent = (raw: Record<string, unknown>) => {
+    const name = typeof raw.name === 'string' ? raw.name.trim() : '';
+    if (!name) return '事件名称为空';
+    if (!isFiniteNumber(raw.amount) || raw.amount <= 0) return '金额无效';
+    if (!isValidCategory(raw.category)) return '分类无效';
+    if (!isValidRecurrence(raw.type)) return '重复类型无效';
+    if (!isValidISODate(raw.startDate)) return '日期无效';
+    if (raw.endDate != null && raw.endDate !== '' && !isValidISODate(raw.endDate)) return '日期无效';
+    if (isNonEmptyString(raw.endDate) && isNonEmptyString(raw.startDate) && String(raw.endDate) < String(raw.startDate)) return '日期无效';
+
+    if (raw.type === 'once') {
+      if (!isValidISODate(raw.onceDate)) return '日期无效';
+      if (isNonEmptyString(raw.onceDate) && isNonEmptyString(raw.startDate) && String(raw.onceDate) < String(raw.startDate)) return '日期无效';
+      if (isNonEmptyString(raw.onceDate) && isNonEmptyString(raw.endDate) && String(raw.onceDate) > String(raw.endDate)) return '日期无效';
+    }
+
+    const isIntegerInRange = (value: unknown, min: number, max: number) => typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
+
+    if (raw.type === 'monthly' || raw.type === 'quarterly' || raw.type === 'semi-annual') {
+      if (!isIntegerInRange(raw.monthlyDay, 1, 31)) return '日期无效';
+    }
+
+    if (raw.type === 'yearly') {
+      if (!isIntegerInRange(raw.yearlyMonth, 1, 12) || !isIntegerInRange(raw.yearlyDay, 1, 31)) return '日期无效';
+    }
+
+    return null;
+  };
+
+  toArray<Record<string, unknown>>(rawState?.events).forEach((raw) => {
+    const id = typeof raw?.id === 'string' ? raw.id : '';
+    const accountId = typeof raw?.accountId === 'string' ? raw.accountId : '';
+
+    if (!id) {
+      bump(eventBreakdown, '缺少 id');
+      return;
+    }
+
+    if (!accountId) {
+      bump(eventBreakdown, '缺少 accountId');
+      return;
+    }
+
+    if (eventIds.has(id)) {
+      bump(eventBreakdown, '重复 id');
+      return;
+    }
+
+    eventIds.add(id);
+
+    if (!accountIds.has(accountId)) {
+      bump(eventBreakdown, '所属账户不存在');
+      return;
+    }
+
+    const issue = validateEvent(raw);
+    if (issue) {
+      bump(eventBreakdown, issue);
+      return;
+    }
+
+    validEventIds.add(id);
+  });
+
+  // --- 对账 ---
+  const reconciliationBreakdown: Record<string, number> = {};
+  const reconciliationIds = new Set<string>();
+  const validReconciliationIds = new Set<string>();
+
+  toArray<Record<string, unknown>>(rawState?.reconciliations).forEach((raw) => {
+    const id = typeof raw?.id === 'string' ? raw.id : '';
+    const accountId = typeof raw?.accountId === 'string' ? raw.accountId : '';
+
+    if (!id) {
+      bump(reconciliationBreakdown, '缺少 id');
+      return;
+    }
+
+    if (!accountId) {
+      bump(reconciliationBreakdown, '缺少 accountId');
+      return;
+    }
+
+    if (reconciliationIds.has(id)) {
+      bump(reconciliationBreakdown, '重复 id');
+      return;
+    }
+
+    reconciliationIds.add(id);
+
+    if (!accountIds.has(accountId)) {
+      bump(reconciliationBreakdown, '所属账户不存在');
+      return;
+    }
+
+    if (!isValidISODate(raw.date)) {
+      bump(reconciliationBreakdown, '日期无效');
+      return;
+    }
+
+    if (!isFiniteNumber(raw.balance)) {
+      bump(reconciliationBreakdown, '余额无效');
+      return;
+    }
+
+    validReconciliationIds.add(id);
+  });
+
+  // --- 账本记录 ---
+  const ledgerBreakdown: Record<string, number> = {};
+  const ledgerIds = new Set<string>();
+  const validLedgerIds = new Set<string>();
+  const isValidLedgerSource = (value: unknown) => value === 'rule' || value === 'manual' || value === 'adjustment';
+
+  toArray<Record<string, unknown>>(rawState?.ledgerEntries).forEach((raw) => {
+    const id = typeof raw?.id === 'string' ? raw.id : '';
+    const accountId = typeof raw?.accountId === 'string' ? raw.accountId : '';
+    const reconciliationId = typeof raw?.reconciliationId === 'string' ? raw.reconciliationId : '';
+    const name = typeof raw?.name === 'string' ? raw.name.trim() : '';
+    const ruleId = typeof raw?.ruleId === 'string' ? raw.ruleId.trim() : '';
+
+    if (!id) {
+      bump(ledgerBreakdown, '缺少 id');
+      return;
+    }
+
+    if (!accountId) {
+      bump(ledgerBreakdown, '缺少 accountId');
+      return;
+    }
+
+    if (!reconciliationId) {
+      bump(ledgerBreakdown, '缺少 reconciliationId');
+      return;
+    }
+
+    if (ledgerIds.has(id)) {
+      bump(ledgerBreakdown, '重复 id');
+      return;
+    }
+
+    ledgerIds.add(id);
+
+    if (!accountIds.has(accountId)) {
+      bump(ledgerBreakdown, '所属账户不存在');
+      return;
+    }
+
+    if (!validReconciliationIds.has(reconciliationId)) {
+      bump(ledgerBreakdown, 'reconciliationId 断裂');
+      return;
+    }
+
+    if (!name) {
+      bump(ledgerBreakdown, '名称为空');
+      return;
+    }
+
+    if (!isFiniteNumber(raw.amount)) {
+      bump(ledgerBreakdown, '金额无效');
+      return;
+    }
+
+    if (!isValidCategory(raw.category)) {
+      bump(ledgerBreakdown, '分类无效');
+      return;
+    }
+
+    if (!isValidISODate(raw.date)) {
+      bump(ledgerBreakdown, '日期无效');
+      return;
+    }
+
+    if (!isValidLedgerSource(raw.source)) {
+      bump(ledgerBreakdown, '来源无效');
+      return;
+    }
+
+    if (ruleId && !validEventIds.has(ruleId)) {
+      bump(ledgerBreakdown, 'ruleId 断裂');
+      return;
+    }
+
+    validLedgerIds.add(id);
+  });
+
+  // --- 覆盖记录 ---
+  const overrideBreakdown: Record<string, number> = {};
+  const overrideIds = new Set<string>();
+  const validOverrideIds = new Set<string>();
+
+  const isValidOverridePeriod = (value: unknown) => {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    const period = value.trim();
+    return /^\d{4}-\d{2}$/.test(period) || /^\d{4}$/.test(period) || isValidISODate(period);
+  };
+
+  const isValidOverrideAction = (value: unknown) => value === 'confirmed' || value === 'skipped' || value === 'modified';
+
+  toArray<Record<string, unknown>>(rawState?.eventOverrides).forEach((raw) => {
+    const id = typeof raw?.id === 'string' ? raw.id : '';
+    const accountId = typeof raw?.accountId === 'string' ? raw.accountId : '';
+    const ruleId = typeof raw?.ruleId === 'string' ? raw.ruleId : '';
+
+    if (!id) {
+      bump(overrideBreakdown, '缺少 id');
+      return;
+    }
+
+    if (!accountId) {
+      bump(overrideBreakdown, '缺少 accountId');
+      return;
+    }
+
+    if (!ruleId) {
+      bump(overrideBreakdown, '缺少 ruleId');
+      return;
+    }
+
+    if (overrideIds.has(id)) {
+      bump(overrideBreakdown, '重复 id');
+      return;
+    }
+
+    overrideIds.add(id);
+
+    if (!accountIds.has(accountId)) {
+      bump(overrideBreakdown, '所属账户不存在');
+      return;
+    }
+
+    if (!validEventIds.has(ruleId)) {
+      bump(overrideBreakdown, 'ruleId 断裂');
+      return;
+    }
+
+    if (!isValidOverridePeriod(raw.period)) {
+      bump(overrideBreakdown, 'period 无效');
+      return;
+    }
+
+    if (!isValidOverrideAction(raw.action)) {
+      bump(overrideBreakdown, 'action 无效');
+      return;
+    }
+
+    if (raw.action === 'modified' && !isFiniteNumber(raw.amount)) {
+      bump(overrideBreakdown, 'amount 无效');
+      return;
+    }
+
+    if (raw.actualDate && !isValidISODate(raw.actualDate)) {
+      bump(overrideBreakdown, 'actualDate 无效');
+      return;
+    }
+
+    validOverrideIds.add(id);
+  });
+
   const items: ImportSanitizeDiscardItem[] = [
     {
       label: '账户',
       rawCount: rawAccounts,
       sanitizedCount: sanitizedState.accounts.length,
       discardedCount: Math.max(0, rawAccounts - sanitizedState.accounts.length),
-      reason: '空白账户名、缺少 id 的账户，或重复账户会被过滤。',
+      reason: buildReason(accountBreakdown, Math.max(0, rawAccounts - sanitizedState.accounts.length), genericReason.account),
     },
     {
       label: '事件',
       rawCount: rawEvents,
       sanitizedCount: sanitizedState.events.length,
       discardedCount: Math.max(0, rawEvents - sanitizedState.events.length),
-      reason: '非法日期、金额/分类异常，或找不到所属账户的事件会被过滤。',
+      reason: buildReason(eventBreakdown, Math.max(0, rawEvents - sanitizedState.events.length), genericReason.event),
     },
     {
       label: '对账',
       rawCount: rawReconciliations,
       sanitizedCount: sanitizedState.reconciliations.length,
       discardedCount: Math.max(0, rawReconciliations - sanitizedState.reconciliations.length),
-      reason: '非法日期/余额，或找不到所属账户的对账记录会被过滤。',
+      reason: buildReason(reconciliationBreakdown, Math.max(0, rawReconciliations - sanitizedState.reconciliations.length), genericReason.reconciliation),
     },
     {
       label: '账本记录',
       rawCount: rawLedgerEntries,
       sanitizedCount: sanitizedState.ledgerEntries.length,
       discardedCount: Math.max(0, rawLedgerEntries - sanitizedState.ledgerEntries.length),
-      reason: '断裂的 ruleId / reconciliationId、非法分类/来源/日期，或缺少所属账户的记录会被过滤。',
+      reason: buildReason(ledgerBreakdown, Math.max(0, rawLedgerEntries - sanitizedState.ledgerEntries.length), genericReason.ledger),
     },
     {
       label: '覆盖记录',
       rawCount: rawOverrides,
       sanitizedCount: sanitizedState.eventOverrides.length,
       discardedCount: Math.max(0, rawOverrides - sanitizedState.eventOverrides.length),
-      reason: '非法 period / action、缺少 ruleId，或找不到所属账户/事件的覆盖记录会被过滤。',
+      reason: buildReason(overrideBreakdown, Math.max(0, rawOverrides - sanitizedState.eventOverrides.length), genericReason.override),
     },
   ];
 
