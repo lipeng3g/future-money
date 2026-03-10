@@ -19,7 +19,9 @@ const isPrivateOrUnsafeAiHostname = (hostname: string): boolean => {
 
     if (
         normalized === 'localhost'
+        || normalized === 'localhost.'
         || normalized.endsWith('.localhost')
+        || normalized.endsWith('.localhost.')
         || normalized === '0.0.0.0'
         || normalized === '::'
         || normalized === '::1'

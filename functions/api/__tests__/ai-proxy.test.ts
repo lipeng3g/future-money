@@ -39,6 +39,32 @@ describe('Cloudflare ai-proxy function', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('拒绝 localhost. / *.localhost. 等变体，避免绕过 hostname 规则', async () => {
+    const blockedTargets = [
+      'https://localhost./v1/chat/completions',
+      'https://example.localhost./v1/chat/completions',
+    ];
+
+    for (const targetUrl of blockedTargets) {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+      const request = new Request('http://localhost/api/ai-proxy', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'gpt-4o-mini' }),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Target-Url': targetUrl,
+        },
+      });
+
+      const response = await onRequestPost({ request });
+
+      expect(response.status, targetUrl).toBe(400);
+      await expect(response.json()).resolves.toEqual({ error: 'Blocked unsafe proxy target' });
+      expect(fetchSpy).not.toHaveBeenCalled();
+      fetchSpy.mockRestore();
+    }
+  });
+
   it('额外拒绝链路本地、CGNAT 与 IPv6 私网目标', async () => {
     const blockedTargets = [
       'http://169.254.10.20/v1/chat/completions',
