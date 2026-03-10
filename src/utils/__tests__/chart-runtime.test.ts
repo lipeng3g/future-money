@@ -52,6 +52,20 @@ describe('createAsyncChartRuntime', () => {
     expect(runtime.error.value).toBeNull();
     expect(runtime.errorAction.value).toBeNull();
   });
+
+  it('加载超时时会以错误状态收敛，不会永久停留在 loading', async () => {
+    const loader = vi.fn(() => new Promise<void>(() => {
+      // 永不 resolve，用于模拟 chunk 卡死/挂起
+    }));
+
+    const runtime = createAsyncChartRuntime(loader, '自定义失败文案', 10);
+
+    await runtime.ensureReady();
+    expect(runtime.ready.value).toBe(false);
+    expect(runtime.loading.value).toBe(false);
+    expect(runtime.error.value).toContain('超时');
+    expect(runtime.errorAction.value).toContain('刷新');
+  });
 });
 
 describe('getChartRuntimeErrorMessage', () => {
