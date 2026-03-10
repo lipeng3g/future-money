@@ -2,7 +2,7 @@
 - [x] 继续补 AI 抽屉失败恢复的边界回归，优先覆盖“重试期间再次失败的去重语义”“连续两次 partial fail 时历史替换策略”，避免当前修复只锁住同题重试这一路径。
 - [ ] 继续压缩大体积前端 chunk（当前 build 仍提示 chart-balance-runtime / vendor-antd 超 500 kB），优先从图表 runtime 与 Ant Design 组件级拆分入手。
 - [x] 给首页图表补一条真实预览级 smoke：新增 `scripts/browser-chart-smoke.mjs` 生成空态/有数据两份 localStorage 夹具，并补 `docs/browser-chart-smoke.md`，用于验证“空库直出空态 / 有数据时才走 deferred skeleton + runtime 加载”。
-- [ ] 若继续推进图表稳定性，可把 `getChartRuntimeErrorMessage()` 再向 UI 层透出“离线/下载失败”差异化 CTA（如刷新页面、检查网络），并评估是否要补一条浏览器预览站点下的真实 runtime 失败 smoke；当前已补纯函数回归，但组件层仍主要锁住通用失败/重试语义。
+- [ ] 若继续推进图表稳定性，可在当前已透出“离线/下载失败”差异化 CTA 的基础上，再评估是否要补一条浏览器预览站点下的真实 runtime 失败 smoke，确认组件层建议文案与真实 chunk 失败场景一致，而不只锁在纯函数/模拟失败语义。
 - [ ] 若继续推进页面级自动化，可评估把 `docs/browser-chart-smoke.md` 与 `docs/browser-import-smoke.md` 的人工 browser 步骤再半自动化，但前提仍是不引入高维护成本的新依赖。
 - [x] 继续给首页统计卡片 / 图表聚焦补更贴近真实 AntD 交互的容器级回归，尤其是 `StatisticsPanel → ChartArea → BalanceChart` 的 focus-key / focus-date 联动，避免后续重构只保住 store 层却把页面操作手感弄坏。
 

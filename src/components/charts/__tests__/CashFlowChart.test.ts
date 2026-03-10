@@ -56,6 +56,8 @@ describe('CashFlowChart', () => {
     expect(wrapper.find('.chart-runtime-error').exists()).toBe(true);
     expect(wrapper.text()).toContain('图表暂时没加载出来');
     expect(wrapper.text()).toContain('图表引擎加载失败，请稍后重试。');
+    expect(wrapper.text()).toContain('可先重试一次；若仍失败，再刷新页面继续。');
+    expect(wrapper.find('.chart-runtime-error-action').exists()).toBe(true);
     expect(wrapper.find('.v-chart').exists()).toBe(false);
 
     await wrapper.find('.retry-button').trigger('click');
@@ -66,6 +68,7 @@ describe('CashFlowChart', () => {
     expect(wrapper.find('.chart-runtime-error').exists()).toBe(false);
     expect(wrapper.find('.v-chart').exists()).toBe(true);
   });
+
 
   it('空月度数据时展示空态而不是图表容器', () => {
     const wrapper = mount(CashFlowChart, {
@@ -101,5 +104,4 @@ describe('CashFlowChart', () => {
     expect(wrapper.find('.chart-loading-state').exists()).toBe(false);
     expect(wrapper.find('.v-chart').exists()).toBe(true);
   });
-
 });

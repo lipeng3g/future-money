@@ -72,6 +72,7 @@
       <div v-else-if="chartRuntimeError" class="chart-runtime-error" role="alert">
         <strong>图表暂时没加载出来</strong>
         <p>{{ chartRuntimeError }}</p>
+        <small v-if="chartRuntimeErrorAction" class="chart-runtime-error-action">{{ chartRuntimeErrorAction }}</small>
         <button type="button" class="retry-button" @click="retryChartRuntime">重试加载</button>
       </div>
       <div v-else class="chart-loading-state">正在加载图表引擎…</div>
@@ -120,6 +121,7 @@ const emit = defineEmits<{
 const chartRuntime = useChartRuntime(() => import('@/utils/echarts-balance'));
 const chartRuntimeReady = chartRuntime.ready;
 const chartRuntimeError = chartRuntime.error;
+const chartRuntimeErrorAction = chartRuntime.errorAction;
 
 const retryChartRuntime = () => chartRuntime.retry();
 
@@ -355,6 +357,12 @@ const handleChartClick = (params: ECElementEvent) => {
   max-width: 360px;
   line-height: 1.6;
   font-size: 0.88rem;
+}
+
+.chart-runtime-error-action {
+  max-width: 360px;
+  line-height: 1.6;
+  color: rgba(127, 29, 29, 0.9);
 }
 
 .retry-button {
