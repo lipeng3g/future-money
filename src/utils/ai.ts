@@ -52,7 +52,9 @@ const isPrivateOrUnsafeAiHostname = (hostname: string): boolean => {
 
     if (
         normalized === 'localhost'
+        || normalized === 'localhost.'
         || normalized.endsWith('.localhost')
+        || normalized.endsWith('.localhost.')
         || normalized === '0.0.0.0'
         || normalized === '::'
         || normalized === '::1'
@@ -144,6 +146,13 @@ export const sanitizeAiConfig = (config: AiConfig): AiConfig => {
 
 export const buildAiChatCompletionsUrl = (baseUrl: string): string => {
     const normalizedBaseUrl = normalizeAiBaseUrlForTarget(baseUrl);
+
+    // 兼容用户输入已包含 /v1 的情形（例如 https://api.openai.com/v1）
+    // 避免拼出 /v1/v1/chat/completions 导致 404。
+    if (normalizedBaseUrl.endsWith('/v1')) {
+        return `${normalizedBaseUrl}/chat/completions`;
+    }
+
     return `${normalizedBaseUrl}/v1/chat/completions`;
 };
 

@@ -15,6 +15,7 @@ describe('ai proxy target guards', () => {
   it('拒绝非 http(s)、非 completions 路径和本地内网目标', () => {
     expect(isAllowedAiProxyTarget('file:///etc/passwd')).toBe(false);
     expect(isAllowedAiProxyTarget('http://127.0.0.1:8080/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://localhost./v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://192.168.1.10/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://10.0.0.8/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://172.16.0.9/v1/chat/completions')).toBe(false);
