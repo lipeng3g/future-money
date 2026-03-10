@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-03-10
+- security(ai-proxy): `functions/api/ai-proxy.ts` 的服务端目标校验现在与前端 `src/utils/ai.ts` 对齐，统一拒绝 localhost、RFC1918 私网、169.254/16 链路本地、100.64/10 CGNAT、`::` / `::1`、IPv6 ULA（fc00/fd00）与 link-local（fe80::/10）地址，避免前端已拦截的不安全 AI 目标在代理端仍存在漏拦窗口。
+- test(ai-proxy): 扩展 `functions/api/__tests__/ai-proxy.test.ts`，新增对链路本地、CGNAT 与 IPv6 私网地址的服务端回归，继续锁住 `ai-proxy` 只允许公开 http(s) `chat/completions` 目标的安全边界。
 - perf(chart-runtime): 首页 `ChartArea` 现在会在挂载后利用浏览器空闲时段静默预热余额图与月度收支图的 ECharts runtime；真正滚动到图表卡片、或 fallback timer 揭示图表时，会直接复用这次共享加载状态，减少首次看图仍要从零拉起 runtime 的等待与抖动。
 - refactor(chart-runtime): 新增 `src/utils/chart-runtime-preload.ts` 作为共享 runtime 注册表，把“空闲预热”和“组件挂载时 ensureReady”收口到同一份状态机，避免 Balance/CashFlow 两张图各自重复下载或各自维护一套缓存语义。
 - test(chart-runtime): 新增 `src/utils/__tests__/chart-runtime-preload.test.ts`，并扩展 `src/utils/__tests__/use-chart-runtime.test.ts`、`src/components/charts/__tests__/ChartArea.test.ts`，锁住“预热静默执行、失败不打断 UI、同 key 组件复用同一 runtime、ChartArea 会在保持 defer skeleton 的同时安排 idle preload”这几条本地体验语义。

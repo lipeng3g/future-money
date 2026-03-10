@@ -1,6 +1,9 @@
 # future-money 工作日志（非权威草稿）
 
 ## 2026-03-10
+- task: 收口 AI 直连地址安全校验的前后端一致性，避免前端已拒绝的私网/链路本地/CGNAT/IPv6 ULA 目标在 Cloudflare ai-proxy 服务端仍有漏拦，留下 SSRF/误连内网的缝
+- implementation: `functions/api/ai-proxy.ts` 新增与前端 `src/utils/ai.ts` 对齐的 `isPrivateOrUnsafeAiHostname()`，把 localhost、RFC1918、169.254/16、100.64/10、`::`/`::1`、IPv6 ULA（fc00/fd00）与 link-local（fe80::/10）统一列入阻断范围；代理端仍只允许 http(s) 且路径收口到 `/chat/completions`，不放宽现有 OpenAI-compatible 目标面
+- tests: 扩展 `functions/api/__tests__/ai-proxy.test.ts`，新增“额外拒绝链路本地、CGNAT 与 IPv6 私网目标”的服务端回归；并复跑 `src/utils/__tests__/ai-proxy-guard.test.ts` 确认前端 guard 与代理端语义一致。完整验证：`npm install`、`npm test`、`npm run type-check`、`npm run build`、`npm run smoke`、`npm run preview -- --host 127.0.0.1 --port 4175 + curl -I` 全通过；构建仍保留既有 `vendor-charts ~560kB` / `vendor-antd ~734kB` 告警，本轮未触碰用户已验证的拆包边界
 - task: 给首页图表补“空闲预热 + 共享 runtime 缓存”，减少余额图/月度图首次真正揭示时还要从零拉起 ECharts runtime 的等待，同时不回退现有 defer skeleton / IntersectionObserver / fallback timer 语义
 - implementation: 新增 `src/utils/chart-runtime-preload.ts`，以 key 为维度共享 `createAsyncChartRuntime()` 状态，并提供 `scheduleChartRuntimePreload()` 在浏览器空闲时静默预热；`ChartArea.vue` 挂载后会安排 balance/cashflow 两个 runtime 的 idle preload，`useChartRuntime()` 则改为复用同一注册表，让预热与真正挂载共享加载结果而不重复下载。失败仍只在图表真正渲染时展示，不在预热阶段打断界面
 - tests: 新增 `src/utils/__tests__/chart-runtime-preload.test.ts`，扩展 `src/utils/__tests__/use-chart-runtime.test.ts` 与 `src/components/charts/__tests__/ChartArea.test.ts`，锁住共享缓存、idle 预热与容器接线语义；完整仓库验证待继续执行

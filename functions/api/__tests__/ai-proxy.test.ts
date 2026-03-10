@@ -39,6 +39,36 @@ describe('Cloudflare ai-proxy function', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('额外拒绝链路本地、CGNAT 与 IPv6 私网目标', async () => {
+    const blockedTargets = [
+      'http://169.254.10.20/v1/chat/completions',
+      'http://100.64.0.8/v1/chat/completions',
+      'http://[::1]:8080/v1/chat/completions',
+      'http://[fc00::1]/v1/chat/completions',
+      'http://[fd12:3456::8]/v1/chat/completions',
+      'http://[fe80::1]/v1/chat/completions',
+    ];
+
+    for (const targetUrl of blockedTargets) {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+      const request = new Request('http://localhost/api/ai-proxy', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'gpt-4o-mini' }),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Target-Url': targetUrl,
+        },
+      });
+
+      const response = await onRequestPost({ request });
+
+      expect(response.status, targetUrl).toBe(400);
+      await expect(response.json()).resolves.toEqual({ error: 'Blocked unsafe proxy target' });
+      expect(fetchSpy).not.toHaveBeenCalled();
+      fetchSpy.mockRestore();
+    }
+  });
+
   it('透传授权头与上游响应', async () => {
     const upstreamHeaders = new Headers({ 'Content-Type': 'text/event-stream' });
     const upstreamResponse = new Response('data: ok\n\n', {
