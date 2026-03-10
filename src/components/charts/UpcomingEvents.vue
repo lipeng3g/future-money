@@ -6,9 +6,10 @@
         <li
           v-for="item in items"
           :key="item.id"
-          :class="[item.category, { overridden: item.overrideAction, clickable: !!item.eventId }]"
+          :class="[item.category, { overridden: item.overrideAction, clickable: !!item.eventId, active: props.activeDate === item.date }]"
           :tabindex="item.eventId ? 0 : undefined"
           :role="item.eventId ? 'button' : undefined"
+          :aria-pressed="item.eventId ? props.activeDate === item.date : undefined"
           @click="handleFocus(item)"
           @keydown.enter.prevent="handleFocus(item)"
           @keydown.space.prevent="handleFocus(item)"
@@ -79,7 +80,12 @@ import type { DailySnapshot } from '@/types/timeline';
 import { useFinanceStore } from '@/stores/finance';
 import { buildUpcomingItems, type UpcomingItem } from '@/utils/upcoming-items';
 
-const props = defineProps<{ timeline: DailySnapshot[] }>();
+const props = withDefaults(defineProps<{
+  timeline: DailySnapshot[];
+  activeDate?: string | null;
+}>(), {
+  activeDate: null,
+});
 const emit = defineEmits<{
   (e: 'focus-date', date: string): void;
 }>();
@@ -113,7 +119,7 @@ const overrideLabel = (action: string) => {
 
 const handleFocus = (item: UpcomingItem) => {
   if (!item.date) return;
-  emit('focus-date', item.date);
+  emit('focus-date', props.activeDate === item.date ? '' : item.date);
 };
 
 const handleAction = (key: string, item: UpcomingItem) => {
@@ -226,6 +232,16 @@ li.clickable {
 li.clickable:focus-visible {
   outline: 2px solid rgba(79, 70, 229, 0.28);
   outline-offset: 2px;
+}
+
+li.active {
+  background: rgba(79, 70, 229, 0.08);
+  border-color: rgba(79, 70, 229, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.08);
+}
+
+li.active:hover {
+  background: rgba(79, 70, 229, 0.1);
 }
 
 li.overridden {

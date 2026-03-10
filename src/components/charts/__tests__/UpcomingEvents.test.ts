@@ -60,8 +60,8 @@ const InputNumberStub = defineComponent({
   template: '<input class="input-number-stub" />',
 });
 
-const mountUpcomingEvents = (timeline: DailySnapshot[]) => mount(UpcomingEvents, {
-  props: { timeline },
+const mountUpcomingEvents = (timeline: DailySnapshot[], activeDate: string | null = null) => mount(UpcomingEvents, {
+  props: { timeline, activeDate },
   global: {
     stubs: {
       'a-dropdown': DropdownStub,
@@ -276,5 +276,31 @@ describe('UpcomingEvents', () => {
     await wrapper.find('li').trigger('keydown.enter');
 
     expect(wrapper.emitted('focus-date')?.at(-1)).toEqual(['2025-01-11']);
+  });
+
+  it('当前已定位日期会在侧栏高亮，重复点击同项时可取消定位', async () => {
+    const store = useFinanceStore();
+    store.setSimulatedToday('2025-01-10');
+
+    const timeline: DailySnapshot[] = [{
+      date: '2025-01-11',
+      balance: 0,
+      change: 0,
+      isWeekend: false,
+      isToday: false,
+      zone: 'projected',
+      events: [
+        { id: 'rent', eventId: 'rent', name: '房租', category: 'expense', amount: 2800, date: '2025-01-11', period: '2025-01' },
+      ],
+    }];
+
+    const wrapper = mountUpcomingEvents(timeline, '2025-01-11');
+    const item = wrapper.find('li');
+
+    expect(item.classes()).toContain('active');
+    expect(item.attributes('aria-pressed')).toBe('true');
+
+    await item.trigger('click');
+    expect(wrapper.emitted('focus-date')?.at(-1)).toEqual(['']);
   });
 });

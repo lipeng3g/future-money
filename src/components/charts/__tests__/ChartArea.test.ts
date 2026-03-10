@@ -68,9 +68,15 @@ const StatisticsPanelStub = defineComponent({
 
 const UpcomingEventsStub = defineComponent({
   name: 'UpcomingEvents',
-  props: ['timeline'],
+  props: ['timeline', 'activeDate'],
   emits: ['focus-date'],
-  template: '<button class="upcoming-events-stub" @click="$emit(\'focus-date\', \'2026-03-20\')">upcoming</button>',
+  template: `
+    <div class="upcoming-events-stub-wrap">
+      <button class="upcoming-events-stub" @click="$emit('focus-date', '2026-03-20')">upcoming</button>
+      <button class="upcoming-events-clear-stub" @click="$emit('focus-date', '')">clear</button>
+      <span class="upcoming-events-active-date">{{ activeDate ?? '' }}</span>
+    </div>
+  `,
 });
 
 const ReconciliationBannerStub = defineComponent({
@@ -341,12 +347,20 @@ describe('ChartArea', () => {
     await wrapper.find('.upcoming-events-stub').trigger('click');
     await flushAsyncComponents();
 
-    const balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
+    let balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
     expect(balanceChart.props('focusDate')).toBe('2026-03-20');
     expect(balanceChart.props('focusKey')).toBe('latest');
     expect(balanceChart.props('accountLabels')).toEqual(expect.objectContaining({
       [mainAccount.id]: expect.objectContaining({ name: mainAccount.name, color: mainAccount.color }),
       [cardAccount.id]: expect.objectContaining({ name: '招行卡', color: cardAccount.color }),
     }));
+    expect(wrapper.find('.upcoming-events-active-date').text()).toBe('2026-03-20');
+
+    await wrapper.find('.upcoming-events-clear-stub').trigger('click');
+    await flushAsyncComponents();
+
+    balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
+    expect(balanceChart.props('focusDate')).toBeUndefined();
+    expect(wrapper.find('.upcoming-events-active-date').text()).toBe('');
   });
 });

@@ -77,7 +77,11 @@
           <span class="event-count-badge">{{ store.events.length }}</span>
         </button>
         <div class="upcoming-wrapper">
-          <UpcomingEvents :timeline="store.timeline" @focus-date="handleUpcomingFocusDate" />
+          <UpcomingEvents
+            :timeline="store.timeline"
+            :active-date="balanceChartFocusDate ?? null"
+            @focus-date="handleUpcomingFocusDate"
+          />
         </div>
       </div>
     </div>
@@ -277,7 +281,7 @@ const handleChartDateSelect = (date: string) => {
 };
 
 const handleUpcomingFocusDate = (date: string) => {
-  balanceChartFocusDate.value = date;
+  balanceChartFocusDate.value = date || undefined;
   balanceChartFocusKey.value = 'latest';
 };
 
