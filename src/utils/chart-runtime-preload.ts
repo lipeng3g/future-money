@@ -17,11 +17,31 @@ const getRuntimeHandle = (
   return runtime;
 };
 
+const shouldForceChartRuntimeFailure = () => {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem('futureMoney.debug.chartRuntimeFail.v1') === '1';
+  } catch {
+    return false;
+  }
+};
+
 export const getSharedChartRuntime = (
   key: string,
   loader: () => Promise<unknown>,
   errorMessage?: string,
-) => getRuntimeHandle(key, loader, errorMessage);
+) => {
+  if (!runtimeRegistry.has(key) && shouldForceChartRuntimeFailure()) {
+    const forcedMessage = errorMessage ?? '图表组件下载失败（已启用 debug 强制失败）';
+    return getRuntimeHandle(
+      key,
+      () => Promise.reject(new Error('Forced chart runtime failure (debug)')),
+      forcedMessage,
+    );
+  }
+
+  return getRuntimeHandle(key, loader, errorMessage);
+};
 
 export const preloadChartRuntime = async (
   key: string,
