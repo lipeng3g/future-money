@@ -1,6 +1,6 @@
 import type { DailySnapshot, EventOccurrence } from '@/types/timeline';
 import { getAdaptiveAxisLabelInterval, shouldDisableChartAnimation } from '@/utils/chart-base';
-
+import { escapeHtml } from '@/utils/escape-html';
 
 const DEFAULT_BALANCE_LABEL_TARGET = 10;
 const DEFAULT_BALANCE_FOCUS_WINDOW = 60;
@@ -422,14 +422,19 @@ export const buildBalanceChartOption = ({
         if (dataIndex == null) return '';
         const point = timeline[dataIndex];
         if (!point) return '';
-        const zoneLabel = point.zone === 'frozen' ? '<span style="color:#64748b;font-size:12px;font-weight:500">已对账</span>' : '<span style="color:#4338ca;font-size:12px;font-weight:500">预测</span>';
+        const zoneLabel = point.zone === 'frozen'
+          ? '<span style="color:#64748b;font-size:12px;font-weight:500">已对账</span>'
+          : '<span style="color:#4338ca;font-size:12px;font-weight:500">预测</span>';
+
         const events = point.events
           .map((event) => {
             const sign = event.category === 'income' ? '+' : '-';
             const color = event.category === 'income' ? '#10b981' : '#f43f5e';
-            return `<div style="color:${color};margin-top:6px;font-size:13px;font-weight:500;display:flex;justify-content:space-between;gap:12px;"><span>${event.name}</span><span>${sign}¥${event.amount.toLocaleString('zh-CN')}</span></div>`;
+            const safeName = escapeHtml(event.name);
+            return `<div style="color:${color};margin-top:6px;font-size:13px;font-weight:500;display:flex;justify-content:space-between;gap:12px;"><span>${safeName}</span><span>${sign}¥${event.amount.toLocaleString('zh-CN')}</span></div>`;
           })
           .join('');
+
         const accountSummaries = buildBalanceChartTooltipAccountSummaries(point, accountLabels)
           .map((group) => {
             const signedNet = `${group.netChange >= 0 ? '+' : '-'}¥${Math.abs(group.netChange).toLocaleString('zh-CN')}`;
@@ -440,15 +445,18 @@ export const buildBalanceChartOption = ({
             ];
             if (group.income > 0) parts.push(`收入 ¥${group.income.toLocaleString('zh-CN')}`);
             if (group.expense > 0) parts.push(`支出 ¥${group.expense.toLocaleString('zh-CN')}`);
+
+            const safeLabel = escapeHtml(group.label);
             const dot = group.color
               ? `<span style="display:inline-flex;width:8px;height:8px;border-radius:999px;background:${group.color};margin-right:6px;flex-shrink:0;"></span>`
               : '';
-            return `<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(15,23,42,0.06);"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12px;font-weight:600;color:#334155;"><span style="display:inline-flex;align-items:center;">${dot}${group.label}</span><span>${parts.join(' · ')}</span></div></div>`;
+
+            return `<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(15,23,42,0.06);"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12px;font-weight:600;color:#334155;"><span style="display:inline-flex;align-items:center;">${dot}${safeLabel}</span><span>${escapeHtml(parts.join(' · '))}</span></div></div>`;
           })
           .join('');
         return `
           <div style="padding:16px;min-width:180px;max-width:320px">
-            <div style="font-weight:600;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;"><span>${point.date}</span> ${zoneLabel}</div>
+            <div style="font-weight:600;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;"><span>${escapeHtml(point.date)}</span> ${zoneLabel}</div>
             <div style="font-size:16px;margin-bottom:8px;border-bottom:1px solid rgba(15,23,42,0.06);padding-bottom:12px">余额：<strong style="font-family:'SF Pro Rounded', ui-monospace, sans-serif;">¥${point.balance.toLocaleString('zh-CN')}</strong></div>
             ${events}
             ${accountSummaries}

@@ -1,5 +1,6 @@
 import type { MonthlySnapshot } from '@/types/analytics';
 import { getAdaptiveAxisLabelInterval, shouldDisableChartAnimation } from '@/utils/chart-base';
+import { escapeHtml } from '@/utils/escape-html';
 
 const DEFAULT_MONTHLY_LABEL_TARGET = 6;
 
@@ -30,7 +31,7 @@ export const buildCashFlowChartOption = (months: MonthlySnapshot[]) => {
         shadowStyle: { color: 'rgba(15, 23, 42, 0.03)' },
       },
       formatter: (params: any) => {
-        const month = params[0].axisValue;
+        const month = escapeHtml(String(params[0].axisValue ?? ''));
         const income = params.find((p: any) => p.seriesName === '收入')?.value || 0;
         const expense = params.find((p: any) => p.seriesName === '支出')?.value || 0;
         const net = params.find((p: any) => p.seriesName === '结余')?.value || 0;
