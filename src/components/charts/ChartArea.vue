@@ -37,6 +37,7 @@
             :show-weekends="store.preferences.showWeekends"
             :reconciliation-date="store.latestReconciliation?.date"
             :reconciliation-balance="store.latestReconciliation?.balance"
+            :account-labels="accountLabels"
             :focus-key="balanceChartFocusKey"
             :focus-date="balanceChartFocusDate"
             @select-date="handleChartDateSelect"
@@ -141,6 +142,9 @@ const emit = defineEmits<{
 }>();
 
 const store = useFinanceStore();
+const accountLabels = computed(() => Object.fromEntries(
+  store.accounts.map((account) => [account.id, { name: account.name, color: account.color }]),
+));
 const reconcileModalOpen = ref(false);
 const aiConfigOpen = ref(false);
 const aiChatOpen = ref(false);

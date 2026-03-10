@@ -23,12 +23,12 @@ const createAsyncComponentMock = (name: string, className: string) => ({
   default: defineComponent({
     name,
     props: name === 'BalanceChart'
-      ? ['timeline', 'warningThreshold', 'chartType', 'showWeekends', 'reconciliationDate', 'reconciliationBalance', 'focusKey', 'focusDate']
+      ? ['timeline', 'warningThreshold', 'chartType', 'showWeekends', 'reconciliationDate', 'reconciliationBalance', 'accountLabels', 'focusKey', 'focusDate']
       : name === 'CashFlowChart'
         ? ['months']
         : [],
     emits: name === 'BalanceChart' ? ['select-date'] : [],
-    template: `<div :class="className">${name}</div>`,
+    template: `<div :class="className"><slot /></div>`,
     setup() {
       return { className };
     },
@@ -320,9 +320,17 @@ describe('ChartArea', () => {
     expect(balanceChart.props('focusDate')).toBeUndefined();
   });
 
-  it('即将发生侧栏触发 focus-date 时，容器会把日期定位传给余额图', async () => {
+  it('即将发生侧栏触发 focus-date 时，容器会把日期定位与账户映射一起传给余额图', async () => {
     const store = useFinanceStore();
-    store.reconcile('2026-03-01', 5000, [], '初始对账');
+    const mainAccount = store.currentAccount;
+    const cardAccount = store.addAccount({ name: '招行卡', initialBalance: 0, warningThreshold: 0 });
+    store.currentAccountId = mainAccount.id;
+    store.viewMode = 'multi';
+    store.multiAccountSelection = [mainAccount.id, cardAccount.id];
+    store.reconcile('2026-03-01', 5000, [], '主账户对账');
+    store.currentAccountId = cardAccount.id;
+    store.reconcile('2026-03-01', 2800, [], '副账户对账');
+    store.currentAccountId = mainAccount.id;
 
     const wrapper = mountChartArea();
     await nextTick();
@@ -336,5 +344,9 @@ describe('ChartArea', () => {
     const balanceChart = wrapper.findComponent({ name: 'BalanceChart' });
     expect(balanceChart.props('focusDate')).toBe('2026-03-20');
     expect(balanceChart.props('focusKey')).toBe('latest');
+    expect(balanceChart.props('accountLabels')).toEqual(expect.objectContaining({
+      [mainAccount.id]: expect.objectContaining({ name: mainAccount.name, color: mainAccount.color }),
+      [cardAccount.id]: expect.objectContaining({ name: '招行卡', color: cardAccount.color }),
+    }));
   });
 });

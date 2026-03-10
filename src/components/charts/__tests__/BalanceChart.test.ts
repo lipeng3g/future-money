@@ -106,6 +106,10 @@ const mountChart = (props: Record<string, unknown> = {}) => mount(BalanceChart, 
     warningThreshold: 1000,
     reconciliationDate: '2026-03-01',
     reconciliationBalance: 3200,
+    accountLabels: {
+      cash: { name: '现金', color: '#22c55e' },
+      card: { name: '招行卡', color: '#3b82f6' },
+    },
     ...props,
   },
 });
@@ -153,10 +157,11 @@ describe('BalanceChart', () => {
     expect(wrapper.find('.focus-insight').text()).toContain('首次跌破预警线');
     const groupHeaders = wrapper.findAll('.focus-event-group-header');
     expect(groupHeaders).toHaveLength(2);
-    expect(groupHeaders[0].text()).toContain('账户 cash');
+    expect(groupHeaders[0].text()).toContain('现金');
     expect(groupHeaders[0].text()).toContain('1 笔 · -¥2,300');
-    expect(groupHeaders[1].text()).toContain('账户 card');
+    expect(groupHeaders[1].text()).toContain('招行卡');
     expect(groupHeaders[1].text()).toContain('1 笔 · -¥120');
+    expect(wrapper.findAll('.focus-event-group-dot')).toHaveLength(2);
     expect(wrapper.find('.focus-event-groups').text()).toContain('房租');
     expect(wrapper.find('.focus-event-groups').text()).toContain('买菜');
 

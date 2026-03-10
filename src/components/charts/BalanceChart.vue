@@ -42,7 +42,14 @@
             class="focus-event-group"
           >
             <div class="focus-event-group-header">
-              <strong>{{ group.label }}</strong>
+              <strong class="focus-event-group-title">
+                <span
+                  v-if="group.color"
+                  class="focus-event-group-dot"
+                  :style="{ background: group.color }"
+                ></span>
+                {{ group.label }}
+              </strong>
               <span>{{ group.summary }}</span>
             </div>
             <div class="focus-event-list">
@@ -96,6 +103,8 @@ interface Props {
   reconciliationDate?: string;
   /** 最新对账余额 */
   reconciliationBalance?: number;
+  /** 多账户视图下用于把 accountId 渲染成可读名称 */
+  accountLabels?: Record<string, { name: string; color?: string }>;
   /** 外部联动指定图表焦点 */
   focusKey?: BalanceChartFocusKey;
   /** 外部联动指定图表日期 */
@@ -248,6 +257,7 @@ const activeFocusEventGroups = computed(() => {
       label: '当日事件',
       summary: `${activeFocusEvents.value.length} 笔`,
       events: activeFocusEvents.value,
+      color: undefined as string | undefined,
     }];
   }
 
@@ -271,11 +281,14 @@ const activeFocusEventGroups = computed(() => {
     if (income > 0) parts.push(`+${formatCurrency(income)}`);
     if (expense > 0) parts.push(`-${formatCurrency(expense)}`);
 
+    const accountMeta = accountKey === '__unknown__' ? undefined : props.accountLabels?.[accountKey];
+
     return {
       key: accountKey,
-      label: accountKey === '__unknown__' ? '未标记账户' : `账户 ${accountKey}`,
+      label: accountKey === '__unknown__' ? '未标记账户' : accountMeta?.name ?? `账户 ${accountKey}`,
       summary: parts.join(' · '),
       events,
+      color: accountMeta?.color,
     };
   });
 });
@@ -514,9 +527,19 @@ const handleChartClick = (params: ECElementEvent) => {
   flex-wrap: wrap;
 }
 
-.focus-event-group-header strong {
+.focus-event-group-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--fm-text-primary);
   font-size: 0.8rem;
+}
+
+.focus-event-group-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .focus-event-group-header span {
