@@ -8,5 +8,7 @@ yarn.lock
 *.tsbuildinfo
 vite.config.ts.timestamp-*.mjs
 
+tmp-browser-chart-smoke/
+
 # TS build outputs
 tsconfig.*.tsbuildinfo
