@@ -355,3 +355,8 @@
 [2026-03-10 07:20:00] task: 修掉 AI 抽屉切换账户 scope 时的草稿串写竞态，避免旧 scope 草稿在切换瞬间误覆盖到新 scope
 [2026-03-10 07:20:00] deliverables: `AiAnalysisModal.vue` 新增 `suppressDraftPersistence`，在 scope 切换加载新草稿的过渡 tick 内暂停 draft watcher 持久化，避免 `selectedAccountIds` 先变化后 `userInput` 仍是旧值时把旧草稿写进新 scope；扩展组件级回归覆盖“切到单账户时保留原单账户草稿不被多账户草稿污染”与“多账户顺序抖动不改写现有草稿”
 [2026-03-10 07:20:00] verification: `npm install` ✅, `npm test` ✅ (225), `npm run type-check` ✅, `npm run build` ✅, `npm run smoke` ✅；build 仍有既有大 chunk warning（`vendor-charts` / `vendor-antd`），未触碰用户已验证的构建修复边界
+
+## 2026-03-10
+- 加固 AI API 地址安全校验：补拒绝链路本地/内网/ULA/链路本地 IPv6 与 CGNAT 地址，避免前端直连配置误指向私网代理。
+- 补充 ai-proxy-guard 测试覆盖上述地址段。
+- 待完成：全量安装/测试/type-check/build/烟雾验证，验证后提交并推送。

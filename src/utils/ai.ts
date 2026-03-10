@@ -45,6 +45,33 @@ export const createChatHistoryScopeKey = (scope?: ChatHistoryScope): string => {
     return `${CHAT_KEY}:${accountIds.join(',')}`;
 };
 
+const isPrivateOrUnsafeAiHostname = (hostname: string): boolean => {
+    if (!hostname) return true;
+
+    const normalized = hostname.trim().toLowerCase().replace(/^\[(.*)\]$/, '$1');
+
+    if (
+        normalized === 'localhost'
+        || normalized.endsWith('.localhost')
+        || normalized === '0.0.0.0'
+        || normalized === '::'
+        || normalized === '::1'
+        || normalized.startsWith('127.')
+        || normalized.startsWith('10.')
+        || normalized.startsWith('192.168.')
+        || /^172\.(1[6-9]|2\d|3[0-1])\./.test(normalized)
+        || /^169\.254\./.test(normalized)
+        || /^100\.(6[4-9]|[78]\d|9\d|1[01]\d|12[0-7])\./.test(normalized)
+        || /^fc/i.test(normalized)
+        || /^fd/i.test(normalized)
+        || /^fe[89ab]/i.test(normalized)
+    ) {
+        return true;
+    }
+
+    return false;
+};
+
 export const isAllowedAiProxyTarget = (targetUrl: string): boolean => {
     let parsedUrl: URL;
     try {
@@ -58,19 +85,7 @@ export const isAllowedAiProxyTarget = (targetUrl: string): boolean => {
     }
 
     const hostname = parsedUrl.hostname.trim().toLowerCase();
-    if (!hostname) return false;
-
-    if (
-        hostname === 'localhost'
-        || hostname.endsWith('.localhost')
-        || hostname === '0.0.0.0'
-        || hostname === '127.0.0.1'
-        || hostname === '::1'
-        || hostname.startsWith('127.')
-        || hostname.startsWith('10.')
-        || hostname.startsWith('192.168.')
-        || /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
-    ) {
+    if (isPrivateOrUnsafeAiHostname(hostname)) {
         return false;
     }
 

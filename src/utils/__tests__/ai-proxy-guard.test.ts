@@ -18,6 +18,12 @@ describe('ai proxy target guards', () => {
     expect(isAllowedAiProxyTarget('http://192.168.1.10/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://10.0.0.8/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://172.16.0.9/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://169.254.10.20/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://100.64.0.8/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://[::1]:8080/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://[fc00::1]/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://[fd12:3456::8]/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://[fe80::1]/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://127.0.0.1:8080/admin')).toBe(false);
     expect(isAllowedAiProxyTarget('not-a-url')).toBe(false);
   });
