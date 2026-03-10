@@ -65,8 +65,9 @@ describe('finance store smoke', () => {
     store.importState(exported, 'all', 'smoke-all.json');
 
     expect(store.accounts).toHaveLength(2);
-    expect(store.currentAccountId).toBe(originalAccountId);
-    expect(store.currentAccount.name).toBe(originalAccountName);
+    // 整库恢复会一并恢复备份里记录的“当前账户”选择。
+    expect(store.currentAccountId).toBe(travel.id);
+    expect(store.currentAccount.name).toBe('旅行基金');
     expect(store.events).toHaveLength(2);
     expect(store.events.some((event) => event.accountId === originalAccountId && event.name === '主账户工资')).toBe(true);
     expect(store.events.some((event) => event.accountId === travel.id && event.name === '旅行储蓄')).toBe(true);
@@ -81,6 +82,7 @@ describe('finance store smoke', () => {
 
     const undoResult = store.undoLastImport();
     expect(undoResult.success).toBe(true);
+    // 撤销后恢复到清空后的状态：当前账户仍是主账户。
     expect(store.currentAccountId).toBe(originalAccountId);
     expect(store.currentAccount.initialBalance).toBe(0);
     expect(store.events.filter((event) => event.accountId === originalAccountId)).toHaveLength(0);

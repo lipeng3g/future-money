@@ -277,11 +277,16 @@ const normalizeState = (rawState: Partial<AppState>): AppState => {
     preferences: normalizeUserPreferences(rawState.preferences),
   };
 
+  // 兼容旧版：accounts 缺失时用 account 补齐。
   if (!state.accounts || state.accounts.length === 0) {
     state.accounts = [state.account];
   }
 
-  if (state.accounts[0]) {
+  // 避免误把 accounts[0] 覆盖为当前账户：优先保留 rawState.account
+  // (导入/恢复时 account 代表用户上次选中的账户，而 accounts[0] 只是列表首项)
+  if (rawState.account && typeof rawState.account === 'object') {
+    state.account = rawState.account as AppState['account'];
+  } else if (state.accounts[0]) {
     state.account = state.accounts[0];
   }
 
