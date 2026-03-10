@@ -1,6 +1,11 @@
 # future-money 工作日志（非权威草稿）
 
 ## 2026-03-10
+- task: 给图表 runtime 失败态补更可执行的本地错误解释，避免 chunk / 动态 import 加载失败时永远只剩一条过于笼统的“稍后重试”
+- implementation: `src/utils/chart-runtime.ts` 新增 `getChartRuntimeErrorMessage()`，会区分“设备离线”与“动态图表 runtime 下载失败”两类常见前端本地加载问题：离线时提示先检查网络，动态 import / chunk 加载失败时提示可能是网络抖动或资源中断，并建议刷新或稍后重试；未知错误仍回退到原默认文案，不改变现有组件接线
+- tests: 扩展 `src/utils/__tests__/chart-runtime.test.ts`，覆盖离线、动态 import 下载失败、自定义 fallback 文案三条回归；并完成 `npm install`、`npm test`、`npm run type-check`、`npm run build`、`npm run smoke`
+
+## 2026-03-10
 - task: 给余额图焦点解释卡补按账户分组的事件摘要 chips，提升多账户视图下同日多笔事件的可解释性，避免只平铺事件名看不出是哪笔账户在出血/回血
 - implementation: `src/components/charts/BalanceChart.vue` 现在会把当前焦点日期的事件按 `accountId` 分组展示；每组新增“账户名 + 笔数 + 收入/支出汇总”头部，组内继续保留可点击 event chips，用于跳回对应日期。若当天没有账户维度，则回退为单组“当日事件”，不影响单账户体验。同步扩展 `src/components/charts/__tests__/BalanceChart.test.ts`，锁住多账户分组摘要与单账户回退展示。
 - tests: 已完成 `npm install`、`npm test`、`npm run type-check`、`npm run build`、`npm run smoke`，并补充 `npm run dev -- --host 127.0.0.1` + `curl -I` 运行时烟雾验证（HTTP 200）
