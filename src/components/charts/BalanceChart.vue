@@ -238,6 +238,7 @@ const chartOption = computed(() => buildBalanceChartOption({
   reconciliationDate: props.reconciliationDate,
   reconciliationBalance: props.reconciliationBalance,
   focusDate: activeFocus.value?.date,
+  accountLabels: props.accountLabels,
 }));
 
 const activeFocusEvents = computed<EventOccurrence[]>(() => {

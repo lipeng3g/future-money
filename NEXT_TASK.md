@@ -1,5 +1,6 @@
 - [ ] 继续审视 AI 直连地址的 SSRF/私网误连边界，下一步可评估域名重绑定/解析后私网 IP 风险、以及 UI 上更明确的阻断原因提示；本轮已把 Cloudflare ai-proxy 服务端校验补齐到与前端一致，覆盖 localhost、RFC1918、169.254/16、100.64/10、IPv6 ULA 与 link-local。
-- [ ] 若继续打磨首页余额图，可在本轮已完成“账户名/颜色替代原始 account id”基础上，再补 hover / tooltip 级预览（例如账户净变动、该账户当日余额落点），优先提升多账户焦点卡的解释深度，而不是继续堆更多纯文本摘要。
+- [x] 若继续打磨首页余额图，可在本轮已完成“账户名/颜色替代原始 account id”基础上，再补 hover / tooltip 级预览（例如账户净变动、该账户当日余额落点），优先提升多账户焦点卡的解释深度，而不是继续堆更多纯文本摘要。
+- [ ] 下一轮若继续深化余额图解释层，可评估把 tooltip 里的“账户级余额落点”从当前按净变动顺序的近似推导，升级为更明确的文案提示或接入真实账户级时间线；前提仍是不把实现复杂度抬到高于收益。
 - [x] 继续补 AI 抽屉失败恢复的边界回归，优先覆盖“重试期间再次失败的去重语义”“连续两次 partial fail 时历史替换策略”，避免当前修复只锁住同题重试这一路径。
 - [ ] 继续压缩大体积前端 chunk（当前 build 实际仍提示 `vendor-charts` / `vendor-antd` 超 500 kB；之前 `chart-balance-runtime` 已缩成轻壳），优先评估 ECharts runtime 与 Ant Design 的进一步拆分点，但不要回退本轮已落地的“idle preload + 共享 runtime 缓存”首开体验优化。
 - [x] 给首页图表补一条真实预览级 smoke：新增 `scripts/browser-chart-smoke.mjs` 生成空态/有数据两份 localStorage 夹具，并补 `docs/browser-chart-smoke.md`，用于验证“空库直出空态 / 有数据时才走 deferred skeleton + runtime 加载”。

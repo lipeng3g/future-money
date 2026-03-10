@@ -3,6 +3,7 @@ import {
   buildBalanceChartFocusInsight,
   buildBalanceChartFocusTargets,
   buildBalanceChartOption,
+  buildBalanceChartTooltipAccountSummaries,
   getBalanceChartZoomWindow,
   getDefaultBalanceChartFocusDate,
   getDefaultBalanceChartFocusKey,
@@ -208,6 +209,71 @@ describe('chart-options', () => {
     expect(option.dataZoom).toHaveLength(2);
     expect(option.dataZoom[0].startValue).toBeGreaterThan(0);
     expect(option.dataZoom[0].endValue).toBeLessThan(timeline.length);
+  });
+
+  it('余额图 tooltip 会为多账户日期生成账户级净变动与余额落点摘要', () => {
+    const point = createDay({
+      date: '2025-01-02',
+      balance: 2150,
+      change: -650,
+      events: [
+        {
+          id: 'occ-1',
+          eventId: 'rent',
+          name: '房租',
+          category: 'expense',
+          amount: 1800,
+          date: '2025-01-02',
+          accountId: 'bank',
+        },
+        {
+          id: 'occ-2',
+          eventId: 'salary',
+          name: '工资',
+          category: 'income',
+          amount: 1200,
+          date: '2025-01-02',
+          accountId: 'bank',
+        },
+        {
+          id: 'occ-3',
+          eventId: 'lunch',
+          name: '午餐',
+          category: 'expense',
+          amount: 50,
+          date: '2025-01-02',
+          accountId: 'wallet',
+        },
+      ],
+    });
+
+    const summaries = buildBalanceChartTooltipAccountSummaries(point, {
+      bank: { name: '工资卡', color: '#2563eb' },
+      wallet: { name: '钱包', color: '#f59e0b' },
+    });
+
+    expect(summaries).toEqual([
+      {
+        key: 'bank',
+        label: '工资卡',
+        color: '#2563eb',
+        income: 1200,
+        expense: 1800,
+        netChange: -600,
+        balanceAfter: 2150,
+        eventCount: 2,
+      },
+      {
+        key: 'wallet',
+        label: '钱包',
+        color: '#f59e0b',
+        income: 0,
+        expense: 50,
+        netChange: -50,
+        balanceAfter: 2750,
+        eventCount: 1,
+      },
+    ]);
   });
 
   it('余额图会优先围绕外部指定日期聚焦，而不是默认最新区间', () => {

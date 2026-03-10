@@ -282,6 +282,22 @@ describe('BalanceChart', () => {
     expect(wrapper.find('.focus-insight').text()).not.toContain('当前选中事件在图表中的发生日期');
   });
 
+  it('会把多账户账户级净变动与余额落点写进 tooltip option，帮助解释当天发生了什么', async () => {
+    const wrapper = mountChart();
+    await flushPromises();
+    await nextTick();
+
+    const tooltipFormatter = wrapper.findComponent({ name: 'VChart' }).props('option').tooltip.formatter as (params: Array<{ dataIndex: number }>) => string;
+    const html = tooltipFormatter([{ dataIndex: 1 }]);
+
+    expect(html).toContain('现金');
+    expect(html).toContain('净变动 -¥2,300');
+    expect(html).toContain('落点 ¥900');
+    expect(html).toContain('招行卡');
+    expect(html).toContain('净变动 -¥120');
+    expect(html).toContain('落点 ¥3,200');
+  });
+
   it('点击含事件的数据点或焦点摘要里的事件 chips 时会发出 select-date', async () => {
     const wrapper = mountChart();
     await flushPromises();

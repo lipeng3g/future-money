@@ -1,6 +1,11 @@
 # Changelog
 
 ## 2026-03-10
+- ux(chart-tooltip): 余额图 tooltip 在多账户同日事件场景下，除了继续列出事件名与金额外，现在还会补充账户级摘要：每个账户的事件笔数、净变动、收入/支出拆分，以及按当前展示顺序推导的“当日余额落点”。这样 hover 到关键日期时，不用只看一串事件名猜哪张卡在出血，能直接看出主要波动来自哪个账户、落点大概到哪。
+- refactor(chart-tooltip): 新增 `buildBalanceChartTooltipAccountSummaries()`，把多账户 tooltip 的账户分组、净变动排序、余额落点推导从 ECharts formatter 字符串里抽成纯函数，避免图表解释逻辑继续散落在模板字符串中，也方便后续继续补更深的 hover/tooltip 解释。
+- test(chart-tooltip): 扩展 `src/utils/__tests__/chart-options.test.ts` 与 `src/components/charts/__tests__/BalanceChart.test.ts`，分别锁住账户级 tooltip 摘要纯函数和最终注入到 ECharts option 的 HTML 内容，避免后续重构把多账户 hover 解释悄悄打回“只有事件名列表”。
+
+## 2026-03-10
 - security(ai-proxy): `functions/api/ai-proxy.ts` 的服务端目标校验现在与前端 `src/utils/ai.ts` 对齐，统一拒绝 localhost、RFC1918 私网、169.254/16 链路本地、100.64/10 CGNAT、`::` / `::1`、IPv6 ULA（fc00/fd00）与 link-local（fe80::/10）地址，避免前端已拦截的不安全 AI 目标在代理端仍存在漏拦窗口。
 - test(ai-proxy): 扩展 `functions/api/__tests__/ai-proxy.test.ts`，新增对链路本地、CGNAT 与 IPv6 私网地址的服务端回归，继续锁住 `ai-proxy` 只允许公开 http(s) `chat/completions` 目标的安全边界。
 - perf(chart-runtime): 首页 `ChartArea` 现在会在挂载后利用浏览器空闲时段静默预热余额图与月度收支图的 ECharts runtime；真正滚动到图表卡片、或 fallback timer 揭示图表时，会直接复用这次共享加载状态，减少首次看图仍要从零拉起 runtime 的等待与抖动。

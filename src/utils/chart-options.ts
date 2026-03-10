@@ -24,6 +24,17 @@ export interface BalanceChartFocusInsight {
   eventSummary?: string;
 }
 
+export interface BalanceChartTooltipAccountSummary {
+  key: string;
+  label: string;
+  color?: string;
+  income: number;
+  expense: number;
+  netChange: number;
+  balanceAfter?: number;
+  eventCount: number;
+}
+
 export const buildBalanceChartFocusTargets = (
   timeline: DailySnapshot[],
   warningThreshold: number,
@@ -255,6 +266,63 @@ export const buildBalanceChartFocusInsight = ({
   }
 };
 
+export const buildBalanceChartTooltipAccountSummaries = (
+  point: DailySnapshot,
+  accountLabels?: Record<string, { name: string; color?: string }>,
+): BalanceChartTooltipAccountSummary[] => {
+  if (!point.events.length) return [];
+
+  const hasMultipleAccounts = point.events.some((event) => event.accountId);
+  if (!hasMultipleAccounts) return [];
+
+  const grouped = new Map<string, EventOccurrence[]>();
+  point.events.forEach((event) => {
+    const accountKey = event.accountId?.trim() || '__unknown__';
+    const bucket = grouped.get(accountKey) ?? [];
+    bucket.push(event);
+    grouped.set(accountKey, bucket);
+  });
+
+  const sortedGroups = Array.from(grouped.entries())
+    .map(([accountKey, events]) => {
+      const income = events
+        .filter((event) => event.category === 'income')
+        .reduce((sum, event) => sum + event.amount, 0);
+      const expense = events
+        .filter((event) => event.category === 'expense')
+        .reduce((sum, event) => sum + event.amount, 0);
+      const netChange = income - expense;
+      const accountMeta = accountKey === '__unknown__' ? undefined : accountLabels?.[accountKey];
+
+      return {
+        key: accountKey,
+        label: accountKey === '__unknown__' ? '未标记账户' : accountMeta?.name ?? `账户 ${accountKey}`,
+        color: accountMeta?.color,
+        income,
+        expense,
+        netChange,
+        eventCount: events.length,
+      };
+    })
+    .sort((left, right) => {
+      const netDelta = Math.abs(right.netChange) - Math.abs(left.netChange);
+      if (netDelta !== 0) return netDelta;
+      const expenseDelta = right.expense - left.expense;
+      if (expenseDelta !== 0) return expenseDelta;
+      return left.label.localeCompare(right.label, 'zh-CN');
+    });
+
+  let runningBalance = point.balance;
+  return sortedGroups.map((group) => {
+    const balanceAfter = runningBalance;
+    runningBalance -= group.netChange;
+    return {
+      ...group,
+      balanceAfter,
+    };
+  });
+};
+
 export const buildBalanceChartOption = ({
   timeline,
   warningThreshold,
@@ -263,6 +331,7 @@ export const buildBalanceChartOption = ({
   reconciliationDate,
   reconciliationBalance,
   focusDate,
+  accountLabels,
 }: {
   timeline: DailySnapshot[];
   warningThreshold: number;
@@ -271,6 +340,7 @@ export const buildBalanceChartOption = ({
   reconciliationDate?: string;
   reconciliationBalance?: number;
   focusDate?: string;
+  accountLabels?: Record<string, { name: string; color?: string }>;
 }) => {
   const labels = timeline.map((point) => point.date);
   const useArea = chartType !== 'line';
@@ -360,11 +430,28 @@ export const buildBalanceChartOption = ({
             return `<div style="color:${color};margin-top:6px;font-size:13px;font-weight:500;display:flex;justify-content:space-between;gap:12px;"><span>${event.name}</span><span>${sign}¥${event.amount.toLocaleString('zh-CN')}</span></div>`;
           })
           .join('');
+        const accountSummaries = buildBalanceChartTooltipAccountSummaries(point, accountLabels)
+          .map((group) => {
+            const signedNet = `${group.netChange >= 0 ? '+' : '-'}¥${Math.abs(group.netChange).toLocaleString('zh-CN')}`;
+            const parts = [
+              `${group.eventCount} 笔`,
+              `净变动 ${signedNet}`,
+              `落点 ¥${(group.balanceAfter ?? point.balance).toLocaleString('zh-CN')}`,
+            ];
+            if (group.income > 0) parts.push(`收入 ¥${group.income.toLocaleString('zh-CN')}`);
+            if (group.expense > 0) parts.push(`支出 ¥${group.expense.toLocaleString('zh-CN')}`);
+            const dot = group.color
+              ? `<span style="display:inline-flex;width:8px;height:8px;border-radius:999px;background:${group.color};margin-right:6px;flex-shrink:0;"></span>`
+              : '';
+            return `<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(15,23,42,0.06);"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12px;font-weight:600;color:#334155;"><span style="display:inline-flex;align-items:center;">${dot}${group.label}</span><span>${parts.join(' · ')}</span></div></div>`;
+          })
+          .join('');
         return `
-          <div style="padding:16px;min-width:180px">
+          <div style="padding:16px;min-width:180px;max-width:320px">
             <div style="font-weight:600;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;"><span>${point.date}</span> ${zoneLabel}</div>
             <div style="font-size:16px;margin-bottom:8px;border-bottom:1px solid rgba(15,23,42,0.06);padding-bottom:12px">余额：<strong style="font-family:'SF Pro Rounded', ui-monospace, sans-serif;">¥${point.balance.toLocaleString('zh-CN')}</strong></div>
             ${events}
+            ${accountSummaries}
           </div>
         `;
       },

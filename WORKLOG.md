@@ -1,6 +1,10 @@
 # future-money 工作日志（非权威草稿）
 
 ## 2026-03-10
+- task: 给首页余额图补 hover / tooltip 级多账户解释，减少多账户同日事件场景下只能看事件名列表、很难一眼判断“哪张账户在出血/回血、当天大致落到哪里”的理解成本
+- implementation: `src/utils/chart-options.ts` 新增 `buildBalanceChartTooltipAccountSummaries()`，把 tooltip 的账户分组、净变动绝对值排序、收入/支出拆分与余额落点推导抽成纯函数；`BalanceChart.vue` 在构建 ECharts option 时透传 `accountLabels`，让余额图 tooltip 在多账户日期下除了列事件名，还会展示账户级“笔数 / 净变动 / 收入 / 支出 / 当日余额落点”摘要
+- tests: 扩展 `src/utils/__tests__/chart-options.test.ts` 与 `src/components/charts/__tests__/BalanceChart.test.ts`，分别覆盖纯函数输出与 ECharts tooltip formatter 的最终 HTML 内容；完整仓库验证待继续执行
+
 - task: 收口 AI 直连地址安全校验的前后端一致性，避免前端已拒绝的私网/链路本地/CGNAT/IPv6 ULA 目标在 Cloudflare ai-proxy 服务端仍有漏拦，留下 SSRF/误连内网的缝
 - implementation: `functions/api/ai-proxy.ts` 新增与前端 `src/utils/ai.ts` 对齐的 `isPrivateOrUnsafeAiHostname()`，把 localhost、RFC1918、169.254/16、100.64/10、`::`/`::1`、IPv6 ULA（fc00/fd00）与 link-local（fe80::/10）统一列入阻断范围；代理端仍只允许 http(s) 且路径收口到 `/chat/completions`，不放宽现有 OpenAI-compatible 目标面
 - tests: 扩展 `functions/api/__tests__/ai-proxy.test.ts`，新增“额外拒绝链路本地、CGNAT 与 IPv6 私网目标”的服务端回归；并复跑 `src/utils/__tests__/ai-proxy-guard.test.ts` 确认前端 guard 与代理端语义一致。完整验证：`npm install`、`npm test`、`npm run type-check`、`npm run build`、`npm run smoke`、`npm run preview -- --host 127.0.0.1 --port 4175 + curl -I` 全通过；构建仍保留既有 `vendor-charts ~560kB` / `vendor-antd ~734kB` 告警，本轮未触碰用户已验证的拆包边界
