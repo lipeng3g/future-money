@@ -146,6 +146,7 @@ describe('BalanceChart', () => {
     expect(wrapper.find('.v-chart').exists()).toBe(true);
   });
 
+
   it('会渲染快速定位条，并在切换后更新焦点解释卡与事件摘要 chips', async () => {
     const wrapper = mountChart();
     await flushPromises();
@@ -158,9 +159,9 @@ describe('BalanceChart', () => {
     const groupHeaders = wrapper.findAll('.focus-event-group-header');
     expect(groupHeaders).toHaveLength(2);
     expect(groupHeaders[0].text()).toContain('现金');
-    expect(groupHeaders[0].text()).toContain('1 笔 · -¥2,300');
+    expect(groupHeaders[0].text()).toContain('1 笔 · 净变化 -¥2,300 · 支出 ¥2,300');
     expect(groupHeaders[1].text()).toContain('招行卡');
-    expect(groupHeaders[1].text()).toContain('1 笔 · -¥120');
+    expect(groupHeaders[1].text()).toContain('1 笔 · 净变化 -¥120 · 支出 ¥120');
     expect(wrapper.findAll('.focus-event-group-dot')).toHaveLength(2);
     expect(wrapper.find('.focus-event-groups').text()).toContain('房租');
     expect(wrapper.find('.focus-event-groups').text()).toContain('买菜');
@@ -177,6 +178,76 @@ describe('BalanceChart', () => {
     expect(wrapper.find('.focus-event-group-header').text()).toContain('1 笔');
     expect(wrapper.find('.focus-event-chip').text()).toContain('奖金');
     expect(wrapper.find('.focus-event-chip').text()).toContain('+¥4,500');
+  });
+
+  it('多账户焦点摘要会按净变化绝对值稳定排序，并展示净变化与收支拆分', async () => {
+    const wrapper = mount(BalanceChart, {
+      props: {
+        timeline: [
+          createDay({
+            date: '2026-03-11',
+            balance: 1800,
+            change: -850,
+            isToday: true,
+            events: [
+              {
+                id: 'occ-wallet-expense',
+                eventId: 'lunch',
+                name: '午餐',
+                category: 'expense',
+                amount: 50,
+                date: '2026-03-11',
+                accountId: 'wallet',
+              },
+              {
+                id: 'occ-bank-income',
+                eventId: 'salary',
+                name: '工资',
+                category: 'income',
+                amount: 2000,
+                date: '2026-03-11',
+                accountId: 'bank',
+              },
+              {
+                id: 'occ-bank-expense',
+                eventId: 'rent',
+                name: '房租',
+                category: 'expense',
+                amount: 2800,
+                date: '2026-03-11',
+                accountId: 'bank',
+              },
+              {
+                id: 'occ-cash-income',
+                eventId: 'refund',
+                name: '退款',
+                category: 'income',
+                amount: 300,
+                date: '2026-03-11',
+                accountId: 'cash',
+              },
+            ],
+          }),
+        ],
+        warningThreshold: 2000,
+        accountLabels: {
+          bank: { name: '工资卡', color: '#2563eb' },
+          cash: { name: '现金', color: '#22c55e' },
+          wallet: { name: '钱包', color: '#f59e0b' },
+        },
+      },
+    });
+    await flushPromises();
+    await nextTick();
+
+    const groupHeaders = wrapper.findAll('.focus-event-group-header');
+    expect(groupHeaders).toHaveLength(3);
+    expect(groupHeaders[0].text()).toContain('工资卡');
+    expect(groupHeaders[0].text()).toContain('2 笔 · 净变化 -¥800 · 收入 ¥2,000 · 支出 ¥2,800');
+    expect(groupHeaders[1].text()).toContain('现金');
+    expect(groupHeaders[1].text()).toContain('1 笔 · 净变化 +¥300 · 收入 ¥300');
+    expect(groupHeaders[2].text()).toContain('钱包');
+    expect(groupHeaders[2].text()).toContain('1 笔 · 净变化 -¥50 · 支出 ¥50');
   });
 
   it('会响应外部 focusKey 和 focusDate 联动，并在外部定位清空后回到正常快速定位', async () => {

@@ -271,28 +271,39 @@ const activeFocusEventGroups = computed(() => {
     grouped.set(accountKey, bucket);
   });
 
-  return Array.from(grouped.entries()).map(([accountKey, events]) => {
-    const income = events
-      .filter((event) => event.category === 'income')
-      .reduce((sum, event) => sum + event.amount, 0);
-    const expense = events
-      .filter((event) => event.category === 'expense')
-      .reduce((sum, event) => sum + event.amount, 0);
+  return Array.from(grouped.entries())
+    .map(([accountKey, events]) => {
+      const income = events
+        .filter((event) => event.category === 'income')
+        .reduce((sum, event) => sum + event.amount, 0);
+      const expense = events
+        .filter((event) => event.category === 'expense')
+        .reduce((sum, event) => sum + event.amount, 0);
+      const netChange = income - expense;
 
-    const parts: string[] = [`${events.length} 笔`];
-    if (income > 0) parts.push(`+${formatCurrency(income)}`);
-    if (expense > 0) parts.push(`-${formatCurrency(expense)}`);
+      const parts: string[] = [`${events.length} 笔`, `净变化 ${netChange >= 0 ? '+' : '-'}${formatCurrency(Math.abs(netChange))}`];
+      if (income > 0) parts.push(`收入 ${formatCurrency(income)}`);
+      if (expense > 0) parts.push(`支出 ${formatCurrency(expense)}`);
 
-    const accountMeta = accountKey === '__unknown__' ? undefined : props.accountLabels?.[accountKey];
+      const accountMeta = accountKey === '__unknown__' ? undefined : props.accountLabels?.[accountKey];
 
-    return {
-      key: accountKey,
-      label: accountKey === '__unknown__' ? '未标记账户' : accountMeta?.name ?? `账户 ${accountKey}`,
-      summary: parts.join(' · '),
-      events,
-      color: accountMeta?.color,
-    };
-  });
+      return {
+        key: accountKey,
+        label: accountKey === '__unknown__' ? '未标记账户' : accountMeta?.name ?? `账户 ${accountKey}`,
+        summary: parts.join(' · '),
+        events,
+        color: accountMeta?.color,
+        netChange,
+      };
+    })
+    .sort((left, right) => {
+      const netDelta = Math.abs(right.netChange) - Math.abs(left.netChange);
+      if (netDelta !== 0) return netDelta;
+      const expenseDelta = right.events.filter((event) => event.category === 'expense').reduce((sum, event) => sum + event.amount, 0)
+        - left.events.filter((event) => event.category === 'expense').reduce((sum, event) => sum + event.amount, 0);
+      if (expenseDelta !== 0) return expenseDelta;
+      return left.label.localeCompare(right.label, 'zh-CN');
+    });
 });
 
 const handleChartClick = (params: ECElementEvent) => {

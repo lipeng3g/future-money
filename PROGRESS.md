@@ -8,6 +8,7 @@
 - Added regressions for click + Enter keyboard activation on future items, plus a ChartArea container test that locks upcoming-sidebar -> balance-chart `focusDate` handoff.
 - Full validation is being rerun (`npm install`, `npm test`, `npm run type-check`, `npm run build`, `npm run smoke`, `npm run preview + curl`) before push.
 - 追加一轮本地 UX 打磨：余额图焦点摘要在多账户日期下已改为显示真实账户名 + 颜色点，而不是内部 `accountId`；容器同步把账户映射传给 `BalanceChart`，并补测试锁住 upcoming 点击后的 focusDate / accountLabels 透传语义。
+- 新增一轮多账户图表体验打磨：`BalanceChart` 当前焦点日期下的账户分组现在按净变化绝对值稳定排序，组头摘要从原先只显示 `+收入/-支出` 调整为 `净变化 + 收入/支出拆分`，让用户更快判断哪张账户在当天贡献了主要流入/流出；对应补充 `src/components/charts/__tests__/BalanceChart.test.ts` 回归，锁住排序与摘要格式。
 
 ## 2026-03-10
 - Checked git status and fetched `origin` before changes.
