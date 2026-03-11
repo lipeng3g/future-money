@@ -40,14 +40,20 @@
               <strong>导出当前账户</strong>
               <span>仅导出当前账户的数据，便于单账户迁移或备份</span>
             </div>
-            <a-button size="small" @click="$emit('export', 'current')">导出当前账户</a-button>
+            <div class="action-buttons">
+              <a-button size="small" @click="$emit('export', 'current')">导出当前账户</a-button>
+              <a-button size="small" @click="$emit('copy', 'current')">复制 JSON</a-button>
+            </div>
           </div>
           <div class="action-item">
             <div class="action-desc">
               <strong>导出全部账户</strong>
               <span>导出整份本地数据，包含所有账户、偏好与历史记录</span>
             </div>
-            <a-button size="small" @click="$emit('export', 'all')">导出全部账户</a-button>
+            <div class="action-buttons">
+              <a-button size="small" @click="$emit('export', 'all')">导出全部账户</a-button>
+              <a-button size="small" @click="$emit('copy', 'all')">复制 JSON</a-button>
+            </div>
           </div>
           <div class="action-item" :class="{ 'action-item-muted': !canUndoImport }">
             <div class="action-desc">
@@ -108,6 +114,7 @@ defineEmits<{
   (e: 'close'): void;
   (e: 'import', mode: 'current' | 'all'): void;
   (e: 'export', mode: 'current' | 'all'): void;
+  (e: 'copy', mode: 'current' | 'all'): void;
   (e: 'undo-import'): void;
   (e: 'clear'): void;
   (e: 'delete'): void;

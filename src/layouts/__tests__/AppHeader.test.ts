@@ -122,7 +122,7 @@ const AccountMultiSelectModalStub = defineComponent({
 const AccountManageModalStub = defineComponent({
   name: 'AccountManageModal',
   props: ['open', 'canUndoImport', 'undoSummary'],
-  emits: ['close', 'import', 'export', 'undo-import', 'clear', 'delete'],
+  emits: ['close', 'import', 'export', 'copy', 'undo-import', 'clear', 'delete'],
   template: `
     <div class="account-manage-modal-stub">
       <div class="undo-summary">{{ undoSummary }}</div>
@@ -130,7 +130,9 @@ const AccountManageModalStub = defineComponent({
       <button class="trigger-import-current" @click="$emit('import', 'current')">导入当前账户</button>
       <button class="trigger-import-all" @click="$emit('import', 'all')">恢复全部账户</button>
       <button class="trigger-export-current" @click="$emit('export', 'current')">导出当前账户</button>
+      <button class="trigger-copy-current" @click="$emit('copy', 'current')">复制 JSON</button>
       <button class="trigger-export-all" @click="$emit('export', 'all')">导出全部账户</button>
+      <button class="trigger-copy-all" @click="$emit('copy', 'all')">复制 JSON</button>
       <button class="trigger-undo" @click="$emit('undo-import')">撤销上次导入</button>
       <button class="trigger-clear" @click="$emit('clear')">清空当前账户</button>
       <button class="trigger-delete" @click="$emit('delete')">删除账户</button>

@@ -165,6 +165,7 @@
       @close="accountManageOpen = false"
       @import="handleManageImport"
       @export="handleManageExport"
+      @copy="handleManageCopy"
       @undo-import="handleManageUndoImport"
       @clear="handleManageClear"
       @delete="handleManageDelete"
@@ -724,6 +725,42 @@ const handleManageImport = (mode: ImportExportMode) => {
 const handleManageExport = (mode: ImportExportMode) => {
   accountManageOpen.value = false;
   exportData(mode);
+};
+
+const copyExportData = async (mode: ImportExportMode) => {
+  const text = store.exportState(mode);
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (error) {
+    // 兼容不支持 Clipboard API 的环境（或因权限/https 受限失败）
+    const fallback = document.createElement('textarea');
+    fallback.value = text;
+    fallback.setAttribute('readonly', '');
+    fallback.style.position = 'fixed';
+    fallback.style.left = '-9999px';
+    fallback.style.top = '0';
+    document.body.appendChild(fallback);
+    fallback.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(fallback);
+
+    if (!ok) {
+      console.warn('[future-money] copy export json failed', error);
+      throw new Error('复制失败：当前环境不支持剪贴板权限');
+    }
+  }
+};
+
+const handleManageCopy = async (mode: ImportExportMode) => {
+  accountManageOpen.value = false;
+
+  try {
+    await copyExportData(mode);
+    message.success(mode === 'all' ? '已复制全部账户 JSON' : '已复制当前账户 JSON');
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '复制失败，请稍后重试');
+  }
 };
 
 const handleManageClear = () => {
