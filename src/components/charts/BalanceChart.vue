@@ -32,6 +32,14 @@
           </div>
           <div class="focus-insight-actions">
             <button type="button" class="focus-insight-copy" @click="copyInsightSummary">复制摘要</button>
+            <button
+              v-if="activeFocusEvents.length"
+              type="button"
+              class="focus-insight-export"
+              @click="downloadActiveFocusEventsCsv"
+            >
+              导出当日事件
+            </button>
             <b>{{ formatCurrency(activeInsight.balance) }}</b>
           </div>
         </div>
@@ -264,6 +272,59 @@ const activeFocusEvents = computed<EventOccurrence[]>(() => {
 
 const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
 const formatSignedAmount = (category: EventOccurrence['category'], amount: number) => `${category === 'income' ? '+' : '-'}${formatCurrency(amount)}`;
+
+const buildCsvLine = (values: string[]) => values
+  .map((value) => {
+    const escaped = value.replace(/\r?\n/g, ' ').replace(/"/g, '""');
+    return `"${escaped}"`;
+  })
+  .join(',');
+
+const downloadActiveFocusEventsCsv = () => {
+  const focus = activeFocus.value;
+  if (!focus) return;
+  const focusDate = focus.date;
+  const rows = activeFocusEvents.value;
+  if (!rows.length) return;
+
+  const header = ['日期', '事件名称', '收支', '金额', '账户'];
+  const csv = [
+    buildCsvLine(header),
+    ...rows.map((event) => buildCsvLine([
+      event.date,
+      event.name,
+      event.category === 'income' ? '收入' : '支出',
+      String(event.amount),
+      event.accountId ? (props.accountLabels?.[event.accountId]?.name ?? event.accountId) : '',
+    ])),
+  ].join('\n');
+
+  const fileName = `future-money-events-${focusDate}.csv`;
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+
+  const urlCreator = typeof URL.createObjectURL === 'function' ? URL.createObjectURL : undefined;
+  const urlRevoker = typeof URL.revokeObjectURL === 'function' ? URL.revokeObjectURL : undefined;
+
+  if (!urlCreator) {
+    console.warn('[future-money] download csv failed: URL.createObjectURL is not available');
+    return;
+  }
+
+  const url = urlCreator(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.style.display = 'none';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(() => {
+    urlRevoker?.(url);
+  }, 0);
+};
 
 const copyInsightSummary = async () => {
   if (!activeInsight.value) return;
@@ -552,7 +613,8 @@ const handleChartClick = (params: ECElementEvent) => {
   gap: 10px;
 }
 
-.focus-insight-copy {
+.focus-insight-copy,
+.focus-insight-export {
   border: 1px solid var(--fm-border-subtle);
   background: rgba(255, 255, 255, 0.72);
   color: var(--fm-text-secondary);
@@ -564,13 +626,15 @@ const handleChartClick = (params: ECElementEvent) => {
   transition: all 0.15s ease;
 }
 
-.focus-insight-copy:hover {
+.focus-insight-copy:hover,
+.focus-insight-export:hover {
   border-color: rgba(67, 56, 202, 0.24);
   color: var(--fm-primary);
   background: rgba(255, 255, 255, 0.92);
 }
 
-.focus-insight-copy:focus-visible {
+.focus-insight-copy:focus-visible,
+.focus-insight-export:focus-visible {
   outline: 2px solid rgba(79, 70, 229, 0.18);
   outline-offset: 2px;
 }

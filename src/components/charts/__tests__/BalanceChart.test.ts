@@ -152,7 +152,7 @@ describe('BalanceChart', () => {
   });
 
 
-  it('会渲染快速定位条，并在切换后更新焦点解释卡与事件摘要 chips', async () => {
+  it('会渲染快速定位条，并在切换后更新焦点解释卡与事件摘要 chips（并支持导出当日事件）', async () => {
     const wrapper = mountChart();
     await flushPromises();
     await nextTick();
@@ -170,6 +170,29 @@ describe('BalanceChart', () => {
     expect(wrapper.findAll('.focus-event-group-dot')).toHaveLength(2);
     expect(wrapper.find('.focus-event-groups').text()).toContain('房租');
     expect(wrapper.find('.focus-event-groups').text()).toContain('买菜');
+
+    // 导出当日事件：会生成 csv 并触发下载
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    const createObjectUrlMock = vi.fn(() => 'blob:mock-url');
+    const revokeObjectUrlMock = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (URL as any).createObjectURL = createObjectUrlMock;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (URL as any).revokeObjectURL = revokeObjectUrlMock;
+
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+
+    await wrapper.find('.focus-insight-export').trigger('click');
+
+    expect(createObjectUrlMock).toHaveBeenCalledTimes(1);
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+
+    clickSpy.mockRestore();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (URL as any).createObjectURL = originalCreateObjectURL;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (URL as any).revokeObjectURL = originalRevokeObjectURL;
 
     await chips.find((node) => node.text() === '最高点')?.trigger('click');
     await nextTick();
