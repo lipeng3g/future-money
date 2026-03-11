@@ -151,3 +151,8 @@
 [2026-03-09 09:16:00] deliverables: 扩展 src/layouts/__tests__/AppHeader.test.ts；新增“导入当前账户误选整库备份拦截不污染本地状态”与“导出当前/全部账户走对模式并生成对应文件名”两条组件级测试；顺手统一了测试里的账户名断言，避免被前序状态污染
 [2026-03-09 10:18:00] task: 收口账户管理文件导入的失败分支，给 FileReader onerror 真正补 UI 级回归，避免读取失败时悄悄卡在错误模式
 [2026-03-09 10:18:00] deliverables: AppHeader 的 handleFileChange 增加 reader.onerror 与统一 resetImportState；扩展 src/layouts/__tests__/AppHeader.test.ts，覆盖“恢复全部账户/导入当前账户在文件读取失败时分别提示错误，且不会误弹确认框”的组件级回归；同步更新 CHANGELOG
+
+- 2026-03-11 | feat(chart): BalanceChart 焦点卡新增「复制摘要」按钮：一键复制当前焦点日期/余额/事件摘要（含多账户分组净变化），并补 clipboard API 失败降级；同时修复 AppHeader modal 输入框测试兼容 onInput/onChange 绑定。
+  - Why: 用户在分享/记录风险点时无需手工摘抄；更快把关键信息转发到 IM/笔记。
+  - Verify: npm test; npm run type-check
+  - Commit: 1567cd4

@@ -27,6 +27,7 @@ import { createId } from '@/utils/id';
 import { generateSampleEvents } from '@/utils/sample-data';
 import { formatLocalISODate } from '@/utils/date';
 import { aggregateAccountTimelines } from '@/utils/timeline-aggregate';
+import { buildEventsCsv, buildEventsJson, type EventExportFormat } from '@/utils/export-events';
 
 const storage = createStateRepository();
 const generator = new TimelineGenerator();
@@ -256,6 +257,27 @@ export const useFinanceStore = defineStore('finance', () => {
     if (options?.flush) {
       storage.flushPendingSave();
     }
+  };
+
+  const exportVisibleEvents = (format: EventExportFormat = 'csv') => {
+    const selectedEvents = visibleEvents.value;
+    const defaultFileName = `future-money-events-${new Date().toISOString().slice(0, 10)}.${format}`;
+
+    if (format === 'json') {
+      return {
+        success: true as const,
+        fileName: defaultFileName,
+        contentType: 'application/json;charset=utf-8',
+        content: buildEventsJson(selectedEvents),
+      };
+    }
+
+    return {
+      success: true as const,
+      fileName: defaultFileName,
+      contentType: 'text/csv;charset=utf-8',
+      content: buildEventsCsv(selectedEvents, accounts.value),
+    };
   };
 
   const createRollbackSnapshot = (mode: ImportExportMode, fileName?: string) => {
@@ -943,5 +965,7 @@ export const useFinanceStore = defineStore('finance', () => {
     simulatedToday,
     todayStr,
     setSimulatedToday,
+    // Export
+    exportVisibleEvents,
   };
 });

@@ -7,6 +7,18 @@
       </div>
       <div class="panel-actions">
         <a-button :disabled="isReadOnly" @click="loadSamples">载入示例</a-button>
+        <a-dropdown>
+          <template #overlay>
+            <a-menu @click="handleExportMenuClick">
+              <a-menu-item key="csv">导出事件（CSV）</a-menu-item>
+              <a-menu-item key="json">导出事件（JSON）</a-menu-item>
+            </a-menu>
+          </template>
+          <a-button :disabled="!displayEvents.length">
+            导出
+            <template #icon><DownOutlined /></template>
+          </a-button>
+        </a-dropdown>
         <a-button type="primary" :disabled="isReadOnly" @click="openCreator">添加事件</a-button>
       </div>
     </header>
@@ -69,12 +81,15 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch, h } from 'vue';
 import { Modal, message } from 'ant-design-vue';
+import { DownOutlined } from '@ant-design/icons-vue';
 import EventList from '@/components/events/EventList.vue';
 import EventFormModal from '@/components/events/EventFormModal.vue';
 import type { CashFlowEvent, EventFormValues, NewCashFlowEvent } from '@/types/event';
 import type { EventListFocusState, EventChartFocusState } from '@/utils/event-focus';
 import { buildEventChartFocusState, stepEventChartFocusState } from '@/utils/event-focus';
 import { useFinanceStore } from '@/stores/finance';
+import { downloadTextFile } from '@/utils/download';
+import type { EventExportFormat } from '@/utils/export-events';
 
 const props = defineProps<{
   focusState?: EventListFocusState | null;
@@ -294,6 +309,23 @@ const handleToggle = ({ id, enabled }: { id: string; enabled: boolean }) => {
   }
 
   message.success(enabled ? '已启用事件' : '已暂停事件');
+};
+
+const handleExport = (format: EventExportFormat) => {
+  const result = store.exportVisibleEvents(format);
+  if (!result.success) {
+    message.error('导出失败');
+    return;
+  }
+
+  downloadTextFile(result.fileName, result.content, result.contentType);
+  message.success(format === 'csv' ? '已导出 CSV 文件' : '已导出 JSON 文件');
+};
+
+const handleExportMenuClick = ({ key }: { key: string }) => {
+  if (key === 'csv' || key === 'json') {
+    handleExport(key);
+  }
 };
 
 const loadSamples = () => {
