@@ -120,6 +120,13 @@ export const normalizeAiBaseUrl = (input: string): string => {
         throw new Error('API 地址仅支持 http 或 https');
     }
 
+    const hostname = parsedUrl.hostname.trim().toLowerCase();
+    if (isPrivateOrUnsafeAiHostname(hostname)) {
+        throw new Error(
+            'API 地址不安全：禁止 localhost / 内网 IP（含 127.0.0.1、RFC1918、169.254/16、100.64/10、IPv6 ULA/link-local 等）',
+        );
+    }
+
     const normalizedPath = parsedUrl.pathname.replace(/\/+$/, '');
     if (normalizedPath.endsWith('/chat/completions')) {
         parsedUrl.pathname = normalizedPath.replace(/\/chat\/completions$/, '');
@@ -131,7 +138,7 @@ export const normalizeAiBaseUrl = (input: string): string => {
     const targetUrl = buildAiChatCompletionsUrl(normalized);
 
     if (!isAllowedAiProxyTarget(targetUrl)) {
-        throw new Error('API 地址不安全或不受支持，请使用公开的 OpenAI 兼容 /chat/completions 接口');
+        throw new Error('API 地址不受支持，请使用公开的 OpenAI 兼容 /chat/completions 接口');
     }
 
     return normalized;

@@ -57,8 +57,10 @@ describe('ai config normalization', () => {
     });
   });
 
-  it('拒绝不安全的 API 地址', () => {
-    expect(() => normalizeAiBaseUrl('http://127.0.0.1:11434')).toThrow(/不安全|不受支持/);
+  it('拒绝不安全的 API 地址，并给出明确原因', () => {
+    expect(() => normalizeAiBaseUrl('http://127.0.0.1:11434')).toThrow(/不安全/);
+    expect(() => normalizeAiBaseUrl('http://169.254.0.1:11434')).toThrow(/不安全/);
+    expect(() => normalizeAiBaseUrl('http://[fd00::1]/v1/chat/completions')).toThrow(/不安全/);
     expect(() => normalizeAiBaseUrl('notaurl')).toThrow(/格式不正确/);
   });
 });
