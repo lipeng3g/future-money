@@ -161,3 +161,8 @@
   - Why: 焦点解释卡里看到了“当日发生了什么”，下一步常见诉求就是把这天的明细快速导出来做对账/报销/复盘，不必切到事件面板再筛。
   - Verify: npm test; npm run type-check
   - Commit: 5b35b93
+
+- 2026-03-11 | feat(charts): 月度收支图新增「导出 CSV」按钮：一键导出月份/收入/支出/净额，便于粘贴到表格做复盘。
+  - Why: 月度汇总是最常被拿去做对比/年终统计的口径；导出可避免手抄或截图。
+  - Verify: npm test; npm run type-check
+  - Commit: 1aef5f7
