@@ -141,16 +141,49 @@ const formatDelta = (value: number) => {
 const buildEventSummary = (events: EventOccurrence[]) => {
   if (!events.length) return undefined;
 
-  const topEvents = events.slice(0, 3).map((event) => {
-    const sign = event.category === 'income' ? '+' : '-';
-    return `${event.name} ${sign}${formatCurrency(event.amount)}`;
-  });
+  const topEvents = [...events]
+    .sort((left, right) => Math.abs(right.amount) - Math.abs(left.amount))
+    .slice(0, 3)
+    .map((event) => {
+      const sign = event.category === 'income' ? '+' : '-';
+      return `${event.name} ${sign}${formatCurrency(event.amount)}`;
+    });
 
   if (events.length > 3) {
     topEvents.push(`另有 ${events.length - 3} 笔事件`);
   }
 
   return `当日事件：${topEvents.join('；')}`;
+};
+
+const buildTooltipEventHtml = (events: EventOccurrence[], limit = 6) => {
+  if (!events.length) return '';
+
+  const sorted = [...events].sort((left, right) => {
+    const delta = Math.abs(right.amount) - Math.abs(left.amount);
+    if (delta !== 0) return delta;
+    if (left.category !== right.category) {
+      if (left.category === 'expense') return -1;
+      if (right.category === 'expense') return 1;
+    }
+    return left.name.localeCompare(right.name, 'zh-CN');
+  });
+
+  const picked = sorted.slice(0, Math.max(1, limit));
+  const hiddenCount = sorted.length - picked.length;
+
+  const lines = picked
+    .map((event) => {
+      const sign = event.category === 'income' ? '+' : '-';
+      const color = event.category === 'income' ? '#10b981' : '#f43f5e';
+      const safeName = escapeHtml(event.name);
+      return `<div style="color:${color};margin-top:6px;font-size:13px;font-weight:500;display:flex;justify-content:space-between;gap:12px;"><span>${safeName}</span><span>${sign}¥${event.amount.toLocaleString('zh-CN')}</span></div>`;
+    })
+    .join('');
+
+  if (!hiddenCount) return lines;
+
+  return `${lines}<div style="margin-top:8px;font-size:12px;color:#64748b;">另有 ${hiddenCount} 笔事件未展开</div>`;
 };
 
 export const buildBalanceChartFocusInsight = ({
@@ -432,14 +465,7 @@ export const buildBalanceChartOption = ({
           ? '<span style="color:#64748b;font-size:12px;font-weight:500">已对账</span>'
           : '<span style="color:#4338ca;font-size:12px;font-weight:500">预测</span>';
 
-        const events = point.events
-          .map((event) => {
-            const sign = event.category === 'income' ? '+' : '-';
-            const color = event.category === 'income' ? '#10b981' : '#f43f5e';
-            const safeName = escapeHtml(event.name);
-            return `<div style="color:${color};margin-top:6px;font-size:13px;font-weight:500;display:flex;justify-content:space-between;gap:12px;"><span>${safeName}</span><span>${sign}¥${event.amount.toLocaleString('zh-CN')}</span></div>`;
-          })
-          .join('');
+        const events = buildTooltipEventHtml(point.events, 6);
 
         const accountSummaries = buildBalanceChartTooltipAccountSummaries(point, accountLabels)
           .map((group) => {
