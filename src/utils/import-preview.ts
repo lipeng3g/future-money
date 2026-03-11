@@ -1,6 +1,7 @@
 import type { AppState, PersistedStateEnvelope, RollbackSnapshot } from '@/types';
 import type { ImportExportMode } from '@/types/storage';
 import { APP_VERSION } from '@/utils/defaults';
+import { isValidISODate as isValidISODateStrict } from '@/utils/validators';
 
 export interface ImportPreviewSummary {
   envelopeVersion: string;
@@ -448,7 +449,6 @@ export const buildImportSanitizeDiscardSummary = (
   const toArray = <T>(value: unknown): T[] => (Array.isArray(value) ? value as T[] : []);
   const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
   const isNonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
-  const isISODateLike = (value: unknown): boolean => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 
   const bump = (map: Record<string, number>, key: string) => {
     map[key] = (map[key] ?? 0) + 1;
@@ -511,24 +511,18 @@ export const buildImportSanitizeDiscardSummary = (
     || value === 'yearly'
   );
 
-  const isValidISODate = (value: unknown) => {
-    if (!isISODateLike(value)) return false;
-    const timestamp = Date.parse(`${value}T00:00:00Z`);
-    return Number.isFinite(timestamp);
-  };
-
   const validateEvent = (raw: Record<string, unknown>) => {
     const name = typeof raw.name === 'string' ? raw.name.trim() : '';
     if (!name) return '事件名称为空';
     if (!isFiniteNumber(raw.amount) || raw.amount <= 0) return '金额无效';
     if (!isValidCategory(raw.category)) return '分类无效';
     if (!isValidRecurrence(raw.type)) return '重复类型无效';
-    if (!isValidISODate(raw.startDate)) return '日期无效';
-    if (raw.endDate != null && raw.endDate !== '' && !isValidISODate(raw.endDate)) return '日期无效';
+    if (!isValidISODateStrict(typeof raw.startDate === 'string' ? raw.startDate : null)) return '日期无效';
+    if (raw.endDate != null && raw.endDate !== '' && !isValidISODateStrict(typeof raw.endDate === 'string' ? raw.endDate : null)) return '日期无效';
     if (isNonEmptyString(raw.endDate) && isNonEmptyString(raw.startDate) && String(raw.endDate) < String(raw.startDate)) return '日期无效';
 
     if (raw.type === 'once') {
-      if (!isValidISODate(raw.onceDate)) return '日期无效';
+      if (!isValidISODateStrict(typeof raw.onceDate === 'string' ? raw.onceDate : null)) return '日期无效';
       if (isNonEmptyString(raw.onceDate) && isNonEmptyString(raw.startDate) && String(raw.onceDate) < String(raw.startDate)) return '日期无效';
       if (isNonEmptyString(raw.onceDate) && isNonEmptyString(raw.endDate) && String(raw.onceDate) > String(raw.endDate)) return '日期无效';
     }
@@ -612,7 +606,7 @@ export const buildImportSanitizeDiscardSummary = (
       return;
     }
 
-    if (!isValidISODate(raw.date)) {
+    if (!isValidISODateStrict(typeof raw.date === 'string' ? raw.date : null)) {
       bump(reconciliationBreakdown, '日期无效');
       return;
     }
@@ -685,7 +679,7 @@ export const buildImportSanitizeDiscardSummary = (
       return;
     }
 
-    if (!isValidISODate(raw.date)) {
+    if (!isValidISODateStrict(typeof raw.date === 'string' ? raw.date : null)) {
       bump(ledgerBreakdown, '日期无效');
       return;
     }
@@ -711,7 +705,7 @@ export const buildImportSanitizeDiscardSummary = (
   const isValidOverridePeriod = (value: unknown) => {
     if (typeof value !== 'string' || !value.trim()) return false;
     const period = value.trim();
-    return /^\d{4}-\d{2}$/.test(period) || /^\d{4}$/.test(period) || isValidISODate(period);
+    return /^\d{4}-\d{2}$/.test(period) || /^\d{4}$/.test(period) || isValidISODateStrict(period);
   };
 
   const isValidOverrideAction = (value: unknown) => value === 'confirmed' || value === 'skipped' || value === 'modified';
@@ -768,7 +762,7 @@ export const buildImportSanitizeDiscardSummary = (
       return;
     }
 
-    if (raw.actualDate && !isValidISODate(raw.actualDate)) {
+    if (raw.actualDate && !isValidISODateStrict(typeof raw.actualDate === 'string' ? raw.actualDate : null)) {
       bump(overrideBreakdown, 'actualDate 无效');
       return;
     }
