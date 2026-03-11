@@ -28,6 +28,9 @@ describe('ai proxy target guards', () => {
     expect(isAllowedAiProxyTarget('http://[fd12:3456::8]/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://[fe80::1]/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://127.0.0.1:8080/admin')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://127.0.0.1.nip.io/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://127-0-0-1.sslip.io/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://lvh.me/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('not-a-url')).toBe(false);
   });
 });
@@ -61,6 +64,8 @@ describe('ai config normalization', () => {
     expect(() => normalizeAiBaseUrl('http://127.0.0.1:11434')).toThrow(/不安全/);
     expect(() => normalizeAiBaseUrl('http://169.254.0.1:11434')).toThrow(/不安全/);
     expect(() => normalizeAiBaseUrl('http://[fd00::1]/v1/chat/completions')).toThrow(/不安全/);
+    expect(() => normalizeAiBaseUrl('http://127.0.0.1.nip.io/v1/chat/completions')).toThrow(/不安全/);
+    expect(() => normalizeAiBaseUrl('https://fd.com')).not.toThrow();
     expect(() => normalizeAiBaseUrl('notaurl')).toThrow(/格式不正确/);
   });
 });

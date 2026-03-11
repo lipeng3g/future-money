@@ -51,6 +51,46 @@ const isPrivateOrUnsafeAiHostname = (hostname: string): boolean => {
     const normalized = hostname.trim().toLowerCase();
     const withoutBrackets = normalized.replace(/^\[(.*)\]$/, '$1');
 
+    const endsWithHost = (host: string) => withoutBrackets === host || withoutBrackets.endsWith(`.${host}`);
+
+    // Block localhost-like special domains that resolve to loopback.
+    // These are common bypass vectors when we do not perform DNS resolution.
+    if (endsWithHost('lvh.me') || endsWithHost('localtest.me')) {
+        return true;
+    }
+
+    // Block wildcard IP-to-hostname services.
+    // Examples:
+    // - 127.0.0.1.nip.io
+    // - 127-0-0-1.sslip.io
+    const isIpEncodedHost = (suffix: string) => {
+        if (!endsWithHost(suffix)) return false;
+
+        const prefix = withoutBrackets.slice(0, -suffix.length).replace(/\.$/, '');
+        if (!prefix) return false;
+
+        const parseOctets = (raw: string, delimiter: '.' | '-') => {
+            const parts = raw.split(delimiter);
+            if (parts.length !== 4) return null;
+            const nums = parts.map((p) => Number.parseInt(p, 10));
+            if (nums.some((n) => !Number.isFinite(n) || n < 0 || n > 255)) return null;
+            return nums;
+        };
+
+        const octets = prefix.includes('.')
+            ? parseOctets(prefix, '.')
+            : prefix.includes('-')
+                ? parseOctets(prefix, '-')
+                : null;
+        if (!octets) return false;
+
+        return true;
+    };
+
+    if (isIpEncodedHost('nip.io') || isIpEncodedHost('xip.io') || isIpEncodedHost('sslip.io')) {
+        return true;
+    }
+
     // Some environments stringify IPv6-mapped IPv4 addresses in a compact hex form,
     // e.g. new URL('http://[::ffff:127.0.0.1]/').hostname === '[::ffff:7f00:1]'.
     // We conservatively block any IPv6 that declares itself as an IPv4-mapped address
@@ -67,17 +107,38 @@ const isPrivateOrUnsafeAiHostname = (hostname: string): boolean => {
         || withoutBrackets === '0.0.0.0'
         || withoutBrackets === '::'
         || withoutBrackets === '::1'
-        || withoutBrackets.startsWith('127.')
-        || withoutBrackets.startsWith('10.')
-        || withoutBrackets.startsWith('192.168.')
-        || /^172\.(1[6-9]|2\d|3[0-1])\./.test(withoutBrackets)
-        || /^169\.254\./.test(withoutBrackets)
-        || /^100\.(6[4-9]|[78]\d|9\d|1[01]\d|12[0-7])\./.test(withoutBrackets)
-        || /^fc/i.test(withoutBrackets)
-        || /^fd/i.test(withoutBrackets)
-        || /^fe[89ab]/i.test(withoutBrackets)
     ) {
         return true;
+    }
+
+    const isIPv4Literal = (value: string) => {
+        if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(value)) return false;
+        return value.split('.').every((part) => {
+            const num = Number.parseInt(part, 10);
+            return Number.isFinite(num) && num >= 0 && num <= 255;
+        });
+    };
+
+    const isIPv6Literal = (value: string) => value.includes(':');
+
+    if (isIPv4Literal(withoutBrackets)) {
+        if (
+            withoutBrackets.startsWith('127.')
+            || withoutBrackets.startsWith('10.')
+            || withoutBrackets.startsWith('192.168.')
+            || /^172\.(1[6-9]|2\d|3[0-1])\./.test(withoutBrackets)
+            || /^169\.254\./.test(withoutBrackets)
+            || /^100\.(6[4-9]|[78]\d|9\d|1[01]\d|12[0-7])\./.test(withoutBrackets)
+        ) {
+            return true;
+        }
+    }
+
+    // Only apply ULA/link-local checks to IPv6 literals.
+    // Avoid blocking normal domain names like "fd.com".
+    if (isIPv6Literal(withoutBrackets)) {
+        if (/^(fc|fd)[0-9a-f]{0,2}:/i.test(withoutBrackets)) return true;
+        if (/^fe[89ab][0-9a-f]{0,2}:/i.test(withoutBrackets)) return true;
     }
 
     return false;
