@@ -1,10 +1,13 @@
 import { ref } from 'vue';
 
+export type ChartRuntimeErrorKind = 'offline' | 'timeout' | 'chunk' | 'unknown';
+
 export interface AsyncChartRuntimeState {
   ready: Readonly<ReturnType<typeof ref<boolean>>>;
   loading: Readonly<ReturnType<typeof ref<boolean>>>;
   error: Readonly<ReturnType<typeof ref<string | null>>>;
   errorAction: Readonly<ReturnType<typeof ref<string | null>>>;
+  errorKind: Readonly<ReturnType<typeof ref<ChartRuntimeErrorKind | null>>>;
   ensureReady: () => Promise<void>;
   retry: () => Promise<void>;
 }
@@ -30,15 +33,33 @@ const isChunkLikeError = (error: unknown) => {
   return /importing a module script failed|failed to fetch dynamically imported module|load failed|loading chunk|chunkloaderror/i.test(message);
 };
 
+export const getChartRuntimeErrorKind = (error: unknown): ChartRuntimeErrorKind => {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return 'offline';
+  }
+
+  if (isTimeoutError(error)) {
+    return 'timeout';
+  }
+
+  if (isChunkLikeError(error)) {
+    return 'chunk';
+  }
+
+  return 'unknown';
+};
+
 export const getChartRuntimeErrorMessage = (
   error: unknown,
   fallbackMessage = DEFAULT_ERROR_MESSAGE,
 ) => {
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+  const kind = getChartRuntimeErrorKind(error);
+
+  if (kind === 'offline') {
     return '当前设备似乎离线了，图表引擎还没下载成功。请检查网络后重试。';
   }
 
-  if (isTimeoutError(error)) {
+  if (kind === 'timeout') {
     return '图表引擎加载超时了，可能网络较慢或资源被拦截。刷新页面或稍后重试即可。';
   }
 
@@ -50,15 +71,17 @@ export const getChartRuntimeErrorMessage = (
 };
 
 export const getChartRuntimeErrorAction = (error: unknown) => {
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+  const kind = getChartRuntimeErrorKind(error);
+
+  if (kind === 'offline') {
     return '建议先检查网络连接，再点击“重试加载”。';
   }
 
-  if (isTimeoutError(error)) {
+  if (kind === 'timeout') {
     return '如果连续重试仍超时，优先刷新页面重新下载图表资源；必要时检查网络/代理。';
   }
 
-  if (isChunkLikeError(error)) {
+  if (kind === 'chunk') {
     return '如果连续重试仍失败，优先刷新页面重新下载图表资源。';
   }
 
@@ -95,6 +118,7 @@ export const createAsyncChartRuntime = (
   const loading = ref(false);
   const error = ref<string | null>(null);
   const errorAction = ref<string | null>(null);
+  const errorKind = ref<ChartRuntimeErrorKind | null>(null);
   let pending: Promise<void> | null = null;
 
   const run = async () => {
@@ -104,6 +128,7 @@ export const createAsyncChartRuntime = (
     loading.value = true;
     error.value = null;
     errorAction.value = null;
+    errorKind.value = null;
 
     let loadPromise: Promise<unknown>;
     try {
@@ -118,6 +143,7 @@ export const createAsyncChartRuntime = (
       })
       .catch((runtimeError) => {
         ready.value = false;
+        errorKind.value = getChartRuntimeErrorKind(runtimeError);
         error.value = getChartRuntimeErrorMessage(runtimeError, errorMessage);
         errorAction.value = getChartRuntimeErrorAction(runtimeError);
       })
@@ -139,6 +165,7 @@ export const createAsyncChartRuntime = (
     loading,
     error,
     errorAction,
+    errorKind,
     ensureReady: run,
     retry,
   };
