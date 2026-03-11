@@ -167,7 +167,7 @@ describe('AiAnalysisModal', () => {
     expect(localStorage.getItem(createChatDraftScopeKey({ accountIds: [accountA.id, accountB.id] }))).toBe('多账户草稿');
   });
 
-  it('清空对话时会一并清空当前范围草稿', async () => {
+  it('清空对话时会一并清空当前范围草稿，并回到空状态提示', async () => {
     const store = useFinanceStore();
     const scopeKey = createChatDraftScopeKey({ accountIds: [store.accounts[0].id, store.accounts[1].id] });
     localStorage.setItem(scopeKey, '待发送问题');
@@ -177,6 +177,9 @@ describe('AiAnalysisModal', () => {
 
     expect(localStorage.getItem(scopeKey)).toBeNull();
     expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('');
+    expect(wrapper.find('.empty-state').exists()).toBe(true);
+    expect(wrapper.text()).toContain('有什么可以帮你分析的？');
+    expect(wrapper.find('.quick-row').exists()).toBe(false);
     expect(messageSuccess).toHaveBeenCalledWith('当前账户组合对话与草稿已清空');
   });
 
