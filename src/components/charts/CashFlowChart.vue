@@ -6,19 +6,22 @@
       <p>当时间线中开始出现收入或支出事件后，这里会自动汇总每月现金流。</p>
     </div>
     <VChart v-else-if="chartRuntimeReady" :option="chartOption" autoresize class="chart" />
-    <div v-else-if="chartRuntimeError" class="chart-runtime-error" role="alert">
-      <strong>图表暂时没加载出来</strong>
-      <p>{{ chartRuntimeError }}</p>
-      <small v-if="chartRuntimeErrorAction" class="chart-runtime-error-action">{{ chartRuntimeErrorAction }}</small>
-      <button type="button" class="retry-button" @click="retryChartRuntime">重试加载</button>
-    </div>
+    <ChartRuntimeErrorNotice
+      v-else-if="chartRuntimeError && !dismissedRuntimeError"
+      class="chart-runtime-notice"
+      :message="chartRuntimeError"
+      :action="chartRuntimeErrorAction"
+      @retry="retryChartRuntime"
+      @dismiss="dismissChartRuntimeError"
+    />
     <div v-else class="chart-loading-state">正在加载图表引擎…</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import VChart from 'vue-echarts';
+import ChartRuntimeErrorNotice from '@/components/charts/ChartRuntimeErrorNotice.vue';
 import type { MonthlySnapshot } from '@/types/analytics';
 import { buildCashFlowChartOption } from '@/utils/chart-options-cashflow';
 import { useChartRuntime } from '@/utils/use-chart-runtime';
@@ -29,8 +32,17 @@ const chartRuntime = useChartRuntime('cashflow', () => import('@/utils/echarts-c
 const chartRuntimeReady = chartRuntime.ready;
 const chartRuntimeError = chartRuntime.error;
 const chartRuntimeErrorAction = chartRuntime.errorAction;
+const dismissedRuntimeError = ref(false);
 
-const retryChartRuntime = () => chartRuntime.retry();
+const retryChartRuntime = async () => {
+  dismissedRuntimeError.value = false;
+  await chartRuntime.retry();
+};
+
+const dismissChartRuntimeError = () => {
+  // 避免在网络持续异常时反复挡住页面；用户需要时可点“重试加载”。
+  dismissedRuntimeError.value = true;
+};
 
 const chartOption = computed(() => buildCashFlowChartOption(props.months));
 </script>
@@ -57,7 +69,8 @@ const chartOption = computed(() => buildCashFlowChartOption(props.months));
 }
 
 .chart,
-.chart-loading-state {
+.chart-loading-state,
+.chart-runtime-notice {
   height: 280px;
 }
 
@@ -70,64 +83,6 @@ const chartOption = computed(() => buildCashFlowChartOption(props.months));
   color: var(--fm-text-secondary);
   background: var(--fm-surface-muted);
   font-size: 0.9rem;
-}
-
-.chart-runtime-error {
-  min-height: 280px;
-  border: 1px dashed rgba(239, 68, 68, 0.28);
-  border-radius: 14px;
-  background: rgba(254, 242, 242, 0.9);
-  color: #991b1b;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 10px;
-  padding: 24px;
-}
-
-.chart-runtime-error strong {
-  font-size: 1rem;
-}
-
-.chart-runtime-error p {
-  margin: 0;
-  max-width: 320px;
-  line-height: 1.6;
-  font-size: 0.88rem;
-}
-
-.chart-runtime-error-action {
-  max-width: 320px;
-  line-height: 1.6;
-  color: rgba(127, 29, 29, 0.9);
-}
-
-.retry-button {
-  border: 1px solid rgba(220, 38, 38, 0.18);
-  background: #fff;
-  color: #b91c1c;
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.retry-button:hover {
-  background: rgba(255, 255, 255, 0.92);
-  border-color: rgba(220, 38, 38, 0.3);
-}
-
-.retry-button:active {
-  transform: translateY(1px);
-}
-
-.retry-button:focus-visible {
-  outline: 2px solid rgba(220, 38, 38, 0.2);
-  outline-offset: 2px;
 }
 
 .chart-empty-state {

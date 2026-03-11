@@ -5,6 +5,14 @@ import CashFlowChart from '@/components/charts/CashFlowChart.vue';
 import type { MonthlySnapshot } from '@/types/analytics';
 import { __resetChartRuntimeRegistryForTests } from '@/utils/chart-runtime-preload';
 
+const AButtonStub = defineComponent({
+  name: 'AButton',
+  props: {
+    size: String,
+  },
+  template: '<button class="a-button"><slot /></button>',
+});
+
 vi.mock('vue-echarts', () => ({
   default: defineComponent({
     name: 'VChart',
@@ -53,19 +61,24 @@ describe('CashFlowChart', () => {
       props: {
         months,
       },
+      global: {
+        components: {
+          'a-button': AButtonStub,
+        },
+      },
     });
 
     await flushPromises();
     await nextTick();
 
     expect(wrapper.find('.chart-runtime-error').exists()).toBe(true);
-    expect(wrapper.text()).toContain('图表暂时没加载出来');
+    expect(wrapper.text()).toContain('图表加载失败');
     expect(wrapper.text()).toContain('图表引擎加载失败，请稍后重试。');
     expect(wrapper.text()).toContain('可先重试一次；若仍失败，再刷新页面继续。');
     expect(wrapper.find('.chart-runtime-error-action').exists()).toBe(true);
     expect(wrapper.find('.v-chart').exists()).toBe(false);
 
-    await wrapper.find('.retry-button').trigger('click');
+    await wrapper.find('.a-button').trigger('click');
     await flushPromises();
     await nextTick();
 
@@ -96,6 +109,11 @@ describe('CashFlowChart', () => {
     const wrapper = mount(CashFlowChart, {
       props: {
         months,
+      },
+      global: {
+        components: {
+          'a-button': AButtonStub,
+        },
       },
     });
 

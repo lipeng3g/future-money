@@ -24,30 +24,41 @@ defineEmits<{
 
 <style scoped>
 .chart-runtime-error {
-  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
-  border-radius: 8px;
-  padding: 12px;
-  background: rgba(255, 77, 79, 0.06);
+  border: 1px dashed rgba(239, 68, 68, 0.28);
+  border-radius: 14px;
+  padding: 24px;
+  background: rgba(254, 242, 242, 0.9);
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  color: #991b1b;
 }
 
 .chart-runtime-error strong {
-  display: block;
-  margin-bottom: 4px;
+  font-size: 1rem;
 }
 
 .chart-runtime-error p {
   margin: 0;
+  max-width: 360px;
+  line-height: 1.6;
+  font-size: 0.88rem;
 }
 
 .chart-runtime-error-action {
-  display: block;
-  margin-top: 6px;
-  opacity: 0.8;
+  max-width: 360px;
+  line-height: 1.6;
+  color: rgba(127, 29, 29, 0.9);
+  font-size: 0.78rem;
 }
 
 .chart-runtime-error-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 6px;
 }
 </style>
