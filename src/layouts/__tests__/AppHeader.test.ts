@@ -775,16 +775,19 @@ describe('AppHeader', () => {
     const config = modalConfirm.mock.calls[0][0];
     const contentText = extractText(config.content);
 
-    expect(config.title).toBe('确定清空当前账户数据？');
-    expect(contentText).toContain('仅清空当前选中账户的所有事件和快照，此操作不可恢复');
+    expect(config.title).toBe('确定清空账户「现金 主账户」的数据？');
+    expect(contentText).toContain('危险操作：会重置当前账户的本地业务数据');
+    expect(contentText).toContain('这个操作不会影响其他账户');
 
     await expect(config.onOk()).rejects.toBeUndefined();
     expect(messageError).toHaveBeenCalledWith('输入的文字不正确，操作已取消');
     expect(store.events).toHaveLength(1);
     expect(store.reconciliations).toHaveLength(1);
 
-    const inputNode = config.content.children[2];
-    inputNode.props.onInput({ target: { value: '清空当前账户' } });
+    const inputNode = config.content.children[3];
+    inputNode.props.onInput?.({ target: { value: '清空当前账户' } });
+    inputNode.props['onUpdate:value']?.('清空当前账户');
+    inputNode.props.onChange?.({ target: { value: '清空当前账户' } });
     await config.onOk();
 
     expect(store.events).toHaveLength(0);

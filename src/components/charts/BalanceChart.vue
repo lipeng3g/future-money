@@ -30,7 +30,10 @@
             <strong>{{ activeInsight.label }}</strong>
             <span>{{ activeInsight.date }}</span>
           </div>
-          <b>{{ formatCurrency(activeInsight.balance) }}</b>
+          <div class="focus-insight-actions">
+            <button type="button" class="focus-insight-copy" @click="copyInsightSummary">复制摘要</button>
+            <b>{{ formatCurrency(activeInsight.balance) }}</b>
+          </div>
         </div>
         <p>{{ activeInsight.summary }}</p>
         <small>{{ activeInsight.detail }}</small>
@@ -261,6 +264,46 @@ const activeFocusEvents = computed<EventOccurrence[]>(() => {
 
 const formatCurrency = (value: number) => `¥${value.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
 const formatSignedAmount = (category: EventOccurrence['category'], amount: number) => `${category === 'income' ? '+' : '-'}${formatCurrency(amount)}`;
+
+const copyInsightSummary = async () => {
+  if (!activeInsight.value) return;
+  const insight = activeInsight.value;
+  const summaryLines: string[] = [
+    `【${insight.label}】${insight.date}`,
+    `余额：${formatCurrency(insight.balance)}`,
+    insight.summary,
+  ];
+
+  if (insight.eventSummary) summaryLines.push(insight.eventSummary);
+  if (activeFocusEventGroups.value.length) {
+    summaryLines.push('', '账户摘要：');
+    activeFocusEventGroups.value.forEach((group) => {
+      summaryLines.push(`- ${group.label}：${group.summary}`);
+    });
+  }
+
+  const text = summaryLines.join('\n');
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (error) {
+    // 兼容不支持 Clipboard API 的环境（或因权限/https 受限失败）
+    const fallback = document.createElement('textarea');
+    fallback.value = text;
+    fallback.setAttribute('readonly', '');
+    fallback.style.position = 'fixed';
+    fallback.style.left = '-9999px';
+    fallback.style.top = '0';
+    document.body.appendChild(fallback);
+    fallback.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(fallback);
+    if (!ok) {
+      console.warn('[future-money] copy insight summary failed', error);
+      return;
+    }
+  }
+};
 
 const activeFocusEventGroups = computed(() => {
   if (!activeFocusEvents.value.length) return [];
@@ -501,6 +544,35 @@ const handleChartClick = (params: ECElementEvent) => {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
+}
+
+.focus-insight-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.focus-insight-copy {
+  border: 1px solid var(--fm-border-subtle);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--fm-text-secondary);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.focus-insight-copy:hover {
+  border-color: rgba(67, 56, 202, 0.24);
+  color: var(--fm-primary);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.focus-insight-copy:focus-visible {
+  outline: 2px solid rgba(79, 70, 229, 0.18);
+  outline-offset: 2px;
 }
 
 .focus-insight-header div {
