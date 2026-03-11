@@ -134,11 +134,23 @@ export default defineConfig({
 
           if (!id.includes('node_modules')) return;
 
-          if (
-            id.includes('/echarts/')
-            || id.includes('/zrender/')
-            || id.includes('/vue-echarts/')
-          ) {
+          // Charts: keep vue-echarts separate so it doesn't pull the whole ECharts runtime
+          // into the initial chart component chunk.
+          if (id.includes('/vue-echarts/')) {
+            return 'vendor-vue-echarts';
+          }
+
+          // ECharts is modular. We keep the shared core (echarts/core + zrender) in a vendor chunk,
+          // but let `echarts/lib/*` installers stay with the lazily-loaded chart runtime chunks.
+          if (id.includes('/zrender/')) {
+            return 'vendor-charts';
+          }
+
+          if (id.includes('/echarts/lib/')) {
+            return;
+          }
+
+          if (id.includes('/echarts/')) {
             return 'vendor-charts';
           }
 
