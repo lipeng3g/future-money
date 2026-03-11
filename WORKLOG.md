@@ -156,3 +156,8 @@
   - Why: 用户想在 Excel/表格做二次分析或归档时，不用手动复制粘贴；也便于把规则备份到其他工具。
   - Verify: npm test; npm run type-check; npm run build
   - Commit: d45f0ef
+
+- 2026-03-11 | feat(charts): 余额图焦点解释卡新增「导出当日事件」：将当前焦点日期下的事件列表导出为 CSV（含日期/事件/收支/金额/账户）。
+  - Why: 焦点解释卡里看到了“当日发生了什么”，下一步常见诉求就是把这天的明细快速导出来做对账/报销/复盘，不必切到事件面板再筛。
+  - Verify: npm test; npm run type-check
+  - Commit: 5b35b93
