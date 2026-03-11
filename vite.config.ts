@@ -154,11 +154,44 @@ export default defineConfig({
             return 'vendor-date';
           }
 
+          // NOTE: Avoid splitting dayjs out of vendor-antd.
+          // ant-design-vue imports dayjs internally, and forcing it into its own chunk can trigger
+          // Rollup circular chunk warnings (vendor-dayjs <-> vendor-antd).
+          // Keep it in vendor-antd for now.
           if (id.includes('dayjs')) {
             return 'vendor-antd';
           }
 
-          if (id.includes('@ant-design/icons-vue') || id.includes('ant-design-vue')) {
+          if (id.includes('/@babel/runtime/')) {
+            // ant-design-vue ships helpers via @babel/runtime; splitting avoids bloating vendor-antd
+            return 'vendor-babel-runtime';
+          }
+
+          if (id.includes('async-validator')) {
+            // used by antd Form
+            return 'vendor-async-validator';
+          }
+
+          if (id.includes('/lodash-es/')) {
+            // many small ESM imports used by antd
+            return 'vendor-lodash-es';
+          }
+
+          if (id.includes('/@ctrl/tinycolor/')) {
+            return 'vendor-tinycolor';
+          }
+
+          if (id.includes('/@ant-design/colors/')) {
+            return 'vendor-antd-colors';
+          }
+
+          if (id.includes('/@ant-design/icons-vue/') || id.includes('/@ant-design/icons-svg/')) {
+            return 'vendor-antd-icons';
+          }
+
+          if (id.includes('/ant-design-vue/')) {
+            // ant-design-vue has a lot of cross-component internal imports.
+            // Splitting by component can trigger Rollup circular chunk warnings, so keep it together.
             return 'vendor-antd';
           }
         },
