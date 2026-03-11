@@ -29,13 +29,13 @@ vi.mock('@/utils/echarts-cashflow', async () => {
 
 const months: MonthlySnapshot[] = [
   {
-    month: '2026-01',
+    monthLabel: '2026-01',
     income: 12000,
     expense: 6800,
     net: 5200,
   },
   {
-    month: '2026-02',
+    monthLabel: '2026-02',
     income: 9800,
     expense: 7600,
     net: 2200,
@@ -88,7 +88,7 @@ describe('CashFlowChart', () => {
   });
 
 
-  it('空月度数据时展示空态而不是图表容器', () => {
+  it('空月度数据时展示空态而不是图表容器（且不展示导出按钮）', () => {
     const wrapper = mount(CashFlowChart, {
       props: {
         months: [],
@@ -98,6 +98,37 @@ describe('CashFlowChart', () => {
     expect(wrapper.text()).toContain('还没有月度收支数据');
     expect(wrapper.find('.chart-empty-state').exists()).toBe(true);
     expect(wrapper.find('.v-chart').exists()).toBe(false);
+    expect(wrapper.find('.chart-export').exists()).toBe(false);
+  });
+
+  it('支持把月度收支导出为 CSV', async () => {
+    const wrapper = mount(CashFlowChart, {
+      props: {
+        months,
+      },
+    });
+
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    const createObjectUrlMock = vi.fn(() => 'blob:mock-url');
+    const revokeObjectUrlMock = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (URL as any).createObjectURL = createObjectUrlMock;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (URL as any).revokeObjectURL = revokeObjectUrlMock;
+
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+
+    await wrapper.find('.chart-export').trigger('click');
+
+    expect(createObjectUrlMock).toHaveBeenCalledTimes(1);
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+
+    clickSpy.mockRestore();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (URL as any).createObjectURL = originalCreateObjectURL;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (URL as any).revokeObjectURL = originalRevokeObjectURL;
   });
 
   it('runtime 就绪前先展示加载态，完成后再渲染图表', async () => {
@@ -118,6 +149,7 @@ describe('CashFlowChart', () => {
     });
 
     expect(wrapper.text()).toContain('正在加载图表引擎');
+    expect(wrapper.find('.chart-export').exists()).toBe(true);
     expect(wrapper.find('.v-chart').exists()).toBe(false);
 
     resolveLoader?.();
