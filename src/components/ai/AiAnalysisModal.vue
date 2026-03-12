@@ -296,6 +296,29 @@ const scrollToBottom = () => {
   });
 };
 
+let scrollScheduled = false;
+const scheduleScrollToBottom = () => {
+  if (scrollScheduled) return;
+  scrollScheduled = true;
+
+  const run = () => {
+    scrollScheduled = false;
+    scrollToBottom();
+  };
+
+  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+    window.requestAnimationFrame(run);
+    return;
+  }
+
+  if (typeof queueMicrotask === 'function') {
+    queueMicrotask(run);
+    return;
+  }
+
+  Promise.resolve().then(run);
+};
+
 const renderMd = (text: string): string => cachedMdRenderer.render(text);
 const renderStreamingContentMd = (text: string): string => streamingContentRenderer.render(text);
 const renderStreamingThinkingMd = (text: string): string => streamingThinkingRenderer.render(text);
@@ -378,7 +401,7 @@ const sendToAi = async (question?: string) => {
       content: displayQuestion,
     });
     saveChatHistory(chatMessages.value, chatHistoryScope.value);
-    scrollToBottom();
+    scheduleScrollToBottom();
   }
 
   requestError.value = '';
@@ -429,7 +452,7 @@ const sendToAi = async (question?: string) => {
         } else {
           contentBuffer.value += chunk.text;
         }
-        scrollToBottom();
+        scheduleScrollToBottom();
       }
 
       recoveryResult = {
@@ -438,7 +461,7 @@ const sendToAi = async (question?: string) => {
         retries: 0,
         downgraded: false,
         diagnostics: {
-          provider: '',
+          provider: config.baseUrl,
           model: config.model,
           retryable: false,
         },
@@ -451,7 +474,7 @@ const sendToAi = async (question?: string) => {
 
       contentBuffer.value = recoveryResult.content;
       thinkingBuffer.value = recoveryResult.thinking || '';
-      scrollToBottom();
+      scheduleScrollToBottom();
     }
 
     chatMessages.value.push({
@@ -522,7 +545,7 @@ const sendToAi = async (question?: string) => {
     if (requestId === activeRequestId) {
       activeRequestController.value = null;
       resetStreamingState();
-      scrollToBottom();
+      scheduleScrollToBottom();
     }
   }
 };
