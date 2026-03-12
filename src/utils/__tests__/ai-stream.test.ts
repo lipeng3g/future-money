@@ -84,7 +84,7 @@ describe('streamChat', () => {
     }));
   });
 
-  it('500 响应里的 provider/model/trace id 会被归一化到错误对象', async () => {
+  it('500 响应里的 provider/model/trace id 会被归一化到错误对象；empty_stream 会被识别为可重试错误', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
       error: {
         message: 'empty_stream: upstream stream closed before first payload',
@@ -105,17 +105,17 @@ describe('streamChat', () => {
       }
     };
 
-    await expect(consume()).rejects.toEqual(expect.objectContaining({
+    await expect(consume()).rejects.toMatchObject({
       name: 'AiRequestError',
       details: expect.objectContaining({
         status: 500,
         provider: 'api.deepseek.com',
         model: 'deepseek-chat',
         traceId: 'trace-from-body',
-        code: 'internal_server_error',
+        code: 'empty_stream',
         type: 'server_error',
         retryable: true,
       }),
-    }));
+    });
   });
 });

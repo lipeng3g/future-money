@@ -532,6 +532,11 @@ export interface StreamChunk {
     text: string;
 }
 
+export interface AiCompletionResult {
+    content: string;
+    thinking?: string;
+}
+
 export interface AiRequestErrorDetails {
     status?: number;
     provider: string;
@@ -540,6 +545,10 @@ export interface AiRequestErrorDetails {
     code?: string;
     type?: string;
     retryable: boolean;
+    retries?: number;
+    downgradedFromModel?: string;
+    downgradedToModel?: string;
+    downgradeStrategy?: 'non-stream' | 'model-fallback';
 }
 
 export class AiRequestError extends Error {
@@ -666,6 +675,21 @@ const getRecoverableStreamFailureMessage = (errorMessage: string): string => {
     return errorMessage;
 };
 
+const sleep = async (ms: number) => {
+    await new Promise((resolve) => window.setTimeout(resolve, ms));
+};
+
+const getFallbackModelForRetry = (model: string): string | null => {
+    const normalizedModel = model.trim();
+    if (!normalizedModel) return null;
+    if (normalizedModel === 'gpt-5.4') return 'gpt-5.2';
+    return null;
+};
+
+const shouldRetryEmptyStream = (error: unknown): error is AiRequestError => {
+    return error instanceof AiRequestError && error.details.code === 'empty_stream';
+};
+
 export async function* streamChat(
     config: AiConfig,
     messages: ChatMessage[],
@@ -719,15 +743,21 @@ export async function* streamChat(
         totalTimeout.dispose();
         const errorText = await response.text();
         const normalizedError = normalizeServerErrorPayload(errorText, response.headers);
+        const isEmptyStream = normalizedError.message.includes('empty_stream')
+            || normalizedError.message.includes('upstream stream closed before first payload')
+            || normalizedError.message.includes('before first payload');
+        const derivedCode = isEmptyStream ? 'empty_stream' : normalizedError.code;
+        const derivedType = isEmptyStream ? 'server_error' : normalizedError.type;
+
         throw buildAiRequestError(
             `API 请求失败 (${response.status}): ${getRecoverableStreamFailureMessage(normalizedError.message)}`,
             sanitizedConfig,
             {
                 status: response.status,
                 traceId: normalizedError.traceId,
-                code: normalizedError.code,
-                type: normalizedError.type,
-                retryable: response.status >= 500 || normalizedError.code === 'empty_stream',
+                code: derivedCode,
+                type: derivedType,
+                retryable: response.status >= 500 || derivedCode === 'empty_stream',
             },
         );
     }
@@ -848,3 +878,169 @@ export const createAnalysisMessages = (
         },
     ];
 };
+
+export interface StreamChatWithRecoveryOptions {
+    signal?: AbortSignal;
+    retryDelaysMs?: number[];
+}
+
+export async function streamChatWithRecovery(
+    config: AiConfig,
+    messages: ChatMessage[],
+    options?: StreamChatWithRecoveryOptions,
+): Promise<AiCompletionResult & {
+    retries: number;
+    downgraded: boolean;
+    diagnostics: AiRequestErrorDetails;
+}> {
+    const retryDelays = options?.retryDelaysMs?.length ? options.retryDelaysMs : [300, 800];
+    let attempt = 0;
+    let lastError: AiRequestError | null = null;
+
+    while (true) {
+        const activeConfig = attempt === 0
+            ? config
+            : {
+                ...config,
+                model: config.model,
+            };
+
+        try {
+            let content = '';
+            let thinking = '';
+            for await (const chunk of streamChat(activeConfig, messages, { signal: options?.signal })) {
+                if (chunk.type === 'thinking') {
+                    thinking += chunk.text;
+                } else {
+                    content += chunk.text;
+                }
+            }
+
+            return {
+                content,
+                thinking: thinking || undefined,
+                retries: attempt,
+                downgraded: false,
+                diagnostics: {
+                    provider: getAiProviderLabel(activeConfig.baseUrl),
+                    model: activeConfig.model.trim() || DEFAULT_AI_MODEL,
+                    retryable: false,
+                    retries: attempt,
+                },
+            };
+        } catch (error) {
+            if (!(error instanceof AiRequestError)) {
+                throw error;
+            }
+
+            lastError = error;
+            const canRetry = shouldRetryEmptyStream(error) && attempt < retryDelays.length;
+            if (canRetry) {
+                const delayMs = retryDelays[attempt] ?? retryDelays.at(-1) ?? 0;
+                attempt += 1;
+                await sleep(delayMs);
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    if (!lastError) {
+        throw new Error('未知 AI 请求错误');
+    }
+
+    lastError.details.retries = retryDelays.length;
+
+    if (shouldRetryEmptyStream(lastError)) {
+        const fallbackModel = getFallbackModelForRetry(config.model);
+        const nonStreamConfig: AiConfig = fallbackModel
+            ? { ...config, model: fallbackModel }
+            : config;
+        const targetUrl = buildAiChatCompletionsUrl(nonStreamConfig.baseUrl);
+        const sanitizedConfig = sanitizeAiConfig(nonStreamConfig);
+        const signal = options?.signal;
+
+        try {
+            const response = await fetch('/api/ai-proxy', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Target-Url': targetUrl,
+                    'X-Auth': `Bearer ${sanitizedConfig.apiKey}`,
+                },
+                body: JSON.stringify({
+                    model: sanitizedConfig.model,
+                    messages,
+                    stream: false,
+                    temperature: 0.7,
+                }),
+                signal,
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                const normalizedError = normalizeServerErrorPayload(errorText, response.headers);
+                const isEmptyStream = normalizedError.message.includes('empty_stream')
+                    || normalizedError.message.includes('upstream stream closed before first payload')
+                    || normalizedError.message.includes('before first payload');
+                const derivedCode = isEmptyStream ? 'empty_stream' : normalizedError.code;
+                const derivedType = isEmptyStream ? 'server_error' : normalizedError.type;
+
+                throw buildAiRequestError(
+                    `API 请求失败 (${response.status}): ${getRecoverableStreamFailureMessage(normalizedError.message)}`,
+                    sanitizedConfig,
+                    {
+                        status: response.status,
+                        traceId: normalizedError.traceId,
+                        code: derivedCode,
+                        type: derivedType,
+                        retryable: response.status >= 500 || derivedCode === 'empty_stream',
+                        retries: retryDelays.length,
+                        downgradedFromModel: config.model,
+                        downgradedToModel: sanitizedConfig.model,
+                        downgradeStrategy: fallbackModel ? 'model-fallback' : 'non-stream',
+                    },
+                );
+            }
+
+            const payload = parseJsonSafely(await response.text()) as Record<string, any> | null;
+            const choice = payload?.choices?.[0] ?? null;
+            const message = choice?.message ?? null;
+            const content = typeof message?.content === 'string' ? message.content : '';
+            const thinking = typeof message?.reasoning_content === 'string' ? message.reasoning_content : undefined;
+
+            return {
+                content,
+                thinking,
+                retries: retryDelays.length,
+                downgraded: true,
+                diagnostics: {
+                    provider: getAiProviderLabel(sanitizedConfig.baseUrl),
+                    model: sanitizedConfig.model.trim() || DEFAULT_AI_MODEL,
+                    traceId: getTraceIdFromHeaders(response.headers),
+                    status: response.status,
+                    retryable: false,
+                    retries: retryDelays.length,
+                    downgradedFromModel: config.model,
+                    downgradedToModel: sanitizedConfig.model,
+                    downgradeStrategy: fallbackModel ? 'model-fallback' : 'non-stream',
+                },
+            };
+        } catch (error) {
+            if (error instanceof AiRequestError) {
+                throw error;
+            }
+
+            throw buildAiRequestError(`请求失败: ${error instanceof Error ? error.message : '网络异常'}`, sanitizedConfig, {
+                type: error instanceof Error ? error.name : undefined,
+                retries: retryDelays.length,
+                downgradedFromModel: config.model,
+                downgradedToModel: sanitizedConfig.model,
+                downgradeStrategy: fallbackModel ? 'model-fallback' : 'non-stream',
+            });
+        }
+    }
+
+    throw lastError;
+}
