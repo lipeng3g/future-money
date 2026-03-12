@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useFinanceStore } from '@/stores/finance';
+import { loadChatDraft, loadChatHistory, saveChatDraft, saveChatHistory } from '@/utils/ai';
 
 const readEnvelope = () => {
   const raw = window.localStorage.getItem('futureMoney.state');
@@ -16,6 +17,48 @@ describe('finance store smoke', () => {
   beforeEach(() => {
     window.localStorage.clear();
     setActivePinia(createPinia());
+  });
+
+  it('清空当前账户后会同步清空该账户 AI 会话持久化，刷新后仍为空且不影响其他账户', () => {
+    const store = useFinanceStore();
+    const mainAccountId = store.currentAccount.id;
+
+    const travel = store.addAccount({
+      name: '旅行基金',
+      warningThreshold: 500,
+      typeLabel: '储蓄',
+    });
+
+    saveChatHistory([{ role: 'user', content: '主账户对话' }], { accountIds: [mainAccountId] });
+    saveChatDraft('主账户草稿', { accountIds: [mainAccountId] });
+    saveChatHistory([{ role: 'user', content: '旅行账户对话' }], { accountIds: [travel.id] });
+    saveChatDraft('旅行账户草稿', { accountIds: [travel.id] });
+    saveChatHistory([{ role: 'user', content: '跨账户对话' }], { accountIds: [mainAccountId, travel.id] });
+    saveChatDraft('跨账户草稿', { accountIds: [mainAccountId, travel.id] });
+
+    store.currentAccountId = mainAccountId;
+    store.clearCurrentAccount();
+
+    expect(loadChatHistory({ accountIds: [mainAccountId] })).toEqual([]);
+    expect(loadChatDraft({ accountIds: [mainAccountId] })).toBe('');
+    expect(loadChatHistory({ accountIds: [mainAccountId, travel.id] })).toEqual([]);
+    expect(loadChatDraft({ accountIds: [mainAccountId, travel.id] })).toBe('');
+    expect(loadChatHistory({ accountIds: [travel.id] })).toEqual([
+      expect.objectContaining({ role: 'user', content: '旅行账户对话' }),
+    ]);
+    expect(loadChatDraft({ accountIds: [travel.id] })).toBe('旅行账户草稿');
+
+    setActivePinia(createPinia());
+    const reloadedStore = useFinanceStore();
+    reloadedStore.currentAccountId = mainAccountId;
+
+    expect(reloadedStore.events.filter((event) => event.accountId === mainAccountId)).toHaveLength(0);
+    expect(loadChatHistory({ accountIds: [mainAccountId] })).toEqual([]);
+    expect(loadChatDraft({ accountIds: [mainAccountId] })).toBe('');
+    expect(loadChatHistory({ accountIds: [travel.id] })).toEqual([
+      expect.objectContaining({ role: 'user', content: '旅行账户对话' }),
+    ]);
+    expect(loadChatDraft({ accountIds: [travel.id] })).toBe('旅行账户草稿');
   });
 
   it('可以完成导出全部账户 → 清空当前账户 → 恢复全部账户 → 撤销恢复的本地闭环', () => {

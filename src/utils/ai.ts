@@ -337,6 +337,34 @@ export const clearChatDraft = (scope?: ChatHistoryScope) => {
     localStorage.removeItem(createChatDraftScopeKey(scope));
 };
 
+const clearScopedStorageKeysByAccountIds = (prefix: string, accountIds?: string[]) => {
+    const normalizedAccountIds = normalizeScopeAccountIds(accountIds);
+    if (!normalizedAccountIds.length) return;
+
+    const keysToRemove: string[] = [];
+    for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index);
+        if (!key || !key.startsWith(`${prefix}:`)) continue;
+
+        const scopedPart = key.slice(prefix.length + 1);
+        const scopedAccountIds = normalizeScopeAccountIds(scopedPart.split(','));
+        if (!scopedAccountIds.length) continue;
+
+        if (normalizedAccountIds.some((accountId) => scopedAccountIds.includes(accountId))) {
+            keysToRemove.push(key);
+        }
+    }
+
+    keysToRemove.forEach((key) => {
+        localStorage.removeItem(key);
+    });
+};
+
+export const clearChatPersistenceByAccountIds = (accountIds?: string[]) => {
+    clearScopedStorageKeysByAccountIds(CHAT_KEY, accountIds);
+    clearScopedStorageKeysByAccountIds(CHAT_DRAFT_KEY, accountIds);
+};
+
 export const exportChatHistory = (messages: ChatRecord[], scope?: ChatHistoryScope) => {
     const text = messages
         .map((m) => {

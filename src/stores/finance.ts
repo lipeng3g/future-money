@@ -28,6 +28,7 @@ import { generateSampleEvents } from '@/utils/sample-data';
 import { formatLocalISODate } from '@/utils/date';
 import { aggregateAccountTimelines } from '@/utils/timeline-aggregate';
 import { buildEventsCsv, buildEventsJson, type EventExportFormat } from '@/utils/export-events';
+import { clearChatPersistenceByAccountIds } from '@/utils/ai';
 
 const storage = createStateRepository();
 const generator = new TimelineGenerator();
@@ -850,6 +851,7 @@ export const useFinanceStore = defineStore('finance', () => {
     reconciliations.value = reconciliations.value.filter((r) => r.accountId !== targetId);
     ledgerEntries.value = ledgerEntries.value.filter((e) => e.accountId !== targetId);
     eventOverrides.value = eventOverrides.value.filter((o) => o.accountId !== targetId);
+    clearChatPersistenceByAccountIds([targetId]);
 
     const nowIso = new Date().toISOString();
     const updated: AccountConfig = {

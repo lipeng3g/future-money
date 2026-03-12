@@ -45,7 +45,12 @@
       </div>
       <div class="focus-banner-actions">
         <template v-if="activeChartFocus">
-          <div v-if="activeChartFocus.matchedDates.length > 1" class="focus-date-list" aria-label="当前时间窗内发生日列表">
+          <div
+            v-if="activeChartFocus.matchedDates.length > 1"
+            class="focus-date-list"
+            :class="{ 'focus-date-list--expanded': chartDatesExpanded }"
+            aria-label="当前时间窗内发生日列表"
+          >
             <button
               v-for="matchedDate in visibleChartFocusDates"
               :key="matchedDate"
@@ -514,15 +519,25 @@ const loadSamples = () => {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .focus-date-list {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  align-content: flex-start;
   gap: 6px;
   flex-wrap: wrap;
   max-width: min(100%, 360px);
+  max-height: 70px;
+  overflow-y: auto;
+  overflow-x: hidden;
   justify-content: flex-end;
+  padding-right: 4px;
+}
+
+.focus-date-list--expanded {
+  max-height: 148px;
 }
 
 .focus-date-chip {
@@ -568,5 +583,21 @@ const loadSamples = () => {
   color: #9a3412;
   font-size: 0.82rem;
   line-height: 1.6;
+}
+
+@media (max-width: 960px) {
+  .focus-banner {
+    flex-direction: column;
+  }
+
+  .focus-banner-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .focus-date-list {
+    max-width: 100%;
+    justify-content: flex-start;
+  }
 }
 </style>
