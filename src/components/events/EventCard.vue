@@ -146,6 +146,8 @@ const handleToggle = (checked: boolean) => {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+  flex: 1;
 }
 
 .event-header {
@@ -177,6 +179,7 @@ const handleToggle = (checked: boolean) => {
   font-size: 0.85rem;
   color: var(--fm-text-secondary);
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .account-tag {
@@ -203,6 +206,11 @@ const handleToggle = (checked: boolean) => {
   font-weight: 600;
   padding: 0;
   cursor: pointer;
+  max-width: 100%;
+  white-space: normal;
+  word-break: break-word;
+  text-align: left;
+  line-height: 1.35;
 }
 
 .chart-focus-link:hover {

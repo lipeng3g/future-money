@@ -97,6 +97,7 @@
           <strong>分析未完成，但可以恢复</strong>
           <span>{{ requestError }}</span>
           <div v-if="requestErrorMeta.length" class="request-error-meta">{{ requestErrorMeta.join(' · ') }}</div>
+          <div v-if="requestDiagnostics" class="request-error-meta request-error-meta--copyable">诊断：{{ requestDiagnostics }}</div>
         </div>
         <div class="request-error-actions">
           <button
@@ -112,6 +113,14 @@
             @click="handleRetry"
           >
             直接重试
+          </button>
+          <button
+            v-if="requestDiagnostics"
+            class="request-retry-btn"
+            :disabled="streaming"
+            @click="handleCopyDiagnostics"
+          >
+            复制诊断
           </button>
         </div>
       </div>
@@ -157,7 +166,7 @@ import { useFinanceStore } from '@/stores/finance';
 import AiConfigModal from '@/components/ai/AiConfigModal.vue';
 import {
   loadAiConfig,
-  streamChat,
+  streamChatWithRecovery,
   buildFinancialSummary,
   buildScopedFinancialContext,
   createAnalysisMessages,
@@ -244,6 +253,7 @@ const thinkingBuffer = ref('');
 const userInput = ref('');
 const requestError = ref('');
 const requestErrorMeta = ref<string[]>([]);
+const requestDiagnostics = ref('');
 const lastSubmittedQuestion = ref('');
 const lastFailedQuestion = ref('');
 const lastFailedAssistantMessage = ref<ChatRecord | null>(null);
@@ -316,6 +326,26 @@ const resetStreamingState = (options?: { preserveBuffers?: boolean }) => {
   }
 };
 
+const buildDiagnosticsText = (parts: {
+  provider?: string;
+  model?: string;
+  traceId?: string;
+  status?: number;
+  retries?: number;
+}) => {
+  return [
+    parts.provider ? `provider=${parts.provider}` : null,
+    parts.model ? `model=${parts.model}` : null,
+    parts.traceId ? `traceId=${parts.traceId}` : null,
+    typeof parts.status === 'number' ? `httpStatus=${parts.status}` : null,
+    typeof parts.retries === 'number' ? `retries=${parts.retries}` : null,
+  ].filter(Boolean).join(' | ');
+};
+
+const isAsyncIterable = (value: unknown): value is AsyncIterable<{ type: 'content' | 'thinking'; text: string }> => {
+  return !!value && typeof (value as AsyncIterable<unknown>)[Symbol.asyncIterator] === 'function';
+};
+
 const sendToAi = async (question?: string) => {
   if (streaming.value) return;
 
@@ -383,31 +413,58 @@ const sendToAi = async (question?: string) => {
   streamingThinkingRenderer.reset();
 
   try {
-    for await (const chunk of streamChat(config, fullMessages, { signal: controller.signal })) {
-      if (requestId !== activeRequestId) {
+    const recoveryCallResult = streamChatWithRecovery(config, fullMessages, { signal: controller.signal });
+
+    let recoveryResult: Awaited<ReturnType<typeof streamChatWithRecovery>>;
+    if (isAsyncIterable(recoveryCallResult)) {
+      for await (const chunk of recoveryCallResult) {
+        if (requestId !== activeRequestId) {
+          return;
+        }
+
+        if (chunk.type === 'thinking') {
+          thinkingBuffer.value += chunk.text;
+        } else {
+          contentBuffer.value += chunk.text;
+        }
+        scrollToBottom();
+      }
+
+      recoveryResult = {
+        content: contentBuffer.value,
+        thinking: thinkingBuffer.value || undefined,
+        retries: 0,
+        downgraded: false,
+        diagnostics: {
+          provider: '',
+          model: config.model,
+          retryable: false,
+        },
+      };
+    } else {
+      recoveryResult = await recoveryCallResult;
+      if (requestId !== activeRequestId || controller.signal.aborted) {
         return;
       }
 
-      if (chunk.type === 'thinking') {
-        thinkingBuffer.value += chunk.text;
-      } else {
-        contentBuffer.value += chunk.text;
-      }
+      contentBuffer.value = recoveryResult.content;
+      thinkingBuffer.value = recoveryResult.thinking || '';
       scrollToBottom();
-    }
-
-    if (requestId !== activeRequestId || controller.signal.aborted) {
-      return;
     }
 
     chatMessages.value.push({
       role: 'assistant',
-      content: contentBuffer.value,
-      thinking: thinkingBuffer.value || undefined,
+      content: recoveryResult.content,
+      thinking: recoveryResult.thinking || undefined,
     });
     saveChatHistory(chatMessages.value, chatHistoryScope.value);
     lastFailedQuestion.value = '';
     lastFailedAssistantMessage.value = null;
+    requestDiagnostics.value = '';
+
+    if (recoveryResult.downgraded) {
+      message.warning('首包前断流，已自动降级为非流式重试并恢复结果');
+    }
   } catch (err: any) {
     if (requestId !== activeRequestId || err?.name === 'AbortError' || controller.signal.aborted) {
       return;
@@ -421,11 +478,26 @@ const sendToAi = async (question?: string) => {
       if (err.details.provider) errorMeta.push(`provider: ${err.details.provider}`);
       if (err.details.model) errorMeta.push(`model: ${err.details.model}`);
       if (err.details.traceId) errorMeta.push(`trace: ${err.details.traceId}`);
+      if (typeof err.details.status === 'number') errorMeta.push(`http: ${err.details.status}`);
+      if (typeof err.details.retries === 'number') errorMeta.push(`retries: ${err.details.retries}`);
+      if (err.details.downgradedToModel && err.details.downgradeStrategy === 'model-fallback') {
+        errorMeta.push(`已降级模型重试: ${err.details.downgradedFromModel} → ${err.details.downgradedToModel}`);
+      } else if (err.details.downgradeStrategy === 'non-stream') {
+        errorMeta.push('已降级为非流式重试');
+      }
+      requestDiagnostics.value = buildDiagnosticsText({
+        provider: err.details.provider,
+        model: err.details.model,
+        traceId: err.details.traceId,
+        status: err.details.status,
+        retries: err.details.retries,
+      });
       console.error('[ai-analysis] request failed', {
         message: err.message,
         ...err.details,
       });
     } else {
+      requestDiagnostics.value = '';
       console.error('[ai-analysis] request failed', err);
     }
     requestErrorMeta.value = errorMeta;
@@ -470,6 +542,12 @@ const handleRetry = () => {
   void sendToAi(retryQuestion);
 };
 
+const handleCopyDiagnostics = async () => {
+  if (!requestDiagnostics.value) return;
+  await navigator.clipboard.writeText(requestDiagnostics.value);
+  message.success('诊断信息已复制');
+};
+
 const handleSend = () => {
   const q = userInput.value.trim();
   if (!q) return;
@@ -492,6 +570,7 @@ watch(
     if (open) return;
     requestError.value = '';
     requestErrorMeta.value = [];
+    requestDiagnostics.value = '';
     lastFailedQuestion.value = '';
     lastFailedAssistantMessage.value = null;
     cancelActiveRequest();
@@ -504,6 +583,7 @@ watch(
   () => {
     lastFailedQuestion.value = '';
     requestErrorMeta.value = [];
+    requestDiagnostics.value = '';
     lastFailedAssistantMessage.value = null;
     if (!streaming.value) return;
     activeRequestId += 1;
@@ -523,6 +603,7 @@ const handleClearChat = () => {
   userInput.value = '';
   requestError.value = '';
   requestErrorMeta.value = [];
+  requestDiagnostics.value = '';
   lastFailedQuestion.value = '';
   lastFailedAssistantMessage.value = null;
   clearChatHistory(chatHistoryScope.value);

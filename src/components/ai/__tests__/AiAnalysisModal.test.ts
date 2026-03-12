@@ -7,12 +7,13 @@ import AiAnalysisModal from '@/components/ai/AiAnalysisModal.vue';
 import { createChatDraftScopeKey } from '@/utils/ai';
 import { useFinanceStore } from '@/stores/finance';
 
-const { messageSuccess, messageError, messageInfo, loadAiConfigMock, streamChatMock, exportChatHistoryMock } = vi.hoisted(() => ({
+const { messageSuccess, messageError, messageInfo, messageWarning, loadAiConfigMock, streamChatWithRecoveryMock, exportChatHistoryMock } = vi.hoisted(() => ({
   messageSuccess: vi.fn(),
   messageError: vi.fn(),
   messageInfo: vi.fn(),
+  messageWarning: vi.fn(),
   loadAiConfigMock: vi.fn(),
-  streamChatMock: vi.fn(),
+  streamChatWithRecoveryMock: vi.fn(),
   exportChatHistoryMock: vi.fn(),
 }));
 
@@ -24,6 +25,7 @@ vi.mock('ant-design-vue', async () => {
       success: messageSuccess,
       error: messageError,
       info: messageInfo,
+      warning: messageWarning,
     },
   };
 });
@@ -33,7 +35,7 @@ vi.mock('@/utils/ai', async () => {
   return {
     ...actual,
     loadAiConfig: loadAiConfigMock,
-    streamChat: streamChatMock,
+    streamChatWithRecovery: streamChatWithRecoveryMock,
     exportChatHistory: exportChatHistoryMock,
   };
 });
@@ -125,7 +127,7 @@ describe('AiAnalysisModal', () => {
     messageError.mockReset();
     messageInfo.mockReset();
     loadAiConfigMock.mockReset();
-    streamChatMock.mockReset();
+    streamChatWithRecoveryMock.mockReset();
     exportChatHistoryMock.mockReset();
 
     const store = useFinanceStore();
@@ -185,7 +187,7 @@ describe('AiAnalysisModal', () => {
 
   it('流式分析期间会锁定账户范围切换，并在发送后清空当前范围草稿', async () => {
     let releaseStream: (() => void) | null = null;
-    streamChatMock.mockImplementation(async function* () {
+    streamChatWithRecoveryMock.mockImplementation(async function* () {
       yield { type: 'thinking', text: '先看趋势' };
       await new Promise<void>((resolve) => {
         releaseStream = resolve;
@@ -217,7 +219,7 @@ describe('AiAnalysisModal', () => {
   it('关闭抽屉时会中止流式请求，并且不写回过期结果', async () => {
     let resolveChunk: (() => void) | null = null;
     let capturedSignal: AbortSignal | undefined;
-    streamChatMock.mockImplementation(async function* (_config: unknown, _messages: ChatMessage[], options?: { signal?: AbortSignal }) {
+    streamChatWithRecoveryMock.mockImplementation(async function* (_config: unknown, _messages: ChatMessage[], options?: { signal?: AbortSignal }) {
       capturedSignal = options?.signal;
       yield { type: 'thinking', text: '先分析上下文' };
       await new Promise<void>((resolve) => {
@@ -248,7 +250,7 @@ describe('AiAnalysisModal', () => {
   });
 
   it('请求失败时会保留已提交问题、展示内联错误，并允许一键重试而不污染历史', async () => {
-    streamChatMock
+    streamChatWithRecoveryMock
       .mockImplementationOnce(async function* () {
         throw new Error('网络异常');
       })
@@ -279,7 +281,7 @@ describe('AiAnalysisModal', () => {
     await flushPromises();
     await nextTick();
 
-    expect(streamChatMock).toHaveBeenCalledTimes(2);
+    expect(streamChatWithRecoveryMock).toHaveBeenCalledTimes(2);
     expect(wrapper.findAll('.msg-row')).toHaveLength(2);
     expect(wrapper.findAll('.msg-row')[1]?.text()).toContain('重试后恢复成功');
     expect(wrapper.find('[role="alert"]').exists()).toBe(false);
@@ -290,7 +292,7 @@ describe('AiAnalysisModal', () => {
 
   it('empty_stream 首包前断开时会展示可恢复提示，并记录 provider/model/trace 元信息', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    streamChatMock.mockImplementationOnce(async function* () {
+    streamChatWithRecoveryMock.mockImplementationOnce(async function* () {
       throw new AiRequestError('API 请求失败 (500): 上游流式连接在返回首包前断开，请重试', {
         status: 500,
         provider: 'api.deepseek.com',
@@ -322,7 +324,7 @@ describe('AiAnalysisModal', () => {
   });
 
   it('首包超时等可恢复错误时不会把请求当成成功完成，也不会留下空白 assistant 消息', async () => {
-    streamChatMock.mockImplementationOnce(async function* () {
+    streamChatWithRecoveryMock.mockImplementationOnce(async function* () {
       throw new AiRequestError('已发出请求，但长时间未收到首包响应，请稍后重试', {
         provider: 'api.openai.com',
         model: 'gpt-4o-mini',
@@ -347,7 +349,7 @@ describe('AiAnalysisModal', () => {
   });
 
   it('请求失败后可以把上次问题恢复到输入框继续编辑，并清掉错误横幅', async () => {
-    streamChatMock.mockImplementationOnce(async function* () {
+    streamChatWithRecoveryMock.mockImplementationOnce(async function* () {
       throw new Error('网络异常');
     });
 
@@ -375,7 +377,7 @@ describe('AiAnalysisModal', () => {
   });
 
   it('流式中途失败时会保留已有 thinking 和 partial content，避免用户丢失已生成内容', async () => {
-    streamChatMock
+    streamChatWithRecoveryMock
       .mockImplementationOnce(async function* () {
         yield { type: 'thinking', text: '先梳理现金流风险' };
         yield { type: 'content', text: '已经确认下月中旬可能出现缺口。' };
@@ -423,7 +425,7 @@ describe('AiAnalysisModal', () => {
   });
 
   it('失败后切换 scope 时会清掉旧错误条并加载新 scope 历史', async () => {
-    streamChatMock.mockImplementationOnce(async function* () {
+    streamChatWithRecoveryMock.mockImplementationOnce(async function* () {
       throw new Error('临时故障');
     });
 
@@ -456,7 +458,7 @@ describe('AiAnalysisModal', () => {
 
   it('流式过程中若账户范围变化，会丢弃旧请求结果并切到新 scope', async () => {
     let releaseStream: (() => void) | null = null;
-    streamChatMock.mockImplementation(async function* () {
+    streamChatWithRecoveryMock.mockImplementation(async function* () {
       yield { type: 'thinking', text: '旧上下文分析中' };
       await new Promise<void>((resolve) => {
         releaseStream = resolve;
@@ -497,12 +499,12 @@ describe('AiAnalysisModal', () => {
     await wrapper.find('button.preset-item').trigger('click');
     await nextTick();
 
-    expect(streamChatMock).not.toHaveBeenCalled();
+    expect(streamChatWithRecoveryMock).not.toHaveBeenCalled();
     expect(wrapper.find('.ai-config-modal-stub').exists()).toBe(true);
   });
 
   it('导出对话会带上当前 scope 的消息并给出成功提示', async () => {
-    streamChatMock.mockImplementation(async function* () {
+    streamChatWithRecoveryMock.mockImplementation(async function* () {
       yield { type: 'thinking', text: '先看现金流' };
       yield { type: 'content', text: '这是分析结果' };
     });
@@ -542,7 +544,7 @@ describe('AiAnalysisModal', () => {
   });
 
   it('Enter 会直接发送，Shift+Enter 仅保留输入且不触发发送', async () => {
-    streamChatMock.mockImplementation(async function* () {
+    streamChatWithRecoveryMock.mockImplementation(async function* () {
       yield { type: 'content', text: '回车发送成功' };
     });
 
@@ -553,20 +555,20 @@ describe('AiAnalysisModal', () => {
     await textarea.trigger('keydown.enter', { shiftKey: true });
     await nextTick();
 
-    expect(streamChatMock).not.toHaveBeenCalled();
+    expect(streamChatWithRecoveryMock).not.toHaveBeenCalled();
     expect((textarea.element as HTMLTextAreaElement).value).toBe('按回车发送');
 
     await textarea.trigger('keydown.enter');
     await flushPromises();
     await nextTick();
 
-    expect(streamChatMock).toHaveBeenCalledTimes(1);
+    expect(streamChatWithRecoveryMock).toHaveBeenCalledTimes(1);
     expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('');
     expect(wrapper.text()).toContain('回车发送成功');
   });
 
   it('点击预设会直接发起分析，但不会清掉当前草稿输入框', async () => {
-    streamChatMock.mockImplementation(async function* () {
+    streamChatWithRecoveryMock.mockImplementation(async function* () {
       yield { type: 'content', text: '预设分析结果' };
     });
 
@@ -579,7 +581,7 @@ describe('AiAnalysisModal', () => {
     await flushPromises();
     await nextTick();
 
-    expect(streamChatMock).toHaveBeenCalledTimes(1);
+    expect(streamChatWithRecoveryMock).toHaveBeenCalledTimes(1);
     expect(wrapper.findAll('.msg-row')[0]?.text()).toContain('请分析我的财务状况');
     expect(wrapper.text()).toContain('预设分析结果');
     expect((wrapper.find('textarea.a-textarea').element as HTMLTextAreaElement).value).toBe('稍后再问的草稿');
@@ -587,7 +589,7 @@ describe('AiAnalysisModal', () => {
   });
 
   it('点击预设时会复用最近对话历史，避免同一会话上下文突然丢失', async () => {
-    streamChatMock.mockImplementation(async function* () {
+    streamChatWithRecoveryMock.mockImplementation(async function* () {
       yield { type: 'content', text: '第一轮回答' };
     });
 
@@ -598,8 +600,8 @@ describe('AiAnalysisModal', () => {
     await flushPromises();
     await nextTick();
 
-    streamChatMock.mockReset();
-    streamChatMock.mockImplementation(async function* () {
+    streamChatWithRecoveryMock.mockReset();
+    streamChatWithRecoveryMock.mockImplementation(async function* () {
       yield { type: 'content', text: '第二轮预设回答' };
     });
 
@@ -607,8 +609,8 @@ describe('AiAnalysisModal', () => {
     await flushPromises();
     await nextTick();
 
-    expect(streamChatMock).toHaveBeenCalledTimes(1);
-    const [, messages] = streamChatMock.mock.calls[0] as [unknown, ChatMessage[]];
+    expect(streamChatWithRecoveryMock).toHaveBeenCalledTimes(1);
+    const [, messages] = streamChatWithRecoveryMock.mock.calls[0] as [unknown, ChatMessage[]];
     expect(messages[0]).toEqual(expect.objectContaining({ role: 'system' }));
     expect(messages).toEqual(expect.arrayContaining([
       { role: 'user', content: '第一轮问题' },
@@ -619,7 +621,7 @@ describe('AiAnalysisModal', () => {
   });
 
   it('手动修改问题后再次发送，不会把上一次失败 partial 当成同题重试去替换', async () => {
-    streamChatMock
+    streamChatWithRecoveryMock
       .mockImplementationOnce(async function* () {
         yield { type: 'content', text: '旧问题的半截回答' };
         throw new Error('临时失败');
@@ -658,7 +660,7 @@ describe('AiAnalysisModal', () => {
   });
 
   it('同题重试再次失败时，只保留最新一轮 partial，不会把多次失败残片叠进历史', async () => {
-    streamChatMock
+    streamChatWithRecoveryMock
       .mockImplementationOnce(async function* () {
         yield { type: 'thinking', text: '第一次思路' };
         yield { type: 'content', text: '第一次半截回答' };
