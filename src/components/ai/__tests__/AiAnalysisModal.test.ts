@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ChatMessage, ChatRecord } from '@/utils/ai';
+import { AiRequestError, type ChatMessage, type ChatRecord } from '@/utils/ai';
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
@@ -286,6 +286,64 @@ describe('AiAnalysisModal', () => {
     const store = useFinanceStore();
     const historyKey = `fm-ai-chat:${[store.accounts[0].id, store.accounts[1].id].sort().join(',')}`;
     expect(localStorage.getItem(historyKey) ?? '').toContain('重试后恢复成功');
+  });
+
+  it('empty_stream 首包前断开时会展示可恢复提示，并记录 provider/model/trace 元信息', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    streamChatMock.mockImplementationOnce(async function* () {
+      throw new AiRequestError('API 请求失败 (500): 上游流式连接在返回首包前断开，请重试', {
+        status: 500,
+        provider: 'api.deepseek.com',
+        model: 'deepseek-chat',
+        traceId: 'trace-empty-stream',
+        code: 'empty_stream',
+        type: 'server_error',
+        retryable: true,
+      });
+    });
+
+    const wrapper = await mountModal();
+    await wrapper.find('textarea.a-textarea').setValue('分析 empty stream');
+    await wrapper.find('button.a-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.find('[role="alert"]').text()).toContain('分析未完成，但可以恢复');
+    expect(wrapper.find('[role="alert"]').text()).toContain('请求失败: API 请求失败 (500): 上游流式连接在返回首包前断开，请重试');
+    expect(wrapper.find('[role="alert"]').text()).toContain('provider: api.deepseek.com');
+    expect(wrapper.find('[role="alert"]').text()).toContain('model: deepseek-chat');
+    expect(wrapper.find('[role="alert"]').text()).toContain('trace: trace-empty-stream');
+    expect(errorSpy).toHaveBeenCalledWith('[ai-analysis] request failed', expect.objectContaining({
+      provider: 'api.deepseek.com',
+      model: 'deepseek-chat',
+      traceId: 'trace-empty-stream',
+      code: 'empty_stream',
+    }));
+  });
+
+  it('首包超时等可恢复错误时不会把请求当成成功完成，也不会留下空白 assistant 消息', async () => {
+    streamChatMock.mockImplementationOnce(async function* () {
+      throw new AiRequestError('已发出请求，但长时间未收到首包响应，请稍后重试', {
+        provider: 'api.openai.com',
+        model: 'gpt-4o-mini',
+        code: 'AI_FIRST_PAYLOAD_TIMEOUT',
+        retryable: true,
+      });
+    });
+
+    const wrapper = await mountModal();
+    await wrapper.find('textarea.a-textarea').setValue('看看是否超时');
+    await wrapper.find('button.a-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    const rows = wrapper.findAll('.msg-row');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.text()).toContain('看看是否超时');
+    expect(wrapper.text()).not.toContain('正在分析...');
+    expect(wrapper.text()).toContain('请求失败: 已发出请求，但长时间未收到首包响应，请稍后重试');
+    expect(wrapper.find('[role="alert"]').text()).toContain('provider: api.openai.com');
+    expect(wrapper.find('[role="alert"]').text()).toContain('model: gpt-4o-mini');
   });
 
   it('请求失败后可以把上次问题恢复到输入框继续编辑，并清掉错误横幅', async () => {

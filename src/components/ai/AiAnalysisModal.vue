@@ -93,7 +93,11 @@
     <!-- 底部输入 -->
     <div class="input-bar">
       <div v-if="requestError" class="request-error-banner" role="alert">
-        <span>{{ requestError }}</span>
+        <div class="request-error-copy">
+          <strong>分析未完成，但可以恢复</strong>
+          <span>{{ requestError }}</span>
+          <div v-if="requestErrorMeta.length" class="request-error-meta">{{ requestErrorMeta.join(' · ') }}</div>
+        </div>
         <div class="request-error-actions">
           <button
             class="request-retry-btn"
@@ -164,6 +168,7 @@ import {
   loadChatDraft,
   saveChatDraft,
   clearChatDraft,
+  AiRequestError,
   type ChatMessage,
   type ChatRecord,
 } from '@/utils/ai';
@@ -205,6 +210,7 @@ watch(
   chatHistoryScope,
   () => {
     requestError.value = '';
+    requestErrorMeta.value = [];
   },
   { deep: true },
 );
@@ -237,6 +243,7 @@ const contentBuffer = ref('');
 const thinkingBuffer = ref('');
 const userInput = ref('');
 const requestError = ref('');
+const requestErrorMeta = ref<string[]>([]);
 const lastSubmittedQuestion = ref('');
 const lastFailedQuestion = ref('');
 const lastFailedAssistantMessage = ref<ChatRecord | null>(null);
@@ -343,6 +350,7 @@ const sendToAi = async (question?: string) => {
   }
 
   requestError.value = '';
+  requestErrorMeta.value = [];
   lastSubmittedQuestion.value = displayQuestion;
   if (!isRetryingFailedQuestion) {
     lastFailedQuestion.value = '';
@@ -408,6 +416,20 @@ const sendToAi = async (question?: string) => {
     const errorMessage = err?.message || '未知错误';
     requestError.value = `请求失败: ${errorMessage}`;
 
+    const errorMeta: string[] = [];
+    if (err instanceof AiRequestError) {
+      if (err.details.provider) errorMeta.push(`provider: ${err.details.provider}`);
+      if (err.details.model) errorMeta.push(`model: ${err.details.model}`);
+      if (err.details.traceId) errorMeta.push(`trace: ${err.details.traceId}`);
+      console.error('[ai-analysis] request failed', {
+        message: err.message,
+        ...err.details,
+      });
+    } else {
+      console.error('[ai-analysis] request failed', err);
+    }
+    requestErrorMeta.value = errorMeta;
+
     lastFailedQuestion.value = lastSubmittedQuestion.value;
 
     if (contentBuffer.value || thinkingBuffer.value) {
@@ -437,6 +459,7 @@ const handleRestoreFailedQuestion = () => {
   const retryQuestion = lastSubmittedQuestion.value.trim();
   if (!retryQuestion || streaming.value) return;
   requestError.value = '';
+  requestErrorMeta.value = [];
   userInput.value = retryQuestion;
   saveChatDraft(userInput.value, chatHistoryScope.value);
 };
@@ -451,6 +474,7 @@ const handleSend = () => {
   const q = userInput.value.trim();
   if (!q) return;
   requestError.value = '';
+  requestErrorMeta.value = [];
   clearChatDraft(chatHistoryScope.value);
   userInput.value = '';
   sendToAi(q);
@@ -467,6 +491,7 @@ watch(
   (open) => {
     if (open) return;
     requestError.value = '';
+    requestErrorMeta.value = [];
     lastFailedQuestion.value = '';
     lastFailedAssistantMessage.value = null;
     cancelActiveRequest();
@@ -478,6 +503,7 @@ watch(
   chatHistoryScope,
   () => {
     lastFailedQuestion.value = '';
+    requestErrorMeta.value = [];
     lastFailedAssistantMessage.value = null;
     if (!streaming.value) return;
     activeRequestId += 1;
@@ -496,6 +522,7 @@ const handleClearChat = () => {
   chatMessages.value = [];
   userInput.value = '';
   requestError.value = '';
+  requestErrorMeta.value = [];
   lastFailedQuestion.value = '';
   lastFailedAssistantMessage.value = null;
   clearChatHistory(chatHistoryScope.value);
@@ -813,7 +840,7 @@ const handleExport = () => {
 
 .request-error-banner {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
   padding: 10px 12px;
@@ -821,6 +848,24 @@ const handleExport = () => {
   background: #b91c1c;
   color: #fff;
   font-size: 0.82rem;
+}
+
+.request-error-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.request-error-copy strong {
+  font-size: 0.82rem;
+}
+
+.request-error-meta {
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.84);
+  word-break: break-word;
 }
 
 .request-error-actions {

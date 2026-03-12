@@ -166,3 +166,8 @@
   - Why: 月度汇总是最常被拿去做对比/年终统计的口径；导出可避免手抄或截图。
   - Verify: npm test; npm run type-check
   - Commit: 1aef5f7
+
+- 2026-03-12 | fix(ai): 修复财务分析助手流式首包前断流 empty_stream 的可恢复错误处理。
+  - Why: 上游流式连接在首包前断开时，之前会把失败误判成“分析结束”或留空白输出；同时缺少明确恢复路径与足够日志，用户只能手工重试。
+  - Deliverables: `streamChat` 新增首包超时/总超时 abort、首包前空流结束判定为 `empty_stream`、结构化 `AiRequestError`（provider/model/trace id/code/type）；AI 抽屉新增“分析未完成，但可以恢复”横幅、保留草稿/继续编辑/直接重试，并记录错误元信息到控制台日志。
+  - Verify: npm test; npm run type-check

@@ -504,6 +504,140 @@ export interface StreamChunk {
     text: string;
 }
 
+export interface AiRequestErrorDetails {
+    status?: number;
+    provider: string;
+    model: string;
+    traceId?: string;
+    code?: string;
+    type?: string;
+    retryable: boolean;
+}
+
+export class AiRequestError extends Error {
+    details: AiRequestErrorDetails;
+
+    constructor(message: string, details: AiRequestErrorDetails) {
+        super(message);
+        this.name = 'AiRequestError';
+        this.details = details;
+    }
+}
+
+const AI_STREAM_FIRST_PAYLOAD_TIMEOUT_MS = 15_000;
+const AI_STREAM_TOTAL_TIMEOUT_MS = 120_000;
+
+const getAiProviderLabel = (baseUrl: string): string => {
+    try {
+        return new URL(baseUrl).hostname || 'unknown';
+    } catch {
+        return 'unknown';
+    }
+};
+
+const getTraceIdFromHeaders = (headers: Headers): string | undefined => {
+    const traceHeaderNames = [
+        'x-trace-id',
+        'trace-id',
+        'x-request-id',
+        'request-id',
+        'anthropic-request-id',
+        'openai-request-id',
+        'x-openai-request-id',
+        'cf-ray',
+        'traceparent',
+    ];
+
+    for (const name of traceHeaderNames) {
+        const value = headers.get(name)?.trim();
+        if (value) return value;
+    }
+
+    return undefined;
+};
+
+const parseJsonSafely = (input: string): unknown => {
+    try {
+        return JSON.parse(input);
+    } catch {
+        return null;
+    }
+};
+
+const normalizeServerErrorPayload = (rawText: string, headers: Headers) => {
+    const parsed = parseJsonSafely(rawText) as Record<string, any> | null;
+    const nestedError = parsed?.error && typeof parsed.error === 'object' ? parsed.error : null;
+    const message = nestedError?.message || parsed?.message || rawText;
+    const code = nestedError?.code || parsed?.code;
+    const type = nestedError?.type || parsed?.type;
+    const traceId = nestedError?.trace_id || nestedError?.traceId || parsed?.trace_id || parsed?.traceId || getTraceIdFromHeaders(headers);
+
+    return {
+        message: typeof message === 'string' && message.trim() ? message.trim() : rawText,
+        code: typeof code === 'string' ? code : undefined,
+        type: typeof type === 'string' ? type : undefined,
+        traceId: typeof traceId === 'string' ? traceId : undefined,
+    };
+};
+
+const buildAiRequestError = (
+    message: string,
+    config: AiConfig,
+    extra?: Partial<AiRequestErrorDetails>,
+): AiRequestError => new AiRequestError(message, {
+    provider: getAiProviderLabel(config.baseUrl),
+    model: config.model.trim() || DEFAULT_AI_MODEL,
+    retryable: true,
+    ...extra,
+});
+
+const composeAbortSignal = (signals: Array<AbortSignal | undefined>): AbortSignal => {
+    const controller = new AbortController();
+    const cleanups: Array<() => void> = [];
+
+    const abortFromSignal = (signal: AbortSignal) => {
+        if (controller.signal.aborted) return;
+        controller.abort(signal.reason);
+        cleanups.splice(0).forEach((cleanup) => cleanup());
+    };
+
+    for (const signal of signals) {
+        if (!signal) continue;
+        if (signal.aborted) {
+            abortFromSignal(signal);
+            break;
+        }
+        const onAbort = () => abortFromSignal(signal);
+        signal.addEventListener('abort', onAbort, { once: true });
+        cleanups.push(() => signal.removeEventListener('abort', onAbort));
+    }
+
+    return controller.signal;
+};
+
+const createTimeoutSignal = (timeoutMs: number, reason: string) => {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+        controller.abort(new DOMException(reason, 'TimeoutError'));
+    }, timeoutMs);
+
+    return {
+        signal: controller.signal,
+        dispose: () => window.clearTimeout(timer),
+    };
+};
+
+const isTimeoutAbort = (error: unknown): boolean => {
+    return error instanceof DOMException && error.name === 'TimeoutError';
+};
+
+const getRecoverableStreamFailureMessage = (errorMessage: string): string => {
+    if (errorMessage.includes('empty_stream')) {
+        return '上游流式连接在返回首包前断开，请重试';
+    }
+    return errorMessage;
+};
+
 export async function* streamChat(
     config: AiConfig,
     messages: ChatMessage[],
@@ -511,63 +645,164 @@ export async function* streamChat(
 ): AsyncGenerator<StreamChunk, void, unknown> {
     const sanitizedConfig = sanitizeAiConfig(config);
     const targetUrl = buildAiChatCompletionsUrl(sanitizedConfig.baseUrl);
+    const firstPayloadTimeout = createTimeoutSignal(AI_STREAM_FIRST_PAYLOAD_TIMEOUT_MS, 'AI_FIRST_PAYLOAD_TIMEOUT');
+    const totalTimeout = createTimeoutSignal(AI_STREAM_TOTAL_TIMEOUT_MS, 'AI_TOTAL_TIMEOUT');
+    const signal = composeAbortSignal([options?.signal, firstPayloadTimeout.signal, totalTimeout.signal]);
 
-    const response = await fetch('/api/ai-proxy', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Target-Url': targetUrl,
-            'X-Auth': `Bearer ${sanitizedConfig.apiKey}`,
-        },
-        body: JSON.stringify({
-            model: sanitizedConfig.model,
-            messages,
-            stream: true,
-            temperature: 0.7,
-        }),
-        signal: options?.signal,
-    });
+    let response: Response;
+    try {
+        response = await fetch('/api/ai-proxy', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Target-Url': targetUrl,
+                'X-Auth': `Bearer ${sanitizedConfig.apiKey}`,
+            },
+            body: JSON.stringify({
+                model: sanitizedConfig.model,
+                messages,
+                stream: true,
+                temperature: 0.7,
+            }),
+            signal,
+        });
+    } catch (error) {
+        firstPayloadTimeout.dispose();
+        totalTimeout.dispose();
+
+        if (options?.signal?.aborted) {
+            throw error;
+        }
+
+        if (isTimeoutAbort(signal.reason)) {
+            const timeoutMessage = signal.reason.message === 'AI_TOTAL_TIMEOUT'
+                ? '分析超时，已自动停止本次请求，请稍后重试'
+                : '已发出请求，但长时间未收到首包响应，请稍后重试';
+            throw buildAiRequestError(timeoutMessage, sanitizedConfig, { code: signal.reason.message });
+        }
+
+        throw buildAiRequestError(`请求失败: ${error instanceof Error ? error.message : '网络异常'}`, sanitizedConfig, {
+            type: error instanceof Error ? error.name : undefined,
+        });
+    }
 
     if (!response.ok) {
+        firstPayloadTimeout.dispose();
+        totalTimeout.dispose();
         const errorText = await response.text();
-        throw new Error(`API 请求失败 (${response.status}): ${errorText}`);
+        const normalizedError = normalizeServerErrorPayload(errorText, response.headers);
+        throw buildAiRequestError(
+            `API 请求失败 (${response.status}): ${getRecoverableStreamFailureMessage(normalizedError.message)}`,
+            sanitizedConfig,
+            {
+                status: response.status,
+                traceId: normalizedError.traceId,
+                code: normalizedError.code,
+                type: normalizedError.type,
+                retryable: response.status >= 500 || normalizedError.code === 'empty_stream',
+            },
+        );
     }
 
     const reader = response.body?.getReader();
-    if (!reader) throw new Error('无法读取响应流');
+    if (!reader) {
+        firstPayloadTimeout.dispose();
+        totalTimeout.dispose();
+        throw buildAiRequestError('无法读取响应流', sanitizedConfig, {
+            traceId: getTraceIdFromHeaders(response.headers),
+            retryable: true,
+        });
+    }
 
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
+    let receivedFirstPayload = false;
 
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+    const consumeSseLine = (line: string): StreamChunk[] => {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) return [];
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        const data = trimmed.slice(6);
+        if (data === '[DONE]') {
+            return [];
+        }
 
-        for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed || !trimmed.startsWith('data: ')) continue;
-            const data = trimmed.slice(6);
-            if (data === '[DONE]') return;
-            try {
-                const parsed = JSON.parse(data);
-                const delta = parsed.choices?.[0]?.delta;
-                if (!delta) continue;
+        try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta;
+            if (!delta) return [];
 
-                // 支持 reasoning_content（DeepSeek 等模型的思考过程）
-                if (delta.reasoning_content) {
-                    yield { type: 'thinking', text: delta.reasoning_content };
+            const chunks: StreamChunk[] = [];
+            if (delta.reasoning_content) {
+                chunks.push({ type: 'thinking', text: delta.reasoning_content });
+            }
+            if (delta.content) {
+                chunks.push({ type: 'content', text: delta.content });
+            }
+            if (chunks.length) {
+                receivedFirstPayload = true;
+                firstPayloadTimeout.dispose();
+            }
+            return chunks;
+        } catch {
+            return [];
+        }
+    };
+
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+                buffer += decoder.decode();
+                const lines = buffer.split('\n');
+                for (const line of lines) {
+                    for (const chunk of consumeSseLine(line)) {
+                        yield chunk;
+                    }
                 }
-                if (delta.content) {
-                    yield { type: 'content', text: delta.content };
+
+                if (!receivedFirstPayload) {
+                    throw buildAiRequestError('API 请求失败 (500): 上游流式连接在返回首包前断开，请重试', sanitizedConfig, {
+                        status: response.status || 500,
+                        traceId: getTraceIdFromHeaders(response.headers),
+                        code: 'empty_stream',
+                        type: 'server_error',
+                        retryable: true,
+                    });
                 }
-            } catch {
-                // skip
+                break;
+            }
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                for (const chunk of consumeSseLine(line)) {
+                    yield chunk;
+                }
             }
         }
+    } catch (error) {
+        if (options?.signal?.aborted) {
+            throw error;
+        }
+
+        if (isTimeoutAbort(signal.reason)) {
+            const timeoutMessage = signal.reason.message === 'AI_TOTAL_TIMEOUT'
+                ? '分析超时，已自动停止本次请求，请稍后重试'
+                : '已发出请求，但长时间未收到首包响应，请稍后重试';
+            throw buildAiRequestError(timeoutMessage, sanitizedConfig, {
+                traceId: getTraceIdFromHeaders(response.headers),
+                code: signal.reason.message,
+            });
+        }
+
+        throw error;
+    } finally {
+        firstPayloadTimeout.dispose();
+        totalTimeout.dispose();
+        reader.releaseLock();
     }
 }
 
