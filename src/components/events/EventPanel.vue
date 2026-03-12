@@ -27,21 +27,44 @@
       <div class="focus-banner-copy">
         <strong>{{ activeFocus.title }}</strong>
         <p>{{ activeFocus.summary }}</p>
-        <p v-if="activeChartFocus?.detail" class="focus-detail">{{ activeChartFocus.detail }}</p>
+
+        <div v-if="activeChartFocus" class="focus-detail focus-detail--chart">
+          <div class="focus-detail-row">
+            <span class="focus-detail-label">当前时间窗内发生日：</span>
+            <span class="focus-detail-text">{{ chartFocusDatesText }}</span>
+          </div>
+          <div class="focus-detail-actions">
+            <a-button size="small" type="text" @click="toggleChartDatesExpanded">
+              {{ chartDatesExpanded ? '收起' : '展开' }}
+            </a-button>
+            <a-button size="small" type="text" @click="copyAllChartDates">复制全部日期</a-button>
+          </div>
+        </div>
+
         <p v-else-if="activeListFocus?.detail" class="focus-detail">{{ activeListFocus.detail }}</p>
       </div>
       <div class="focus-banner-actions">
         <template v-if="activeChartFocus">
           <div v-if="activeChartFocus.matchedDates.length > 1" class="focus-date-list" aria-label="当前时间窗内发生日列表">
             <button
-              v-for="(matchedDate, index) in activeChartFocus.matchedDates"
+              v-for="matchedDate in visibleChartFocusDates"
               :key="matchedDate"
               type="button"
               class="focus-date-chip"
-              :class="{ active: index === activeChartFocus.occurrenceIndex }"
-              @click="focusChartOccurrence(index)"
+              :class="{ active: matchedDate === activeChartFocus.date }"
+              @click="focusChartDate(matchedDate)"
             >
               {{ matchedDate }}
+            </button>
+            <button
+              v-if="!chartDatesExpanded && activeChartFocus.matchedDates.length > visibleChartFocusDates.length"
+              type="button"
+              class="focus-date-more"
+              @click="toggleChartDatesExpanded"
+              title="展开全部日期"
+            >
+              …
+              <span class="focus-date-more-count">共 {{ activeChartFocus.matchedDates.length }} 个日期</span>
             </button>
           </div>
           <a-button size="small" @click="stepChartFocus(-1)" :disabled="!activeChartFocus.canFocusPrev">上一个日期</a-button>
@@ -108,6 +131,37 @@ const chartFocusState = ref<EventChartFocusState | null>(null);
 const activeChartFocus = computed(() => chartFocusState.value);
 const activeListFocus = computed(() => props.focusState ?? null);
 const activeFocus = computed(() => activeChartFocus.value ?? activeListFocus.value ?? null);
+
+const CHART_FOCUS_DATES_COLLAPSED_COUNT = 5;
+const chartDatesExpanded = ref(false);
+
+const visibleChartFocusDates = computed(() => {
+  const focus = activeChartFocus.value;
+  if (!focus) return [];
+
+  const total = focus.matchedDates.length;
+  if (chartDatesExpanded.value || total <= CHART_FOCUS_DATES_COLLAPSED_COUNT) {
+    return focus.matchedDates;
+  }
+
+  const limit = CHART_FOCUS_DATES_COLLAPSED_COUNT;
+  const half = Math.floor(limit / 2);
+  const maxStart = Math.max(0, total - limit);
+  const start = Math.min(Math.max(0, focus.occurrenceIndex - half), maxStart);
+  return focus.matchedDates.slice(start, start + limit);
+});
+
+const chartFocusDatesText = computed(() => {
+  const focus = activeChartFocus.value;
+  if (!focus) return '';
+
+  const labels = visibleChartFocusDates.value.map((date) => (date === focus.date ? `当前：${date}` : date));
+  const suffix = focus.matchedDates.length > visibleChartFocusDates.value.length
+    ? `、…（共 ${focus.matchedDates.length} 个日期）`
+    : `（共 ${focus.matchedDates.length} 个日期）`;
+
+  return `${labels.join('、')}${suffix}`;
+});
 const isReadOnly = computed(() => store.isReadOnly);
 const readOnlyReason = computed(() => {
   if (store.isMultiAccountView) {
@@ -145,6 +199,7 @@ watch(
   () => props.focusState,
   () => {
     chartFocusState.value = null;
+    chartDatesExpanded.value = false;
   },
 );
 
@@ -202,6 +257,7 @@ const closeModal = () => {
 
 const clearFocus = () => {
   chartFocusState.value = null;
+  chartDatesExpanded.value = false;
   emit('clear-focus');
 };
 
@@ -213,13 +269,16 @@ const handleFocusChart = (event: CashFlowEvent) => {
   }
 
   chartFocusState.value = focus;
+  chartDatesExpanded.value = false;
   emit('focus-chart-date', focus.date);
 };
 
-const focusChartOccurrence = (occurrenceIndex: number) => {
-  if (!chartFocusState.value) return;
+const toggleChartDatesExpanded = () => {
+  chartDatesExpanded.value = !chartDatesExpanded.value;
+};
 
-  const targetDate = chartFocusState.value.matchedDates[occurrenceIndex];
+const focusChartDate = (targetDate: string) => {
+  if (!chartFocusState.value) return;
   if (!targetDate || targetDate === chartFocusState.value.date) return;
 
   const event = events.value.find((item) => item.id === chartFocusState.value?.eventId);
@@ -233,6 +292,18 @@ const focusChartOccurrence = (occurrenceIndex: number) => {
 
   chartFocusState.value = nextFocus;
   emit('focus-chart-date', nextFocus.date);
+};
+
+const copyAllChartDates = async () => {
+  const focus = activeChartFocus.value;
+  if (!focus) return;
+
+  try {
+    await navigator.clipboard.writeText(focus.matchedDates.join('\n'));
+    message.success('已复制全部日期');
+  } catch {
+    message.error('复制失败：浏览器未授予剪贴板权限');
+  }
 };
 
 const stepChartFocus = (direction: -1 | 1) => {
