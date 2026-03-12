@@ -28,7 +28,7 @@ import { generateSampleEvents } from '@/utils/sample-data';
 import { formatLocalISODate } from '@/utils/date';
 import { aggregateAccountTimelines } from '@/utils/timeline-aggregate';
 import { buildEventsCsv, buildEventsJson, type EventExportFormat } from '@/utils/export-events';
-import { clearChatPersistenceByAccountIds } from '@/utils/ai';
+import { clearChatPersistenceByAccountIds } from '@/utils/ai-storage';
 
 const storage = createStateRepository();
 const generator = new TimelineGenerator();

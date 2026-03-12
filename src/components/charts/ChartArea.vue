@@ -129,7 +129,7 @@ const ReconciliationModal = defineAsyncComponent(() => import('@/components/reco
 const AiAnalysisModal = defineAsyncComponent(() => import('@/components/ai/AiAnalysisModal.vue'));
 const AiConfigModal = defineAsyncComponent(() => import('@/components/ai/AiConfigModal.vue'));
 const loadAiConfig = async () => {
-  const mod = await import('@/utils/ai');
+  const mod = await import('@/utils/ai-config');
   return mod.loadAiConfig();
 };
 

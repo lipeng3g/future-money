@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
-import { loadAiConfig, saveAiConfig, type AiConfig } from '@/utils/ai';
+import { loadAiConfig, saveAiConfig, type AiConfig } from '@/utils/ai-config';
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits(['cancel', 'saved']);

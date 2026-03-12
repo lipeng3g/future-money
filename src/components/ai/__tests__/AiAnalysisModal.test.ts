@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AiRequestError, type ChatMessage, type ChatRecord } from '@/utils/ai';
+import { AiRequestError, type ChatMessage } from '@/utils/ai';
+import type { ChatRecord } from '@/utils/ai-storage';
+import { createChatDraftScopeKey } from '@/utils/ai-storage';
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import AiAnalysisModal from '@/components/ai/AiAnalysisModal.vue';
-import { createChatDraftScopeKey } from '@/utils/ai';
 import { useFinanceStore } from '@/stores/finance';
 
 const { messageSuccess, messageError, messageInfo, messageWarning, loadAiConfigMock, streamChatWithRecoveryMock, exportChatHistoryMock } = vi.hoisted(() => ({
@@ -34,8 +35,22 @@ vi.mock('@/utils/ai', async () => {
   const actual = await vi.importActual<typeof import('@/utils/ai')>('@/utils/ai');
   return {
     ...actual,
-    loadAiConfig: loadAiConfigMock,
     streamChatWithRecovery: streamChatWithRecoveryMock,
+  };
+});
+
+vi.mock('@/utils/ai-config', async () => {
+  const actual = await vi.importActual<typeof import('@/utils/ai-config')>('@/utils/ai-config');
+  return {
+    ...actual,
+    loadAiConfig: loadAiConfigMock,
+  };
+});
+
+vi.mock('@/utils/ai-storage', async () => {
+  const actual = await vi.importActual<typeof import('@/utils/ai-storage')>('@/utils/ai-storage');
+  return {
+    ...actual,
     exportChatHistory: exportChatHistoryMock,
   };
 });

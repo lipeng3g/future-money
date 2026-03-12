@@ -164,12 +164,8 @@ import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { message } from 'ant-design-vue';
 import { useFinanceStore } from '@/stores/finance';
 import AiConfigModal from '@/components/ai/AiConfigModal.vue';
+import { loadAiConfig } from '@/utils/ai-config';
 import {
-  loadAiConfig,
-  streamChatWithRecovery,
-  buildFinancialSummary,
-  buildScopedFinancialContext,
-  createAnalysisMessages,
   loadChatHistory,
   saveChatHistory,
   clearChatHistory,
@@ -177,9 +173,15 @@ import {
   loadChatDraft,
   saveChatDraft,
   clearChatDraft,
+  type ChatRecord,
+} from '@/utils/ai-storage';
+import {
+  streamChatWithRecovery,
+  buildFinancialSummary,
+  buildScopedFinancialContext,
+  createAnalysisMessages,
   AiRequestError,
   type ChatMessage,
-  type ChatRecord,
 } from '@/utils/ai';
 import {
   createCachedMarkdownRenderer,
