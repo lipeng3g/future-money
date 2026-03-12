@@ -103,7 +103,12 @@ describe('EventCard', () => {
     const accountDot = wrapper.find('.account-dot');
     expect(accountDot.attributes('style')).toContain('background: rgb(34, 197, 94)');
 
-    await wrapper.find('.chart-focus-link').trigger('click');
+    const focusLink = wrapper.find('.chart-focus-link');
+    expect(focusLink.exists()).toBe(true);
+    expect(focusLink.text()).toBe('查看图上日期');
+    expect(focusLink.attributes('class')).toContain('chart-focus-link');
+
+    await focusLink.trigger('click');
     expect(wrapper.emitted('focus-chart')?.[0]?.[0]).toMatchObject({ id: 'evt-rent' });
   });
 

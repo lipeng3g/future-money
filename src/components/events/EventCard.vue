@@ -147,7 +147,7 @@ const handleToggle = (checked: boolean) => {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 0%;
 }
 
 .event-header {
@@ -207,10 +207,13 @@ const handleToggle = (checked: boolean) => {
   padding: 0;
   cursor: pointer;
   max-width: 100%;
+  min-width: 0;
   white-space: normal;
   word-break: break-word;
+  overflow-wrap: anywhere;
   text-align: left;
   line-height: 1.35;
+  flex: 0 1 auto;
 }
 
 .chart-focus-link:hover {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { AiRequestError, streamChat, type ChatMessage } from '@/utils/ai';
+import { AiRequestError, streamChat, streamChatWithRecovery, type ChatMessage } from '@/utils/ai';
 
 const sampleMessages: ChatMessage[] = [
   { role: 'user', content: '帮我分析' },
@@ -11,7 +11,7 @@ const sampleConfig = {
   model: 'deepseek-chat',
 };
 
-describe('streamChat', () => {
+describe('streamChat / streamChatWithRecovery', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
@@ -117,5 +117,194 @@ describe('streamChat', () => {
         retryable: true,
       }),
     });
+  });
+
+  it('empty_stream 时会按指数退避自动重试，并在后续流式成功时返回完整结果', async () => {
+    vi.useFakeTimers();
+
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    const emptyReader = {
+      read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
+      releaseLock: vi.fn(),
+    };
+    const successReader = {
+      read: vi.fn()
+        .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode('data: {"choices":[{"delta":{"content":"恢复成功"}}]}\n\n') })
+        .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode('data: [DONE]\n\n') })
+        .mockResolvedValueOnce({ done: true, value: undefined }),
+      releaseLock: vi.fn(),
+    };
+
+    fetchMock
+      .mockResolvedValueOnce(new Response(new ReadableStream(), {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'x-request-id': 'trace-retry-1',
+        },
+      }) as Response)
+      .mockResolvedValueOnce(new Response(new ReadableStream(), {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'x-request-id': 'trace-retry-2',
+        },
+      }) as Response);
+
+    vi.spyOn(Response.prototype, 'body', 'get')
+      .mockReturnValueOnce({ getReader: () => emptyReader } as ReadableStream<Uint8Array>)
+      .mockReturnValueOnce({ getReader: () => successReader } as ReadableStream<Uint8Array>);
+
+    const resultPromise = streamChatWithRecovery(sampleConfig, sampleMessages);
+    await vi.advanceTimersByTimeAsync(300);
+    const result = await resultPromise;
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({
+      content: '恢复成功',
+      retries: 1,
+      downgraded: false,
+      diagnostics: expect.objectContaining({
+        provider: 'api.deepseek.com',
+        model: 'deepseek-chat',
+        retries: 1,
+      }),
+    });
+  });
+
+  it('empty_stream 重试耗尽后会自动降级为非流式补拉，并记录降级诊断', async () => {
+    vi.useFakeTimers();
+
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    const emptyReaderA = {
+      read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
+      releaseLock: vi.fn(),
+    };
+    const emptyReaderB = {
+      read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
+      releaseLock: vi.fn(),
+    };
+    const emptyReaderC = {
+      read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
+      releaseLock: vi.fn(),
+    };
+
+    fetchMock
+      .mockResolvedValueOnce(new Response(new ReadableStream(), {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream', 'x-request-id': 'trace-empty-a' },
+      }) as Response)
+      .mockResolvedValueOnce(new Response(new ReadableStream(), {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream', 'x-request-id': 'trace-empty-b' },
+      }) as Response)
+      .mockResolvedValueOnce(new Response(new ReadableStream(), {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream', 'x-request-id': 'trace-empty-c' },
+      }) as Response)
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        choices: [
+          {
+            message: {
+              content: '非流式补拉成功',
+            },
+          },
+        ],
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'x-request-id': 'trace-fallback' },
+      }));
+
+    vi.spyOn(Response.prototype, 'body', 'get')
+      .mockReturnValueOnce({ getReader: () => emptyReaderA } as ReadableStream<Uint8Array>)
+      .mockReturnValueOnce({ getReader: () => emptyReaderB } as ReadableStream<Uint8Array>)
+      .mockReturnValueOnce({ getReader: () => emptyReaderC } as ReadableStream<Uint8Array>);
+
+    const resultPromise = streamChatWithRecovery({ ...sampleConfig, model: 'gpt-5.4' }, sampleMessages);
+    await vi.advanceTimersByTimeAsync(300 + 800);
+    const result = await resultPromise;
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    const fallbackCall = fetchMock.mock.calls[3];
+    expect(JSON.parse(String(fallbackCall?.[1]?.body))).toMatchObject({
+      model: 'gpt-5.2',
+      stream: false,
+    });
+    expect(result).toMatchObject({
+      content: '非流式补拉成功',
+      retries: 2,
+      downgraded: true,
+      diagnostics: expect.objectContaining({
+        traceId: 'trace-fallback',
+        retries: 2,
+        downgradedFromModel: 'gpt-5.4',
+        downgradedToModel: 'gpt-5.2',
+        downgradeStrategy: 'model-fallback',
+      }),
+    });
+  });
+
+  it('empty_stream 重试与降级都失败时，会抛出带 httpStatus/traceId/retries 的可恢复错误', async () => {
+    vi.useFakeTimers();
+
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    const emptyReaderA = {
+      read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
+      releaseLock: vi.fn(),
+    };
+    const emptyReaderB = {
+      read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
+      releaseLock: vi.fn(),
+    };
+    const emptyReaderC = {
+      read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
+      releaseLock: vi.fn(),
+    };
+
+    fetchMock
+      .mockResolvedValueOnce(new Response(new ReadableStream(), {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream', 'x-request-id': 'trace-empty-a' },
+      }) as Response)
+      .mockResolvedValueOnce(new Response(new ReadableStream(), {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream', 'x-request-id': 'trace-empty-b' },
+      }) as Response)
+      .mockResolvedValueOnce(new Response(new ReadableStream(), {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream', 'x-request-id': 'trace-empty-c' },
+      }) as Response)
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        error: {
+          message: 'empty_stream: upstream stream closed before first payload',
+          type: 'server_error',
+          trace_id: 'trace-fallback-failed',
+        },
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }));
+
+    vi.spyOn(Response.prototype, 'body', 'get')
+      .mockReturnValueOnce({ getReader: () => emptyReaderA } as ReadableStream<Uint8Array>)
+      .mockReturnValueOnce({ getReader: () => emptyReaderB } as ReadableStream<Uint8Array>)
+      .mockReturnValueOnce({ getReader: () => emptyReaderC } as ReadableStream<Uint8Array>);
+
+    const resultPromise = streamChatWithRecovery({ ...sampleConfig, model: 'gpt-5.4' }, sampleMessages);
+    const rejectionExpectation = expect(resultPromise).rejects.toMatchObject({
+      name: 'AiRequestError',
+      details: expect.objectContaining({
+        status: 500,
+        traceId: 'trace-fallback-failed',
+        code: 'empty_stream',
+        retries: 2,
+        downgradedFromModel: 'gpt-5.4',
+        downgradedToModel: 'gpt-5.2',
+        downgradeStrategy: 'model-fallback',
+      }),
+    });
+
+    await vi.advanceTimersByTimeAsync(300 + 800);
+    await rejectionExpectation;
   });
 });
