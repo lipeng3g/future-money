@@ -10,7 +10,9 @@
     "vendor-date-": { "maxBytes": 30720 },
     "vendor-markdown-": { "maxBytes": 112640 },
     "vendor-charts-": { "maxBytes": 593920, "warnBytes": 573440 },
-    "vendor-antd-": { "maxBytes": 778240, "warnBytes": 757760 }
+    "vendor-antd-": { "maxBytes": 778240, "warnBytes": 757760 },
+    "chart-balance-runtime-": { "maxBytes": 204800, "warnBytes": 184320 },
+    "chart-cashflow-runtime-": { "maxBytes": 61440, "warnBytes": 51200 }
   },
   "requiredChunks": [
     "index-",
