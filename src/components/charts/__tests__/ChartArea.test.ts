@@ -156,7 +156,7 @@ describe('ChartArea', () => {
     vi.useRealTimers();
   });
 
-  it('图表进入视口前先展示骨架，占位不立即加载重图表，并在浏览器空闲时静默预热 runtime', async () => {
+  it('图表进入视口前先展示骨架，占位不立即加载重图表，也不会预热 ECharts runtime', async () => {
     const store = useFinanceStore();
     store.reconcile('2026-03-01', 5000, [], '初始对账');
 
@@ -166,18 +166,17 @@ describe('ChartArea', () => {
     expect(observerInstances).toHaveLength(2);
     expect(preloadChartRuntime).not.toHaveBeenCalled();
 
+    // 不做 requestIdleCallback/空闲预热，避免首屏在弱网下额外拉取图表依赖。
     await vi.advanceTimersByTimeAsync(0);
     await flushAsyncComponents();
 
-    expect(preloadChartRuntime).toHaveBeenCalledTimes(2);
-    expect(preloadChartRuntime).toHaveBeenNthCalledWith(1, 'balance', expect.any(Function));
-    expect(preloadChartRuntime).toHaveBeenNthCalledWith(2, 'cashflow', expect.any(Function));
+    expect(preloadChartRuntime).not.toHaveBeenCalled();
     expect(wrapper.html()).toContain('chart-skeleton');
     expect(wrapper.find('.balance-chart-stub').exists()).toBe(false);
     expect(wrapper.find('.cashflow-chart-stub').exists()).toBe(false);
   });
 
-  it('对应卡片进入视口后才分别加载余额图和月度图', async () => {
+  it('对应卡片进入视口后才分别加载余额图和月度图，并开始预热对应 runtime', async () => {
     const store = useFinanceStore();
     store.reconcile('2026-03-01', 5000, [], '初始对账');
 
@@ -189,14 +188,16 @@ describe('ChartArea', () => {
 
     expect(wrapper.find('.balance-chart-stub').exists()).toBe(true);
     expect(wrapper.find('.cashflow-chart-stub').exists()).toBe(false);
+    expect(preloadChartRuntime).toHaveBeenCalledWith('balance', expect.any(Function));
 
     observerInstances[1]?.callback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
     await flushAsyncComponents();
 
     expect(wrapper.find('.cashflow-chart-stub').exists()).toBe(true);
+    expect(preloadChartRuntime).toHaveBeenCalledWith('cashflow', expect.any(Function));
   });
 
-  it('观察器迟迟不触发时，会按兜底定时器逐步加载图表，避免永久骨架', async () => {
+  it('观察器迟迟不触发时，会按兜底定时器逐步加载图表，并预热对应 runtime，避免永久骨架', async () => {
     const store = useFinanceStore();
     store.reconcile('2026-03-01', 5000, [], '初始对账');
 
@@ -211,11 +212,13 @@ describe('ChartArea', () => {
 
     expect(wrapper.find('.balance-chart-stub').exists()).toBe(true);
     expect(wrapper.find('.cashflow-chart-stub').exists()).toBe(false);
+    expect(preloadChartRuntime).toHaveBeenCalledWith('balance', expect.any(Function));
 
     await vi.advanceTimersByTimeAsync(800);
     await flushAsyncComponents();
 
     expect(wrapper.find('.cashflow-chart-stub').exists()).toBe(true);
+    expect(preloadChartRuntime).toHaveBeenCalledWith('cashflow', expect.any(Function));
   });
 
   it('切换预测范围时会通过容器接线更新 store，并把新范围传给图表数据源', async () => {
