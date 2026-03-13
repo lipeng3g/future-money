@@ -511,6 +511,39 @@ const loadSamples = () => {
 .focus-detail {
   margin-top: 6px;
   color: var(--fm-text-primary);
+  min-width: 0;
+}
+
+.focus-detail--chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.focus-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.focus-detail-label {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.focus-detail-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.focus-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: -8px;
 }
 
 .focus-banner-actions {
@@ -520,6 +553,7 @@ const loadSamples = () => {
   flex-wrap: wrap;
   justify-content: flex-end;
   min-width: 0;
+  max-width: 100%;
 }
 
 .focus-date-list {

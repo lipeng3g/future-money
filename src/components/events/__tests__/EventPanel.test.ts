@@ -243,6 +243,8 @@ describe('EventPanel', () => {
 
     expect(wrapper.text()).toContain('已定位到「房租」');
     expect(wrapper.text()).toContain('当前时间窗内发生日：2026-03-10、当前：2026-04-10、2026-05-10');
+    expect(wrapper.find('.focus-detail--chart').exists()).toBe(true);
+    expect(wrapper.find('.focus-detail-text').text()).toContain('当前：2026-04-10');
 
     const chips = wrapper.findAll('.focus-date-chip');
     expect(chips.length).toBeGreaterThanOrEqual(3);

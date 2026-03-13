@@ -213,7 +213,7 @@ const handleToggle = (checked: boolean) => {
   overflow-wrap: anywhere;
   text-align: left;
   line-height: 1.35;
-  flex: 0 1 auto;
+  flex: 0 1 100%;
 }
 
 .chart-focus-link:hover {
