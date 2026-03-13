@@ -307,17 +307,15 @@ describe('AiAnalysisModal', () => {
 
   it('empty_stream 首包前断开时会展示可恢复提示，并记录 provider/model/trace 元信息', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    streamChatWithRecoveryMock.mockImplementationOnce(async function* () {
-      throw new AiRequestError('API 请求失败 (500): 上游流式连接在返回首包前断开，请重试', {
-        status: 500,
-        provider: 'api.deepseek.com',
-        model: 'deepseek-chat',
-        traceId: 'trace-empty-stream',
-        code: 'empty_stream',
-        type: 'server_error',
-        retryable: true,
-      });
-    });
+    streamChatWithRecoveryMock.mockRejectedValueOnce(new AiRequestError('API 请求失败 (500): 上游流式连接在返回首包前断开，请重试', {
+      status: 500,
+      provider: 'api.deepseek.com',
+      model: 'deepseek-chat',
+      traceId: 'trace-empty-stream',
+      code: 'empty_stream',
+      type: 'server_error',
+      retryable: true,
+    }));
 
     const wrapper = await mountModal();
     await wrapper.find('textarea.a-textarea').setValue('分析 empty stream');
@@ -336,6 +334,44 @@ describe('AiAnalysisModal', () => {
       traceId: 'trace-empty-stream',
       code: 'empty_stream',
     }));
+  });
+
+  it('empty_stream 自动重试耗尽后仍失败时，会展示可复制诊断与可恢复提示', async () => {
+    streamChatWithRecoveryMock.mockRejectedValueOnce(new AiRequestError('API 请求失败 (500): 上游流式连接在返回首包前断开，请重试', {
+      status: 500,
+      provider: 'cli-proxy-api-latest-katr.onrender.com',
+      model: 'gpt-5.4',
+      traceId: 'trace-retries-exhausted',
+      code: 'empty_stream',
+      type: 'server_error',
+      retryable: true,
+      retries: 2,
+      downgradedFromModel: 'gpt-5.4',
+      downgradedToModel: 'gpt-5.2',
+      downgradeStrategy: 'model-fallback',
+    }));
+
+    const wrapper = await mountModal();
+    await wrapper.find('textarea.a-textarea').setValue('分析重试耗尽');
+    await wrapper.find('button.a-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    const alert = wrapper.find('[role="alert"]');
+    expect(alert.exists()).toBe(true);
+    expect(alert.text()).toContain('分析未完成，但可以恢复');
+    expect(alert.text()).toContain('provider: cli-proxy-api-latest-katr.onrender.com');
+    expect(alert.text()).toContain('model: gpt-5.4');
+    expect(alert.text()).toContain('trace: trace-retries-exhausted');
+    expect(alert.text()).toContain('http: 500');
+    expect(alert.text()).toContain('retries: 2');
+    expect(alert.text()).toContain('已降级模型重试: gpt-5.4 → gpt-5.2');
+    expect(alert.text()).toContain('诊断：provider=cli-proxy-api-latest-katr.onrender.com | model=gpt-5.4 | traceId=trace-retries-exhausted | httpStatus=500 | retries=2');
+
+    const rows = wrapper.findAll('.msg-row');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.text()).toContain('分析重试耗尽');
+    expect(wrapper.text()).not.toContain('正在分析...');
   });
 
   it('首包超时等可恢复错误时不会把请求当成成功完成，也不会留下空白 assistant 消息', async () => {
