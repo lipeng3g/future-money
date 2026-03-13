@@ -821,7 +821,7 @@ export async function* streamChat(
 
                 if (!receivedFirstPayload) {
                     throw buildAiRequestError('API 请求失败 (500): 上游流式连接在返回首包前断开，请重试', sanitizedConfig, {
-                        status: response.status || 500,
+                        status: 500,
                         traceId: getTraceIdFromHeaders(response.headers),
                         code: 'empty_stream',
                         type: 'server_error',
