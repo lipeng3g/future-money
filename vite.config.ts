@@ -123,7 +123,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks(id) {
+        manualChunks(id, api) {
           if (id.includes('/src/utils/echarts-balance.ts')) {
             return 'chart-balance-runtime';
           }
@@ -146,7 +146,53 @@ export default defineConfig({
             return 'vendor-charts';
           }
 
+          const isChartBalanceEntry = (moduleId: string) => moduleId.includes('/src/utils/echarts-balance.ts');
+          const isChartCashflowEntry = (moduleId: string) => moduleId.includes('/src/utils/echarts-cashflow.ts');
+
+          const collectChartRuntimeOwners = (moduleId: string, visited = new Set<string>()) => {
+            if (visited.has(moduleId)) {
+              return { balance: false, cashflow: false };
+            }
+            visited.add(moduleId);
+
+            if (isChartBalanceEntry(moduleId)) {
+              return { balance: true, cashflow: false };
+            }
+
+            if (isChartCashflowEntry(moduleId)) {
+              return { balance: false, cashflow: true };
+            }
+
+            const info = api?.getModuleInfo?.(moduleId);
+            if (!info) {
+              return { balance: false, cashflow: false };
+            }
+
+            return info.importers.reduce(
+              (acc, importer) => {
+                const next = collectChartRuntimeOwners(importer, visited);
+                return {
+                  balance: acc.balance || next.balance,
+                  cashflow: acc.cashflow || next.cashflow,
+                };
+              },
+              { balance: false, cashflow: false },
+            );
+          };
+
           if (id.includes('/echarts/lib/')) {
+            // Prevent Rollup from hoisting shared ECharts installers into one of the chart runtime chunks.
+            // Otherwise one runtime (often `chart-balance-runtime`) may become a de-facto shared chunk.
+            const owners = collectChartRuntimeOwners(id);
+            if (owners.balance && owners.cashflow) {
+              return 'chart-runtime-shared';
+            }
+            if (owners.balance) {
+              return 'chart-balance-runtime';
+            }
+            if (owners.cashflow) {
+              return 'chart-cashflow-runtime';
+            }
             return;
           }
 
