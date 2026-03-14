@@ -910,8 +910,6 @@ export const buildImportFreshnessSummary = (
   };
 };
 
-const formatYearMonth = (value: string) => value.slice(0, 7);
-
 const formatYearMonthList = (months: string[]) => {
   if (!months.length) return '';
   const maxItems = 6;

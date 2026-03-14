@@ -182,3 +182,8 @@
   - Why: 流式输出每个 chunk 都触发一次 `nextTick + scrollTop`，在长回答或高频 chunk 场景会造成明显的卡顿与掉帧。
   - Deliverables: 在 `AiAnalysisModal` 内新增 `scheduleScrollToBottom()`，把多次滚动请求合并到同一帧（优先 `requestAnimationFrame`，降级为 microtask/Promise）；并在流式 chunk 更新与消息追加处统一改用该节流方法。
   - Verify: npm test; npm run type-check; npm run build
+
+## 2026-03-14 23:10 CST
+- commit: pending
+- validation: npm test && npm run type-check && npm run build
+- note: Confirmed empty_stream auto-retry/diagnostics tests pass; removed unused formatYearMonth helper blocking type-check.
