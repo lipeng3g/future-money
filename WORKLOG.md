@@ -194,3 +194,8 @@
 [2026-03-15 01:09:00] deliverables: confirmed front-end auto retry + recovery tests already present on main; added Cloudflare ai-proxy response header forwarding for x-trace-id/trace-id/x-request-id/request-id/cf-ray and cache-control so production diagnostics panel can copy provider/model/traceId/httpStatus/retryCount more reliably after upstream first-packet disconnects
 [2026-03-15 01:09:00] validation: npm test && npm run type-check && npm run build
 [2026-03-15 01:09:00] commit: 963cf25 ai-proxy: forward upstream trace/request headers
+
+[2026-03-15 02:14:00] task: 删除账户时同步清理 AI 会话持久化，避免已删除账户的对话/草稿在刷新后回流
+[2026-03-15 02:14:00] deliverables: deleteAccount 增加 clearChatPersistenceByAccountIds([accountId])；新增 finance-smoke 回归覆盖“删除账户后该账户与跨账户 scope 的 history/draft 清空，但主账户 scope 保留”，并验证 reload 后不会回流
+[2026-03-15 02:14:00] validation: npm test -- src/stores/__tests__/finance-smoke.test.ts
+[2026-03-15 02:14:00] commit: 6ae7eb1 fix(ai): clear scoped chat persistence when deleting an account
