@@ -881,6 +881,7 @@ export const useFinanceStore = defineStore('finance', () => {
     reconciliations.value = reconciliations.value.filter((r) => r.accountId !== accountId);
     ledgerEntries.value = ledgerEntries.value.filter((e) => e.accountId !== accountId);
     eventOverrides.value = eventOverrides.value.filter((o) => o.accountId !== accountId);
+    clearChatPersistenceByAccountIds([accountId]);
 
     accounts.value = accounts.value.filter((a) => a.id !== accountId);
     if (currentAccountId.value === accountId) {
