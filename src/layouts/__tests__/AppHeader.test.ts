@@ -231,6 +231,7 @@ describe('AppHeader', () => {
       monthlyDay: 10,
       enabled: true,
     });
+    store.reconcile('2026-03-20', 6800, [], '当前对账');
     const secondary = store.addAccount({ name: '旅行基金', warningThreshold: 300 });
     store.addEvent({
       accountId: secondary.id,
@@ -317,6 +318,126 @@ describe('AppHeader', () => {
     expect(store.currentAccountId).toBe(originalAccountId);
     expect(store.events.filter((event) => event.accountId === originalAccountId)).toHaveLength(1);
     expect(store.events.filter((event) => event.accountId === secondary.id)).toHaveLength(1);
+  });
+
+  it('单账户导入确认框会展示日期覆盖范围，并在备份更旧/覆盖更窄时提示风险', async () => {
+    const store = useFinanceStore();
+
+    store.addEvent({
+      name: '三月工资',
+      amount: 5000,
+      category: 'income',
+      type: 'monthly',
+      startDate: '2026-01-01',
+      monthlyDay: 10,
+      enabled: true,
+    });
+    store.reconcile('2026-03-20', 6800, [], '当前对账');
+
+    const wrapper = mountHeader();
+    await wrapper.findAll('button.a-button').find((node) => node.text() === '账户管理')?.trigger('click');
+    await nextTick();
+
+    await wrapper.find('button.trigger-import-current').trigger('click');
+
+    const currentBackup = {
+      version: '2.0.0',
+      timestamp: '2026-02-16T01:00:00.000Z',
+      scope: 'current',
+      state: {
+        version: '2.0.0',
+        account: {
+          id: 'cash',
+          name: '旧账户',
+          typeLabel: '现金',
+          initialBalance: 3000,
+          currency: '¥',
+          warningThreshold: 800,
+          color: '#3b82f6',
+          iconKey: 'wallet',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
+        accounts: [
+          {
+            id: 'cash',
+            name: '旧账户',
+            typeLabel: '现金',
+            initialBalance: 3000,
+            currency: '¥',
+            warningThreshold: 800,
+            color: '#3b82f6',
+            iconKey: 'wallet',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        events: [
+          {
+            id: 'evt-1',
+            accountId: 'cash',
+            name: '旧工资',
+            amount: 8000,
+            category: 'income',
+            type: 'monthly',
+            startDate: '2026-01-01',
+            endDate: '2026-02-15',
+            monthlyDay: 8,
+            enabled: true,
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-02-15T00:00:00.000Z',
+          },
+        ],
+        preferences: store.preferences,
+        snapshots: [],
+        reconciliations: [
+          {
+            id: 'recon-1',
+            accountId: 'cash',
+            date: '2026-02-10',
+            balance: 3000,
+            note: '旧对账',
+            createdAt: '2026-02-10T00:00:00.000Z',
+          },
+        ],
+        ledgerEntries: [
+          {
+            id: 'ledger-1',
+            accountId: 'cash',
+            reconciliationId: 'recon-1',
+            ruleId: 'evt-1',
+            name: '旧工资',
+            amount: 8000,
+            category: 'income',
+            date: '2026-02-15',
+            source: 'rule',
+            createdAt: '2026-02-15T00:00:00.000Z',
+            updatedAt: '2026-02-15T00:00:00.000Z',
+          },
+        ],
+        eventOverrides: [],
+      },
+    };
+
+    const fileInput = wrapper.find('input.file-input').element as HTMLInputElement;
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [{ name: 'stale-import-current.json', __text: JSON.stringify(currentBackup) }],
+    });
+    await wrapper.find('input.file-input').trigger('change');
+    await flushPromises();
+
+    expect(modalConfirm).toHaveBeenCalledTimes(1);
+    const config = modalConfirm.mock.calls[0][0];
+    const contentText = extractText(config.content);
+
+    expect(config.title).toContain('导入到当前账户');
+    expect(contentText).toContain('日期覆盖范围');
+    expect(contentText).toContain('当前账户日期覆盖：2026-01-01 → 2026-03-20');
+    expect(contentText).toContain('备份文件日期覆盖：2026-01-01 → 2026-02-15');
+    expect(contentText).toContain('注意：这份备份可能比当前本地更旧');
+    expect(contentText).toContain('备份文件的最新日期比当前本地早约');
+    expect(contentText).toContain('注意：备份的日期覆盖范围可能更窄');
   });
 
   it('账户管理里的导出按钮会按 current/all 模式生成对应文件名', async () => {

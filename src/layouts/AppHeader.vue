@@ -537,21 +537,66 @@ const confirmImportCurrent = (content: string, fileName: string) => {
   const backupTime = summary.timestamp
     ? new Date(summary.timestamp).toLocaleString('zh-CN', { hour12: false })
     : '未知';
+
   const incomingEvents = incomingState.events
     .filter((event) => event.accountId === incomingState.account.id);
+  const incomingReconciliations = incomingState.reconciliations
+    .filter((item) => item.accountId === incomingState.account.id);
+  const incomingLedgerEntries = incomingState.ledgerEntries
+    .filter((item) => item.accountId === incomingState.account.id);
+
   const currentEvents = store.events
     .filter((event) => event.accountId === targetAccount.id);
+  const currentReconciliations = store.reconciliations
+    .filter((item) => item.accountId === targetAccount.id);
+  const currentLedgerEntries = store.ledgerEntries
+    .filter((item) => item.accountId === targetAccount.id);
+
   const eventDiff = buildImportSingleAccountEventDiffSummary(incomingEvents, currentEvents);
   const eventDiffRows = [
     eventDiff.addedEventNames.length ? `将新增：${eventDiff.addedEventNames.join('、')}` : null,
     eventDiff.removedEventNames.length ? `将移除：${eventDiff.removedEventNames.join('、')}` : null,
     eventDiff.keptEventNames.length ? `保持存在：${eventDiff.keptEventNames.join('、')}` : null,
   ].filter((row): row is string => !!row);
+
+  const dateRange = buildImportDateRangeSummary({
+    events: incomingEvents,
+    reconciliations: incomingReconciliations,
+    ledgerEntries: incomingLedgerEntries,
+  }, {
+    events: currentEvents,
+    reconciliations: currentReconciliations,
+    ledgerEntries: currentLedgerEntries,
+  });
+  const freshness = buildImportFreshnessSummary({
+    events: incomingEvents,
+    reconciliations: incomingReconciliations,
+    ledgerEntries: incomingLedgerEntries,
+  }, {
+    events: currentEvents,
+    reconciliations: currentReconciliations,
+    ledgerEntries: currentLedgerEntries,
+  });
+  const coverageLoss = buildImportCoverageLossSummary({
+    events: incomingEvents,
+    reconciliations: incomingReconciliations,
+    ledgerEntries: incomingLedgerEntries,
+  }, {
+    events: currentEvents,
+    reconciliations: currentReconciliations,
+    ledgerEntries: currentLedgerEntries,
+  });
+
   const sanitizeDiscardRows = sanitizeDiscards.map((item) => (
     `${item.label}：原始 ${item.rawCount} → sanitize 后 ${item.sanitizedCount}（过滤 ${item.discardedCount}）` + (item.reason ? `；${item.reason}` : '')
   ));
   let inputValue = '';
   const confirmText = '导入当前账户';
+
+  const dateRangeRows = [
+    `当前账户日期覆盖：${dateRange.currentRangeLabel}`,
+    `备份文件日期覆盖：${dateRange.incomingRangeLabel}`,
+  ];
 
   Modal.confirm({
     title: `导入到当前账户「${targetAccount.name}」？`,
@@ -584,6 +629,32 @@ const confirmImportCurrent = (content: string, fileName: string) => {
           ...sanitizeDiscardRows.map((row) => h('div', row)),
         ])
         : null,
+      freshness
+        ? h('div', {
+          style: `background: ${freshness.level === 'warning' ? '#fff7ed' : '#eff6ff'}; border: 1px solid ${freshness.level === 'warning' ? '#fdba74' : '#bfdbfe'}; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;`,
+        }, [
+          h('div', {
+            style: `font-weight: 600; margin-bottom: 6px; color: ${freshness.level === 'warning' ? '#9a3412' : '#1d4ed8'};`,
+          }, freshness.title),
+          h('div', { style: 'margin-bottom: 6px;' }, freshness.detail),
+          h('div', `当前账户最新日期：${freshness.currentLatestDate}`),
+          h('div', `备份文件最新日期：${freshness.incomingLatestDate}`),
+        ])
+        : null,
+      coverageLoss
+        ? h('div', {
+          style: 'background: #fff7ed; border: 1px solid #fdba74; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7; color: #9a3412;',
+        }, [
+          h('div', { style: 'font-weight: 600; margin-bottom: 6px;' }, coverageLoss.title),
+          h('div', { style: 'margin-bottom: 6px; color: #7c2d12;' }, coverageLoss.detail),
+          h('div', `当前账户日期覆盖：${coverageLoss.currentRangeLabel}`),
+          h('div', `备份文件日期覆盖：${coverageLoss.incomingRangeLabel}`),
+        ])
+        : null,
+      h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
+        h('div', { style: 'font-weight: 600; margin-bottom: 6px; color: #0f172a;' }, '日期覆盖范围'),
+        ...dateRangeRows.map((row) => h('div', row)),
+      ]),
       h('p', { style: 'margin-bottom: 8px;' }, `请输入“${confirmText}”以继续：`),
       h('input', {
         type: 'text',
