@@ -367,6 +367,32 @@ const buildDiagnosticsText = (parts: {
   ].filter(Boolean).join(' | ');
 };
 
+const notifyRecoveryMode = (diagnostics?: {
+  retries?: number;
+  downgradeStrategy?: 'non-stream' | 'model-fallback';
+  downgradedFromModel?: string;
+  downgradedToModel?: string;
+}) => {
+  const retried = typeof diagnostics?.retries === 'number' && diagnostics.retries > 0;
+  const downgradedByModel = diagnostics?.downgradeStrategy === 'model-fallback'
+    && diagnostics.downgradedFromModel
+    && diagnostics.downgradedToModel;
+
+  if (downgradedByModel) {
+    message.warning(`首包前断流，已自动降级模型重试：${diagnostics.downgradedFromModel} → ${diagnostics.downgradedToModel}`);
+    return;
+  }
+
+  if (diagnostics?.downgradeStrategy === 'non-stream') {
+    message.warning('首包前断流，已自动降级为非流式重试并恢复结果');
+    return;
+  }
+
+  if (retried) {
+    message.warning('首包前断流，已自动重试并恢复结果');
+  }
+};
+
 const isAsyncIterable = (value: unknown): value is AsyncIterable<{ type: 'content' | 'thinking'; text: string }> => {
   return !!value && typeof (value as AsyncIterable<unknown>)[Symbol.asyncIterator] === 'function';
 };
@@ -487,9 +513,7 @@ const sendToAi = async (question?: string) => {
     lastFailedAssistantMessage.value = null;
     requestDiagnostics.value = '';
 
-    if (recoveryResult.downgraded) {
-      message.warning('首包前断流，已自动降级为非流式重试并恢复结果');
-    }
+    notifyRecoveryMode(recoveryResult.diagnostics);
   } catch (err: any) {
     if (requestId !== activeRequestId || err?.name === 'AbortError' || controller.signal.aborted) {
       return;

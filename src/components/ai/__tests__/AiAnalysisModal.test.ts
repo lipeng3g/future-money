@@ -144,6 +144,7 @@ describe('AiAnalysisModal', () => {
     loadAiConfigMock.mockReset();
     streamChatWithRecoveryMock.mockReset();
     exportChatHistoryMock.mockReset();
+    messageWarning.mockReset();
 
     const store = useFinanceStore();
     store.setSimulatedToday('2026-03-09');
@@ -334,6 +335,36 @@ describe('AiAnalysisModal', () => {
       traceId: 'trace-empty-stream',
       code: 'empty_stream',
     }));
+  });
+
+  it('empty_stream 自动重试后成功时，用户不会看到重复输出，并会提示已自动重试恢复', async () => {
+    streamChatWithRecoveryMock.mockResolvedValueOnce({
+      content: '自动重试后恢复成功',
+      thinking: undefined,
+      retries: 1,
+      downgraded: false,
+      diagnostics: {
+        provider: 'cli-proxy-api-latest-katr.onrender.com',
+        model: 'gpt-5.4',
+        traceId: 'trace-retry-success',
+        retries: 1,
+        retryable: false,
+      },
+    });
+
+    const wrapper = await mountModal();
+    await wrapper.find('textarea.a-textarea').setValue('分析自动重试成功');
+    await wrapper.find('button.a-button').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    const rows = wrapper.findAll('.msg-row');
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.text()).toContain('分析自动重试成功');
+    expect(rows[1]?.text()).toContain('自动重试后恢复成功');
+    expect(wrapper.text()).not.toContain('正在分析...');
+    expect(messageWarning).toHaveBeenCalledWith('首包前断流，已自动重试并恢复结果');
   });
 
   it('empty_stream 自动重试耗尽后仍失败时，会展示可复制诊断与可恢复提示', async () => {
