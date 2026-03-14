@@ -95,8 +95,14 @@ describe('Cloudflare ai-proxy function', () => {
     }
   });
 
-  it('透传授权头与上游响应', async () => {
-    const upstreamHeaders = new Headers({ 'Content-Type': 'text/event-stream' });
+  it('透传授权头、上游响应以及诊断相关 trace/request headers', async () => {
+    const upstreamHeaders = new Headers({
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'private, no-store',
+      'x-request-id': 'req-upstream-123',
+      'x-trace-id': 'trace-upstream-456',
+      'cf-ray': 'ray-upstream-789',
+    });
     const upstreamResponse = new Response('data: ok\n\n', {
       status: 200,
       headers: upstreamHeaders,
@@ -129,7 +135,11 @@ describe('Cloudflare ai-proxy function', () => {
     expect(forwarded.body).toBeTruthy();
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('text/event-stream');
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
     expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    expect(response.headers.get('x-request-id')).toBe('req-upstream-123');
+    expect(response.headers.get('x-trace-id')).toBe('trace-upstream-456');
+    expect(response.headers.get('cf-ray')).toBe('ray-upstream-789');
     await expect(response.text()).resolves.toBe('data: ok\n\n');
   });
 

@@ -129,6 +129,40 @@ const isAllowedAiProxyTarget = (targetUrl: string): boolean => {
     return parsedUrl.pathname.replace(/\/+$/, '').endsWith('/chat/completions');
 };
 
+const FORWARDED_RESPONSE_HEADER_NAMES = [
+    'content-type',
+    'cache-control',
+    'x-trace-id',
+    'trace-id',
+    'x-request-id',
+    'request-id',
+    'anthropic-request-id',
+    'openai-request-id',
+    'x-openai-request-id',
+    'cf-ray',
+    'traceparent',
+] as const;
+
+const buildForwardedResponseHeaders = (upstreamHeaders: Headers): Headers => {
+    const headers = new Headers({
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': upstreamHeaders.get('Cache-Control') || 'no-cache',
+    });
+
+    for (const headerName of FORWARDED_RESPONSE_HEADER_NAMES) {
+        const value = upstreamHeaders.get(headerName);
+        if (value) {
+            headers.set(headerName, value);
+        }
+    }
+
+    if (!headers.has('Content-Type')) {
+        headers.set('Content-Type', 'text/event-stream');
+    }
+
+    return headers;
+};
+
 export const onRequestPost = async (context: ProxyFunctionContext) => {
     const request = context.request;
 
@@ -163,14 +197,10 @@ export const onRequestPost = async (context: ProxyFunctionContext) => {
             body: request.body,
         });
 
-        // 流式转发响应
+        // 流式转发响应，并尽量保留上游 request/trace headers，便于前端展示可复制诊断信息。
         return new Response(proxyRes.body, {
             status: proxyRes.status,
-            headers: {
-                'Content-Type': proxyRes.headers.get('Content-Type') || 'text/event-stream',
-                'Cache-Control': 'no-cache',
-                'Access-Control-Allow-Origin': '*',
-            },
+            headers: buildForwardedResponseHeaders(proxyRes.headers),
         });
     } catch (err: any) {
         return new Response(JSON.stringify({ error: `Proxy error: ${err.message}` }), {
