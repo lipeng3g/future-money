@@ -187,3 +187,7 @@
 - commit: 8b4f173 chore: unblock validation and confirm ai retry flow
 - validation: npm test && npm run type-check && npm run build
 - note: Confirmed empty_stream auto-retry/diagnostics tests pass; removed unused formatYearMonth helper blocking type-check.
+[2026-03-15 01:09:00] task: confirm P0 empty_stream mitigation is on origin/main and close remaining diagnostics gap in Cloudflare ai-proxy
+[2026-03-15 01:09:00] deliverables: confirmed front-end auto retry + recovery tests already present on main; added Cloudflare ai-proxy response header forwarding for x-trace-id/trace-id/x-request-id/request-id/cf-ray and cache-control so production diagnostics panel can copy provider/model/traceId/httpStatus/retryCount more reliably after upstream first-packet disconnects
+[2026-03-15 01:09:00] validation: npm test && npm run type-check && npm run build
+[2026-03-15 01:09:00] commit: 963cf25 ai-proxy: forward upstream trace/request headers
