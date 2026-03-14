@@ -206,3 +206,7 @@
 [2026-03-15 04:13:00] task: 验收 P0/P1 修复状态并确认 origin/main 无回归
 [2026-03-15 04:13:00] deliverables: 复核 main 已包含 empty_stream 自动重试/诊断信息/避免重复输出/可恢复提示测试、删除账户后清理 AI 会话持久化，以及“查看图上日期”布局修复；执行全量测试、类型检查与构建，确认当前 origin/main 可验收
 [2026-03-15 04:13:00] validation: npm test && npm run type-check && npm run build
+
+[2026-03-15 05:26:00] task: acceptance revalidation for P0 empty_stream mitigation, clear-chat refresh regression, and P1 event-card overflow before mandatory push
+[2026-03-15 05:26:00] deliverables: revalidated current origin/main tree already contains empty_stream pre-first-packet auto retry (300ms/800ms), fallback recovery path (model fallback to gpt-5.2 with UI notice), copyable diagnostics (provider/model/traceId/httpStatus/retries), duplicate-output suppression, scoped chat/draft cleanup on clear/delete refresh paths, and wrapped “查看图上日期” event-card layout; no source delta required beyond audit trail refresh
+[2026-03-15 05:26:00] validation: npm test && npm run type-check && npm run build
