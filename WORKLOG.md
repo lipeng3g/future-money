@@ -202,3 +202,7 @@
 [2026-03-15 02:14:00] deliverables: deleteAccount 增加 clearChatPersistenceByAccountIds([accountId])；新增 finance-smoke 回归覆盖“删除账户后该账户与跨账户 scope 的 history/draft 清空，但主账户 scope 保留”，并验证 reload 后不会回流
 [2026-03-15 02:14:00] validation: npm test -- src/stores/__tests__/finance-smoke.test.ts
 [2026-03-15 02:14:00] commit: 6ae7eb1 fix(ai): clear scoped chat persistence when deleting an account
+
+[2026-03-15 04:13:00] task: 验收 P0/P1 修复状态并确认 origin/main 无回归
+[2026-03-15 04:13:00] deliverables: 复核 main 已包含 empty_stream 自动重试/诊断信息/避免重复输出/可恢复提示测试、删除账户后清理 AI 会话持久化，以及“查看图上日期”布局修复；执行全量测试、类型检查与构建，确认当前 origin/main 可验收
+[2026-03-15 04:13:00] validation: npm test && npm run type-check && npm run build
