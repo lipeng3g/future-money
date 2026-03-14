@@ -4,6 +4,7 @@ import {
   buildImportAccountDiffSummary,
   buildImportAccountEventDiffSummary,
   buildImportDataDeltaSummary,
+  buildImportCoverageLossSummary,
   buildImportDateRangeSummary,
   buildImportFreshnessSummary,
   buildImportRiskSummary,
@@ -425,6 +426,28 @@ describe('parseImportPreview', () => {
       currentLatestDate: '2026-03-31',
       incomingLatestDate: '2026-04-09',
       lagDays: 0,
+    });
+  });
+
+  it('会在备份日期覆盖范围更窄时给出覆盖丢失提示', () => {
+    const coverageLoss = buildImportCoverageLossSummary({
+      events: [{ startDate: '2025-02-01', endDate: '2026-02-15' }],
+      reconciliations: [{ date: '2026-01-01' }],
+      ledgerEntries: [{ date: '2026-02-15' }],
+    } as never, {
+      events: [{ startDate: '2025-01-01', endDate: '2026-03-31' }],
+      reconciliations: [{ date: '2026-03-18' }],
+      ledgerEntries: [{ date: '2026-03-31' }],
+    } as never);
+
+    expect(coverageLoss).toEqual({
+      level: 'warning',
+      title: '注意：备份的日期覆盖范围可能更窄',
+      detail: '备份文件的最早日期晚于本地约 31 天；备份文件的最新日期早于本地约 44 天，恢复后可能丢失本地在这些区间内的记录。',
+      currentRangeLabel: '2025-01-01 → 2026-03-31',
+      incomingRangeLabel: '2025-02-01 → 2026-02-15',
+      missingStartDays: 31,
+      missingEndDays: 44,
     });
   });
 

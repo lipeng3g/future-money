@@ -77,6 +77,16 @@ export interface ImportFreshnessSummary {
   lagDays: number | null;
 }
 
+export interface ImportCoverageLossSummary {
+  level: 'warning';
+  title: string;
+  detail: string;
+  currentRangeLabel: string;
+  incomingRangeLabel: string;
+  missingStartDays: number | null;
+  missingEndDays: number | null;
+}
+
 export interface ImportSanitizeDiscardItem {
   label: string;
   rawCount: number;
@@ -897,5 +907,48 @@ export const buildImportFreshnessSummary = (
     currentLatestDate: currentRange.end,
     incomingLatestDate: incomingRange.end,
     lagDays,
+  };
+};
+
+export const buildImportCoverageLossSummary = (
+  incomingState: Pick<AppState, 'events' | 'reconciliations' | 'ledgerEntries'>,
+  currentState?: Pick<AppState, 'events' | 'reconciliations' | 'ledgerEntries'>,
+): ImportCoverageLossSummary | null => {
+  const currentRange = collectDateRange(currentState);
+  const incomingRange = collectDateRange(incomingState);
+
+  if (!currentRange || !incomingRange) {
+    return null;
+  }
+
+  const currentStartMs = parseDateToMs(currentRange.start);
+  const incomingStartMs = parseDateToMs(incomingRange.start);
+  const currentEndMs = parseDateToMs(currentRange.end);
+  const incomingEndMs = parseDateToMs(incomingRange.end);
+
+  if (currentStartMs == null || incomingStartMs == null || currentEndMs == null || incomingEndMs == null) {
+    return null;
+  }
+
+  const missingStartDays = Math.max(0, Math.round((incomingStartMs - currentStartMs) / 86400000));
+  const missingEndDays = Math.max(0, Math.round((currentEndMs - incomingEndMs) / 86400000));
+
+  if (missingStartDays <= 0 && missingEndDays <= 0) {
+    return null;
+  }
+
+  const parts = [
+    missingStartDays > 0 ? `备份文件的最早日期晚于本地约 ${missingStartDays} 天` : null,
+    missingEndDays > 0 ? `备份文件的最新日期早于本地约 ${missingEndDays} 天` : null,
+  ].filter((part): part is string => !!part);
+
+  return {
+    level: 'warning',
+    title: '注意：备份的日期覆盖范围可能更窄',
+    detail: `${parts.join('；')}，恢复后可能丢失本地在这些区间内的记录。`,
+    currentRangeLabel: currentRange.start === currentRange.end ? currentRange.start : `${currentRange.start} → ${currentRange.end}`,
+    incomingRangeLabel: incomingRange.start === incomingRange.end ? incomingRange.start : `${incomingRange.start} → ${incomingRange.end}`,
+    missingStartDays,
+    missingEndDays,
   };
 };

@@ -189,6 +189,7 @@ import {
   buildImportAccountEventDiffSummary,
   buildImportDataDeltaSummary,
   buildImportDateRangeSummary,
+  buildImportCoverageLossSummary,
   buildImportFreshnessSummary,
   buildImportRiskSummary,
   buildImportSanitizeDiscardSummary,
@@ -377,6 +378,7 @@ const confirmImportAll = (content: string, fileName: string) => {
   const accountEventDiff = buildImportAccountEventDiffSummary(incomingState, currentState);
   const dateRange = buildImportDateRangeSummary(incomingState, currentState);
   const freshness = buildImportFreshnessSummary(incomingState, currentState);
+  const coverageLoss = buildImportCoverageLossSummary(incomingState, currentState);
   let inputValue = '';
   const confirmText = '恢复全部账户';
   const backupTime = backupSummary.timestamp
@@ -481,6 +483,16 @@ const confirmImportAll = (content: string, fileName: string) => {
           h('div', { style: 'margin-bottom: 6px;' }, freshness.detail),
           h('div', `当前本地最新日期：${freshness.currentLatestDate}`),
           h('div', `备份文件最新日期：${freshness.incomingLatestDate}`),
+        ])
+        : null,
+      coverageLoss
+        ? h('div', {
+          style: 'background: #fff7ed; border: 1px solid #fdba74; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7; color: #9a3412;',
+        }, [
+          h('div', { style: 'font-weight: 600; margin-bottom: 6px;' }, coverageLoss.title),
+          h('div', { style: 'margin-bottom: 6px; color: #7c2d12;' }, coverageLoss.detail),
+          h('div', `当前本地日期覆盖：${coverageLoss.currentRangeLabel}`),
+          h('div', `备份文件日期覆盖：${coverageLoss.incomingRangeLabel}`),
         ])
         : null,
       h('div', { style: 'background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.7;' }, [
