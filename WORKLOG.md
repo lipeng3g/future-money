@@ -8,6 +8,9 @@
 [2026-03-14 21:10:02] task: re-validate P0 empty_stream auto-retry/downgrade diagnostics flow, clear-chat refresh regression, and event-card date-focus overflow in current origin/main
 [2026-03-14 21:10:02] deliverables: confirmed current HEAD already contains auto retry (300ms/800ms), one-shot model fallback to gpt-5.2 with UI warning, copyable diagnostics (provider/model/traceId/httpStatus/retries), duplicate-output suppression, regression coverage for retry-success and retries-exhausted banner; also confirmed clear-chat persistence regression tests and EventCard overflow fix remain present
 [2026-03-14 21:10:02] verification: npm test ✅ (263), npm run type-check ✅
+[2026-03-15 02:13:30] task: eliminate account-delete AI draft/history persistence leak that could make cleared/deleted session state reappear after refresh
+[2026-03-15 02:13:30] deliverables: finance store deleteAccount now clears scoped AI chat persistence before removing the account; added regression test covering delete -> refresh -> no chat-history backflow to remaining accounts; revalidated current tree still contains empty_stream auto-retry/fallback/diagnostics and event-card overflow handling
+[2026-03-15 02:13:30] verification: npm test ✅ (264), npm run type-check ✅, npm run build ✅
 
 ## 2026-03-08
 - 建立长期工作器方案：不再把 isolated cron 误当成持续开发本体，改为 `tmux` 长期工作器 + 文件化上下文 + 每小时汇报。
