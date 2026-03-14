@@ -15,6 +15,14 @@
 [2026-03-15 03:11:00] deliverables: confirmed current main already includes automatic empty_stream retries with exponential backoff (300ms/800ms), one-shot model fallback from gpt-5.4 to gpt-5.2, copyable diagnostics (provider/model/traceId/httpStatus/retries), duplicate-output suppression, clear-chat/delete-account persistence cleanup after refresh, and wrapped "查看图上日期" layout handling; no code delta required beyond audit trail
 [2026-03-15 03:11:00] validation: npm test && npm run type-check && npm run build
 
+[2026-03-15 05:18:00] task: establish single source of truth for chart-balance-runtime size; resolve 556kB vs 55kB inconsistency
+[2026-03-15 05:18:00] commands: npm run build:verify
+[2026-03-15 05:18:00] results (from dist/assets after build):
+- chart-balance-runtime-B1iKQZSQ.js raw 54.59kB (55904 bytes)
+- gzip(level=9) 17.76kB (18185 bytes)
+- brotli(q=11) 16.02kB (16407 bytes)
+[2026-03-15 05:18:00] note: build:verify currently fails on chunk budget check because index chunk 110.7kB > baseline max 108.0kB; also vendor-antd still >500kB warning (~625kB). Updated NEXT_TASK to reflect corrected chart-balance-runtime size so future optimization doesn't target the wrong chunk.
+
 ## 2026-03-08
 - 建立长期工作器方案：不再把 isolated cron 误当成持续开发本体，改为 `tmux` 长期工作器 + 文件化上下文 + 每小时汇报。
 - 已完成的近期代码成果（进入长期工作器前）包括：

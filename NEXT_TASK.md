@@ -6,7 +6,7 @@
 - 已新增 `src/components/ai/__tests__/AiAnalysisModal.test.ts` 组件级回归，并扩展 `src/utils/__tests__/ai-chat-history.test.ts`，覆盖草稿按 scope 隔离、清空联动、旧版全局草稿兼容与流式锁定恢复
 
 ## 下一轮优先级
-1. **继续压包**：当前构建已把图表共享块拆散，但 `chart-balance-runtime` 仍约 556kB；下一步可评估 tooltip formatter、markArea/markLine 或 ECharts 依赖是否还能再拆，进一步降低余额图首次打开成本
+1. **继续压包**：以 `npm run build:verify` 为单一事实来源，当前 `chart-balance-runtime` ≈ 54.6kB（gzip ≈ 18.2kB；brotli 约 16.0kB）；但 `vendor-antd` 仍约 625kB，且 `index` chunk 偶发略超预算（见 build:check）。下一步优先：修复预算基线/构建稳定性，再评估是否仍需继续拆余额图 runtime。
 2. **图表体验继续深化**：在“图表点 → 事件清单高亮”和“事件清单 → 图表日期全部发生日总览”基础上，继续补“图上多事件日期的账户分组说明 / 金额摘要”或“从图表日期直接切换到同规则前后发生日”
 3. **导入恢复防误操作**：本轮之前已把总量 diff 细化到“按账户的数据变化 + 日期覆盖范围 + 备份新旧程度预警 + 按账户事件规则名级摘要”；下一步可继续做“按时间段的事件覆盖损失提示”或“按账户提示某个年份/月份的规则会整体减少”，把确认信息再往业务后果推近一层
 4. **AI 体验**：继续检查分析抽屉的流式渲染/大段 markdown 性能，必要时做消息虚拟化或渲染节流
