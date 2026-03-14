@@ -218,3 +218,7 @@
 [2026-03-15 05:26:00] task: acceptance revalidation for P0 empty_stream mitigation, clear-chat refresh regression, and P1 event-card overflow before mandatory push
 [2026-03-15 05:26:00] deliverables: revalidated current origin/main tree already contains empty_stream pre-first-packet auto retry (300ms/800ms), fallback recovery path (model fallback to gpt-5.2 with UI notice), copyable diagnostics (provider/model/traceId/httpStatus/retries), duplicate-output suppression, scoped chat/draft cleanup on clear/delete refresh paths, and wrapped “查看图上日期” event-card layout; no source delta required beyond audit trail refresh
 [2026-03-15 05:26:00] validation: npm test && npm run type-check && npm run build
+
+[2026-03-15 06:10:00] task: final acceptance rerun for P0 empty_stream mitigation, P0 clear-session refresh regression, and P1 event-card overflow under autonomous worker discipline
+[2026-03-15 06:10:00] deliverables: confirmed current main tree still contains pre-first-packet empty_stream auto retry with exponential backoff (300ms/800ms), one-shot model fallback retry on gpt-5.2 with visible downgrade notice, copyable diagnostics (provider/model/traceId/httpStatus/retries), duplicate-output suppression across retries, scoped draft/history retention during retry, delete-account refresh persistence cleanup, and wrapped "查看图上日期" event-card action layout; removed stray untracked test artifact before rerunning full validation
+[2026-03-15 06:10:00] validation: npm test && npm run type-check && npm run build
