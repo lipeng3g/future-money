@@ -443,7 +443,7 @@ describe('parseImportPreview', () => {
     expect(coverageLoss).toEqual({
       level: 'warning',
       title: '注意：备份的日期覆盖范围可能更窄',
-      detail: '备份文件的最早日期晚于本地约 31 天；备份文件的最新日期早于本地约 44 天，恢复后可能丢失本地在这些区间内的记录。',
+      detail: '备份文件的最早日期晚于本地约 31 天（主要涉及：2025-01）；备份文件的最新日期早于本地约 44 天（主要涉及：2026-02、2026-03），恢复后可能丢失本地在这些区间内的记录。',
       currentRangeLabel: '2025-01-01 → 2026-03-31',
       incomingRangeLabel: '2025-02-01 → 2026-02-15',
       missingStartDays: 31,

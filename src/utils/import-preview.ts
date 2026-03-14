@@ -910,6 +910,42 @@ export const buildImportFreshnessSummary = (
   };
 };
 
+const formatYearMonth = (value: string) => value.slice(0, 7);
+
+const formatYearMonthList = (months: string[]) => {
+  if (!months.length) return '';
+  const maxItems = 6;
+  if (months.length <= maxItems) return months.join('、');
+  return `${months.slice(0, maxItems).join('、')} 等 ${months.length} 个月`;
+};
+
+const addDaysToIsoDate = (value: string, deltaDays: number) => {
+  const ms = parseDateToMs(value);
+  if (ms == null) return null;
+  const next = ms + deltaDays * 86400000;
+  return new Date(next).toISOString().slice(0, 10);
+};
+
+const collectMonthBuckets = (startDate: string, endDate: string) => {
+  const startMs = parseDateToMs(startDate);
+  const endMs = parseDateToMs(endDate);
+  if (startMs == null || endMs == null || startMs > endMs) return [];
+
+  const start = new Date(startMs);
+  const end = new Date(endMs);
+  const startMonthIndex = start.getUTCFullYear() * 12 + start.getUTCMonth();
+  const endMonthIndex = end.getUTCFullYear() * 12 + end.getUTCMonth();
+
+  const months: string[] = [];
+  for (let idx = startMonthIndex; idx <= endMonthIndex; idx += 1) {
+    const year = Math.floor(idx / 12);
+    const month = (idx % 12) + 1;
+    months.push(`${year}-${String(month).padStart(2, '0')}`);
+  }
+
+  return months;
+};
+
 export const buildImportCoverageLossSummary = (
   incomingState: Pick<AppState, 'events' | 'reconciliations' | 'ledgerEntries'>,
   currentState?: Pick<AppState, 'events' | 'reconciliations' | 'ledgerEntries'>,
@@ -937,9 +973,27 @@ export const buildImportCoverageLossSummary = (
     return null;
   }
 
+  const missingStartEndDate = missingStartDays > 0 ? addDaysToIsoDate(incomingRange.start, -1) : null;
+  const missingEndStartDate = missingEndDays > 0 ? addDaysToIsoDate(incomingRange.end, 1) : null;
+
+  const missingStartMonths = missingStartDays > 0 && missingStartEndDate
+    ? collectMonthBuckets(currentRange.start, missingStartEndDate)
+    : [];
+  const missingEndMonths = missingEndDays > 0 && missingEndStartDate
+    ? collectMonthBuckets(missingEndStartDate, currentRange.end)
+    : [];
+
   const parts = [
-    missingStartDays > 0 ? `备份文件的最早日期晚于本地约 ${missingStartDays} 天` : null,
-    missingEndDays > 0 ? `备份文件的最新日期早于本地约 ${missingEndDays} 天` : null,
+    missingStartDays > 0
+      ? `备份文件的最早日期晚于本地约 ${missingStartDays} 天` + (missingStartMonths.length
+        ? `（主要涉及：${formatYearMonthList(missingStartMonths)}）`
+        : '')
+      : null,
+    missingEndDays > 0
+      ? `备份文件的最新日期早于本地约 ${missingEndDays} 天` + (missingEndMonths.length
+        ? `（主要涉及：${formatYearMonthList(missingEndMonths)}）`
+        : '')
+      : null,
   ].filter((part): part is string => !!part);
 
   return {
