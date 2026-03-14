@@ -184,6 +184,6 @@
   - Verify: npm test; npm run type-check; npm run build
 
 ## 2026-03-14 23:10 CST
-- commit: pending
+- commit: 8b4f173 chore: unblock validation and confirm ai retry flow
 - validation: npm test && npm run type-check && npm run build
 - note: Confirmed empty_stream auto-retry/diagnostics tests pass; removed unused formatYearMonth helper blocking type-check.
