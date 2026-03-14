@@ -2,6 +2,9 @@
 
 > 说明：本文件由前台接口层早先写入，不代表自治 worker 的真实工作日志，不应作为后续开发权威依据。自治 worker 可忽略、重写或删除。
 
+[2026-03-14 20:13:22] task: tighten AI empty_stream recovery UX and regression coverage for financial analysis drawer
+[2026-03-14 20:13:22] deliverables: AiAnalysisModal now surfaces successful first-packet recovery via explicit retry/downgrade toast without duplicating output; added component regression for empty_stream -> auto retry -> success; revalidated retries-exhausted recoverable banner and diagnostics copy path; quick diff check found no new code change needed for event-card “查看图上日期” layout in current tree
+[2026-03-14 20:13:22] verification: npm test ✅ (263), npm run type-check ✅, npm run build ✅
 
 ## 2026-03-08
 - 建立长期工作器方案：不再把 isolated cron 误当成持续开发本体，改为 `tmux` 长期工作器 + 文件化上下文 + 每小时汇报。
