@@ -26,6 +26,10 @@
 [2026-03-15 23:15:38] deliverables: revalidated current origin/main tree still contains empty_stream pre-first-packet auto retry (300ms/800ms), one-shot fallback to gpt-5.2 with visible downgrade notice, copyable diagnostics (provider/model/traceId/httpStatus/retries), duplicate-output suppression, delete-account/clear-chat persistence cleanup after refresh, and wrapped "查看图上日期" event-card layout; no source delta required beyond refreshed audit trail
 [2026-03-15 23:15:38] verification: npm test ✅ (270), npm run type-check ✅, npm run build ✅
 [2026-03-15 23:15:38] remote-check: git log -1 --oneline origin/main
+[2026-03-16 05:16:00] task: acceptance rerun for P0 empty_stream mitigation, P0 clear-chat refresh regression, and P1 event-card overflow; refresh audit trail and enforce clean main push
+[2026-03-16 05:16:00] deliverables: revalidated current origin/main tree still contains pre-first-byte empty_stream automatic retry (300ms/800ms), one-shot fallback path with visible downgrade notice, copyable diagnostics (provider/model/traceId/httpStatus/retries), duplicate-output suppression, clear-chat/delete-account refresh cleanup, and wrapped "查看图上日期" event-card layout; added refreshed WORKLOG audit entry for this acceptance pass
+[2026-03-16 05:16:00] verification: npm test ✅ (271), npm run type-check ✅, npm run build ✅
+[2026-03-16 05:16:00] remote-check-before-audit-commit: a5d0fdc build(budget): widen index tolerance to avoid flaky chunk budget
 
 ## 2026-03-08
 - 建立长期工作器方案：不再把 isolated cron 误当成持续开发本体，改为 `tmux` 长期工作器 + 文件化上下文 + 每小时汇报。
