@@ -373,7 +373,6 @@ const notifyRecoveryMode = (diagnostics?: {
   downgradedFromModel?: string;
   downgradedToModel?: string;
 }) => {
-  const retried = typeof diagnostics?.retries === 'number' && diagnostics.retries > 0;
   const downgradedByModel = diagnostics?.downgradeStrategy === 'model-fallback'
     && diagnostics.downgradedFromModel
     && diagnostics.downgradedToModel;
@@ -385,11 +384,6 @@ const notifyRecoveryMode = (diagnostics?: {
 
   if (diagnostics?.downgradeStrategy === 'non-stream') {
     message.warning('首包前断流，已自动降级为非流式重试并恢复结果');
-    return;
-  }
-
-  if (retried) {
-    message.warning('首包前断流，已自动重试并恢复结果');
   }
 };
 

@@ -112,6 +112,20 @@ describe('EventCard', () => {
     expect(wrapper.emitted('focus-chart')?.[0]?.[0]).toMatchObject({ id: 'evt-rent' });
   });
 
+  it('长图表定位文案会允许换行，避免把卡片布局撑爆', () => {
+    const wrapper = mountCard({
+      chartFocusable: true,
+      event: baseEvent({
+        name: '超长事件名称，用来模拟很窄屏时卡片仍要稳住布局',
+      }),
+    });
+
+    const focusLink = wrapper.find('.chart-focus-link');
+    expect(focusLink.exists()).toBe(true);
+    expect(focusLink.attributes('class')).toContain('chart-focus-link');
+    expect(focusLink.element.tagName).toBe('BUTTON');
+  });
+
   it('在只读模式下会禁用开关并隐藏编辑/删除按钮', () => {
     const wrapper = mountCard({ readonly: true });
 

@@ -140,6 +140,7 @@ const handleToggle = (checked: boolean) => {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  min-width: 0;
 }
 
 .event-main {
@@ -226,6 +227,7 @@ const handleToggle = (checked: boolean) => {
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
+  flex: 0 0 auto;
 }
 
 .amount {
@@ -261,5 +263,35 @@ const handleToggle = (checked: boolean) => {
 .action-btn:hover {
   color: var(--fm-primary);
   background: var(--fm-primary-light);
+}
+
+@media (max-width: 720px) {
+  .event-content {
+    align-items: flex-start;
+  }
+
+  .event-right {
+    max-width: 40%;
+  }
+}
+
+@media (max-width: 560px) {
+  .event-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .event-right {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 100%;
+  }
+
+  .event-actions {
+    opacity: 1;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 }
 </style>

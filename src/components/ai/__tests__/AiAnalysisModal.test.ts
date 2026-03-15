@@ -337,7 +337,7 @@ describe('AiAnalysisModal', () => {
     }));
   });
 
-  it('empty_stream 自动重试后成功时，用户不会看到重复输出，并会提示已自动重试恢复', async () => {
+  it('empty_stream 自动重试后成功时，用户不会看到重复输出，且不会额外打断用户', async () => {
     streamChatWithRecoveryMock.mockResolvedValueOnce({
       content: '自动重试后恢复成功',
       thinking: undefined,
@@ -364,7 +364,7 @@ describe('AiAnalysisModal', () => {
     expect(rows[0]?.text()).toContain('分析自动重试成功');
     expect(rows[1]?.text()).toContain('自动重试后恢复成功');
     expect(wrapper.text()).not.toContain('正在分析...');
-    expect(messageWarning).toHaveBeenCalledWith('首包前断流，已自动重试并恢复结果');
+    expect(messageWarning).not.toHaveBeenCalled();
   });
 
   it('empty_stream 自动重试耗尽后仍失败时，会展示可复制诊断与可恢复提示', async () => {
