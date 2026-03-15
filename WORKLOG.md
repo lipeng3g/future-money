@@ -274,3 +274,8 @@
 [2026-03-15 22:17:30] task: future-money autonomous worker tighten empty_stream success UX and re-harden event-card narrow-layout acceptance
 [2026-03-15 22:17:30] deliverables: suppress warning toast when empty_stream auto-retry succeeds without downgrade so recovery stays user-invisible as required; keep downgrade warning only for model/non-stream fallback paths; harden EventCard flex/min-width responsive layout on narrow screens; added regression assertion for silent retry-success and event-card long focus link presence
 [2026-03-15 22:17:30] validation: npm test && npm run type-check && npm run build
+[2026-03-16 00:16:32] task: future-money autonomous worker acceptance rerun for P0-1/P0-2/P1 before mandatory origin/main push
+[2026-03-16 00:16:32] deliverables: revalidated current main tree already ships P0-1 empty_stream mitigation end-to-end (pre-first-packet auto retry with 300ms/800ms backoff, one-shot fallback downgrade path with visible notice when used, copyable diagnostics provider/model/traceId/httpStatus/retries, retry success without duplicate output while preserving draft/scope lock), P0-2 clear/delete refresh persistence cleanup, and P1 wrapped "查看图上日期" event-card layout; no source delta required beyond this audit trail refresh
+[2026-03-16 00:16:32] validation: npm test && npm run type-check && npm run build
+[2026-03-16 00:16:32] remote-check: git log -1 --oneline origin/main
+
