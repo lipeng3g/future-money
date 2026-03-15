@@ -119,6 +119,36 @@ describe('streamChat / streamChatWithRecovery', () => {
     });
   });
 
+  it('stream=true 但上游直接返回非流式 JSON 时，会直接提取完整结果而不是误判 empty_stream', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      choices: [
+        {
+          message: {
+            content: '代理直接回了完整结果',
+            reasoning_content: '这是上游直接返回的推理摘要',
+          },
+        },
+      ],
+    }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-request-id': 'trace-json-success',
+      },
+    }));
+
+    const chunks: Array<{ type: string; text: string }> = [];
+    for await (const chunk of streamChat(sampleConfig, sampleMessages)) {
+      chunks.push(chunk);
+    }
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(chunks).toEqual([
+      { type: 'thinking', text: '这是上游直接返回的推理摘要' },
+      { type: 'content', text: '代理直接回了完整结果' },
+    ]);
+  });
+
   it('empty_stream 时会按指数退避自动重试，并在后续流式成功时返回完整结果', async () => {
     vi.useFakeTimers();
 

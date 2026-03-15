@@ -537,6 +537,35 @@ export interface AiCompletionResult {
     thinking?: string;
 }
 
+const extractNonStreamCompletion = (payload: unknown): AiCompletionResult | null => {
+    if (!payload || typeof payload !== 'object') return null;
+
+    const record = payload as Record<string, any>;
+    const choice = record.choices?.[0] ?? null;
+    const message = choice?.message ?? null;
+    const delta = choice?.delta ?? null;
+
+    const content = typeof message?.content === 'string'
+        ? message.content
+        : typeof delta?.content === 'string'
+            ? delta.content
+            : '';
+    const thinking = typeof message?.reasoning_content === 'string'
+        ? message.reasoning_content
+        : typeof delta?.reasoning_content === 'string'
+            ? delta.reasoning_content
+            : undefined;
+
+    if (!content && !thinking) {
+        return null;
+    }
+
+    return {
+        content,
+        thinking,
+    };
+};
+
 export interface AiRequestErrorDetails {
     status?: number;
     provider: string;
@@ -760,6 +789,29 @@ export async function* streamChat(
                 retryable: response.status >= 500 || derivedCode === 'empty_stream',
             },
         );
+    }
+
+    const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+    if (contentType.includes('application/json')) {
+        firstPayloadTimeout.dispose();
+        totalTimeout.dispose();
+        const payload = parseJsonSafely(await response.text());
+        const completion = extractNonStreamCompletion(payload);
+        if (completion) {
+            if (completion.thinking) {
+                yield { type: 'thinking', text: completion.thinking };
+            }
+            if (completion.content) {
+                yield { type: 'content', text: completion.content };
+            }
+            return;
+        }
+
+        throw buildAiRequestError('流式响应意外返回了非 SSE JSON，且无法提取结果', sanitizedConfig, {
+            traceId: getTraceIdFromHeaders(response.headers),
+            type: 'unexpected_content_type',
+            retryable: true,
+        });
     }
 
     const reader = response.body?.getReader();
@@ -1004,15 +1056,12 @@ export async function streamChatWithRecovery(
                 );
             }
 
-            const payload = parseJsonSafely(await response.text()) as Record<string, any> | null;
-            const choice = payload?.choices?.[0] ?? null;
-            const message = choice?.message ?? null;
-            const content = typeof message?.content === 'string' ? message.content : '';
-            const thinking = typeof message?.reasoning_content === 'string' ? message.reasoning_content : undefined;
+            const payload = parseJsonSafely(await response.text());
+            const completion = extractNonStreamCompletion(payload) ?? { content: '', thinking: undefined };
 
             return {
-                content,
-                thinking,
+                content: completion.content,
+                thinking: completion.thinking,
                 retries: retryDelays.length,
                 downgraded: true,
                 diagnostics: {

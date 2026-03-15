@@ -288,3 +288,5 @@
 [2026-03-16 02:16:30] deliverables: revalidated current origin/main tree still contains P0-1 empty_stream mitigation end-to-end (pre-first-packet auto retry with 300ms/800ms backoff, automatic fallback downgrade from gpt-5.4 to gpt-5.2 after retry exhaustion, copyable diagnostics provider/model/traceId/httpStatus/retries, retry success without duplicate output while preserving draft and scope lock), P0-2 clear/delete refresh persistence cleanup surviving refresh, and P1 wrapped "查看图上日期" event-card layout on narrow cards; refreshed audit trail for this acceptance cycle
 [2026-03-16 02:16:30] validation: npm test && npm run type-check && npm run build
 [2026-03-16 02:16:30] remote-check: git fetch origin main && git rev-parse HEAD && git rev-parse origin/main && git log -1 --oneline origin/main
+
+- 2026-03-16 009a111 | 1a4f5d3 | 验证: npm test && npm run type-check && npm run build | 说明: 兼容 stream=true 但代理返回 application/json 完整体的场景，避免误判 empty_stream 并直接提取结果。
