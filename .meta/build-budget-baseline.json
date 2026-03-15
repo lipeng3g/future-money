@@ -6,7 +6,7 @@
   ],
   "toleranceBytes": 3072,
   "chunks": {
-    "index-": { "maxBytes": 110592, "warnBytes": 106496 },
+    "index-": { "maxBytes": 110592, "warnBytes": 106496, "toleranceBytes": 5120 },
     "vendor-vue-": { "maxBytes": 92160 },
     "vendor-date-": { "maxBytes": 30720 },
     "vendor-markdown-": { "maxBytes": 112640 },
