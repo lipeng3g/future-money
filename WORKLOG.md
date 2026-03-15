@@ -235,3 +235,7 @@
 [2026-03-15 11:13:00] deliverables: reconfirmed current main tree already ships P0 empty_stream mitigation end-to-end (pre-first-packet auto retry with 300ms/800ms backoff, one-shot fallback recovery via model downgrade/non-stream path, copyable diagnostics provider/model/traceId/httpStatus/retries, retry success without duplicate output), P0 clear-session/delete-account refresh cleanup, and P1 "查看图上日期" wrapped layout handling; no source delta required beyond audit trail
 [2026-03-15 11:13:00] validation: npm test && npm run type-check && npm run build
 
+[2026-03-15 12:13:00] task: future-money autonomous worker noon acceptance rerun before mandatory origin/main confirmation
+[2026-03-15 12:13:00] deliverables: reconfirmed current origin/main tree already contains P0-1 empty_stream mitigation end-to-end (pre-first-packet auto retry with 300ms/800ms backoff, single-request fallback downgrade path, copyable diagnostics provider/model/traceId/httpStatus/retries, retry success without duplicate output while preserving draft/scope lock), P0-2 clear/delete refresh persistence cleanup, and P1 "查看图上日期" wrapped layout handling; no source delta required beyond audit trail refresh for this acceptance cycle
+[2026-03-15 12:13:00] validation: npm test && npm run type-check
+
