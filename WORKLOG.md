@@ -231,3 +231,7 @@
 [2026-03-15 09:13:00] deliverables: reconfirmed current main already contains pre-first-packet empty_stream auto retry with 300ms/800ms backoff, one-shot stream=false/model-fallback recovery path, copyable diagnostics (provider/model/traceId/httpStatus/retries), duplicate-output suppression, scoped draft/history preservation and clear/delete refresh cleanup, plus wrapped "查看图上日期" layout; reran targeted tests, full test suite, and type-check on clean tree before recording this audit
 [2026-03-15 09:13:00] validation: npm test -- --run src/utils/__tests__/ai-stream.test.ts src/components/ai/__tests__/AiAnalysisModal.test.ts src/components/events/__tests__/EventCard.test.ts && npm test && npm run type-check
 
+[2026-03-15 11:13:00] task: future-money autonomous worker acceptance rerun before mandatory push to origin/main
+[2026-03-15 11:13:00] deliverables: reconfirmed current main tree already ships P0 empty_stream mitigation end-to-end (pre-first-packet auto retry with 300ms/800ms backoff, one-shot fallback recovery via model downgrade/non-stream path, copyable diagnostics provider/model/traceId/httpStatus/retries, retry success without duplicate output), P0 clear-session/delete-account refresh cleanup, and P1 "查看图上日期" wrapped layout handling; no source delta required beyond audit trail
+[2026-03-15 11:13:00] validation: npm test && npm run type-check && npm run build
+
