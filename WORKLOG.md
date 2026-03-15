@@ -227,3 +227,7 @@
 [2026-03-15 07:13:43] validation: npm test -- src/utils/__tests__/ai-stream.test.ts src/components/ai/__tests__/AiAnalysisModal.test.ts src/stores/__tests__/finance-smoke.test.ts src/components/events/__tests__/EventCard.test.ts src/components/events/__tests__/EventPanel.test.ts src/components/charts/__tests__/UpcomingEvents.test.ts && npm run type-check && npm test && npm run build
 [2026-03-15 07:13:43] commit: 4f12899 docs(worklog): record 2026-03-15 acceptance rerun
 
+[2026-03-15 09:13:00] task: future-money autonomous worker acceptance rerun for P0 empty_stream mitigation, P0 clear-session refresh regression, and P1 event-card overflow
+[2026-03-15 09:13:00] deliverables: reconfirmed current main already contains pre-first-packet empty_stream auto retry with 300ms/800ms backoff, one-shot stream=false/model-fallback recovery path, copyable diagnostics (provider/model/traceId/httpStatus/retries), duplicate-output suppression, scoped draft/history preservation and clear/delete refresh cleanup, plus wrapped "查看图上日期" layout; reran targeted tests, full test suite, and type-check on clean tree before recording this audit
+[2026-03-15 09:13:00] validation: npm test -- --run src/utils/__tests__/ai-stream.test.ts src/components/ai/__tests__/AiAnalysisModal.test.ts src/components/events/__tests__/EventCard.test.ts && npm test && npm run type-check
+
