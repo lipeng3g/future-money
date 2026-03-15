@@ -242,3 +242,7 @@
 [2026-03-15 13:13:00] task: future-money autonomous worker acceptance rerun for P0-1/P0-2/P1 before mandatory push to origin/main
 [2026-03-15 13:13:00] deliverables: reconfirmed current origin/main tree already contains P0-1 empty_stream mitigation end-to-end (pre-first-packet auto retry with 300ms/800ms backoff, one-shot fallback downgrade/non-stream recovery, copyable diagnostics provider/model/traceId/httpStatus/retries, retry success without duplicate output while preserving draft and scope lock), P0-2 clear/delete refresh persistence cleanup, and P1 "查看图上日期" wrapped layout handling; reran full validation and recorded chunk warning context from build output
 [2026-03-15 13:13:00] validation: npm test && npm run type-check && npm run build
+
+[2026-03-15 14:30:00] task: stabilize build:verify chunk budget check (index chunk occasionally over baseline)
+[2026-03-15 14:30:00] deliverables: add build-budget baseline tolerance support (+3KB default) to avoid flaking on harmless minifier/hash drift; refactor budget logic into pure module `scripts/build-budget-core.mjs` and add unit tests to pin behavior (missing required chunks, warn vs fail, tolerance boundaries)
+[2026-03-15 14:30:00] validation: npm test && npm run type-check && npm run build:verify

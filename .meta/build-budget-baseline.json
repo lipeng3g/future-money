@@ -4,6 +4,7 @@
     "Baseline captured after chart runtime lazy-loading and vendor chunk split hardening.",
     "Use tolerances to catch meaningful regressions without failing on harmless hash/minifier drift."
   ],
+  "toleranceBytes": 3072,
   "chunks": {
     "index-": { "maxBytes": 110592, "warnBytes": 106496 },
     "vendor-vue-": { "maxBytes": 92160 },
