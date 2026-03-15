@@ -246,3 +246,7 @@
 [2026-03-15 14:30:00] task: stabilize build:verify chunk budget check (index chunk occasionally over baseline)
 [2026-03-15 14:30:00] deliverables: add build-budget baseline tolerance support (+3KB default) to avoid flaking on harmless minifier/hash drift; refactor budget logic into pure module `scripts/build-budget-core.mjs` and add unit tests to pin behavior (missing required chunks, warn vs fail, tolerance boundaries)
 [2026-03-15 14:30:00] validation: npm test && npm run type-check && npm run build:verify
+
+[2026-03-15 15:13:00] task: future-money autonomous worker acceptance rerun and mandatory push for P0-1/P0-2/P1
+[2026-03-15 15:13:00] deliverables: re-audited current main source and tests confirming P0-1 empty_stream mitigation is present end-to-end (pre-first-packet auto retry with 300ms/800ms backoff, single-request fallback downgrade path to gpt-5.2, copyable diagnostics provider/model/traceId/httpStatus/retries, retry success without duplicate output while preserving draft/scope lock), P0-2 clear/delete refresh persistence cleanup, and P1 "查看图上日期" wrapped layout handling; reran full validation and prepared mandatory origin/main audit push
+[2026-03-15 15:13:00] validation: npm test && npm run type-check && npm run build
