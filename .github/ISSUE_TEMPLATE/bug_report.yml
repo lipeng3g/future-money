@@ -1,0 +1,91 @@
+name: Bug report
+description: Report a reproducible problem in FutureMoney
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue.
+
+        **Tip:** If you can attach an exported JSON snapshot (Account Management → Export) with sensitive values removed, it helps a lot.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened? What did you expect to happen?
+      placeholder: "When I click … it shows … but I expected …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction steps
+      description: Step-by-step. If possible, start from an empty state.
+      placeholder: |
+        1. Open http://localhost:3000
+        2. …
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: What you observed (include screenshots if relevant).
+      placeholder: "It shows … / crashes / stuck loading …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      placeholder: "It should …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics (copy/paste)
+      description: Provide the info below. If you don't know some items, write "N/A".
+      value: |
+        App version/commit: 
+        Browser & version: 
+        OS: 
+
+        Feature area (select one):
+        - Reconciliation
+        - Cash flow events
+        - Overrides
+        - Charts
+        - Import/Export
+        - AI analysis
+        - Other
+
+        Console / Network:
+        - Error message: 
+        - HTTP status: 
+        - traceId (if shown): 
+        - provider/model (if AI related): 
+
+        Data snapshot (optional):
+        - Attach an exported JSON with sensitive values removed
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues before opening this one.
+          required: true
+        - label: I can reproduce this issue with clear steps.
+          required: true
+        - label: If I attached data, I removed sensitive values.
+          required: false

@@ -242,6 +242,8 @@ MIT License
 
 欢迎提交 Issue 和 Pull Request！
 
+- 报告 Bug：请使用 GitHub 的 **Bug report** Issue 模板，按“最小复现步骤 + 诊断信息（如 traceId/provider/model/http status）”填写，便于快速定位。
+
 ## 作者
 
 [lipeng3g](https://github.com/lipeng3g)
