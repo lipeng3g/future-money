@@ -22,3 +22,9 @@
   - 复核实现位置：`src/utils/ai.ts`、`src/components/ai/AiAnalysisModal.vue`、`src/utils/__tests__/ai-stream.test.ts`、`src/components/ai/__tests__/AiAnalysisModal.test.ts`、`src/stores/__tests__/finance-smoke.test.ts`、`src/components/events/EventCard.vue`
   - 结论：P0-1 已包含 empty_stream 首包前自动重试（300ms/800ms）+ 降级恢复（当前实现为优先备用模型 `gpt-5.2` 且使用 `stream=false` 拉全量结果）+ 诊断信息 provider/model/traceId/httpStatus/retries + 成功时清空旧 buffer 避免重复输出；P0-2 清空会话刷新不回归；P1 “查看图上日期” 已通过换行/断词约束避免撑爆布局。
   - 远端确认命令：`git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`。
+- 2026-03-17 03:14–03:16（Asia/Shanghai）按 autonomous worker 提交纪律再次执行验收复跑并审源码：
+  - `npm test` 通过（39 files / 272 tests）
+  - `npm run type-check` 通过
+  - `npm run build` 通过
+  - 审核代码位置：`src/utils/ai.ts` 中 `streamChatWithRecovery()` 仍包含 empty_stream 指数退避自动重试（300ms / 800ms）与重试耗尽后 `gpt-5.4 -> gpt-5.2` 且 `stream=false` 的单次降级补拉；`src/components/ai/AiAnalysisModal.vue` 仍在成功恢复时复用新结果覆盖 buffer、失败时展示 provider/model/traceId/httpStatus/retries 可复制诊断，并保留 scope 锁定与草稿；`src/stores/__tests__/finance-smoke.test.ts` 仍覆盖清空/删除后的刷新不回流；`src/components/events/EventCard.vue` 仍通过 `min-width: 0` + `overflow-wrap:anywhere` 约束“查看图上日期”按钮不撑爆布局。
+  - 结论：当前 `main`/`origin/main` 的可验收版本已经满足本轮 P0-1 / P0-2 / P1 要求，本次无功能代码变更，仅补充审计日志并按纪律推送。
