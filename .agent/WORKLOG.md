@@ -48,3 +48,12 @@
   - 再次审计实现：`src/utils/ai.ts` 的 `streamChatWithRecovery()` 仍覆盖 `empty_stream` 首包前自动重试（300ms / 800ms）与重试耗尽后的单次降级补拉（当前实现为同通道备用模型 `gpt-5.2` 且 `stream=false`）；`src/components/ai/AiAnalysisModal.vue` 仍在重试成功时重建输出避免重复内容、失败时展示并支持复制 `provider/model/traceId/httpStatus/retries` 诊断信息，同时保留草稿与 scope 锁定；`src/stores/__tests__/finance-smoke.test.ts` 仍覆盖清空会话刷新不回流；`src/components/events/EventCard.vue` 仍通过 `min-width: 0`、`white-space: normal`、`overflow-wrap: anywhere` 防止“查看图上日期”按钮撑爆布局。
   - 当前远端基线：复跑前 `HEAD == origin/main == 4a34176`；本次仅补充新的可审计验收记录并立即推送。
   - 验证命令：`npm test`、`npm run type-check`、`npm run build`、`git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`
+- 2026-03-17 06:13–06:16（Asia/Shanghai）按本轮 autonomous dev worker 指令再次执行完整验收并复核远端：
+  - `npm test` 通过（39 files / 272 tests）
+  - `npm run type-check` 通过
+  - `npm run build` 通过
+  - 针对 P0-1：复核 `src/utils/ai.ts` 与 `src/components/ai/AiAnalysisModal.vue`，确认 `empty_stream` 首包前断开时会自动重试 2 次（300ms / 800ms 指数退避），重试耗尽后走单次降级补拉（当前实现为同通道备用模型 `gpt-5.2` 且 `stream=false`），并在失败横幅中输出可复制诊断 `provider/model/traceId/httpStatus/retries`；重试成功时不会遗留旧 buffer 或重复 assistant 输出。
+  - 针对 P0-2：复核 `src/stores/__tests__/finance-smoke.test.ts` 与 `src/components/ai/__tests__/AiAnalysisModal.test.ts`，确认清空当前 scope 对话/草稿后刷新不回流，scope 切换也不会串台。
+  - 针对 P1：复核 `src/components/events/EventCard.vue` 与 `src/components/events/__tests__/EventCard.test.ts`，确认“查看图上日期”按钮在窄宽度下允许换行/断词，不再把事件卡片撑爆布局。
+  - 远端状态：复核前 `HEAD == origin/main == bcd834d`；本次提交仅追加可审计 WORKLOG，并立即 push 到 `origin/main`。
+  - 验证命令：`npm test`、`npm run type-check`、`npm run build`、`git status --short --branch`、`git rev-parse HEAD && git rev-parse origin/main`、`git log -1 --oneline`
