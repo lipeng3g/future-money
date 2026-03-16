@@ -5,9 +5,45 @@ import { evaluateBuildBudget } from './build-budget-core.mjs';
 const distAssetsDir = path.resolve('dist/assets');
 const baselinePath = path.resolve('.meta/build-budget-baseline.json');
 
+const readAssetsDir = async () => {
+  try {
+    return await readdir(distAssetsDir);
+  } catch (error) {
+    const detail = error && typeof error === 'object' && 'message' in error
+      ? String(error.message)
+      : String(error);
+
+    throw new Error(
+      [
+        `未找到构建产物目录：${distAssetsDir}`,
+        `原因：${detail}`,
+        '提示：请先运行 `npm run build`（或 `npm run build:verify`）生成 dist 后再执行 build:check。',
+      ].join('\n'),
+    );
+  }
+};
+
+const readBaseline = async () => {
+  try {
+    return await readFile(baselinePath, 'utf8');
+  } catch (error) {
+    const detail = error && typeof error === 'object' && 'message' in error
+      ? String(error.message)
+      : String(error);
+
+    throw new Error(
+      [
+        `未找到 build budget baseline 文件：${baselinePath}`,
+        `原因：${detail}`,
+        '提示：baseline 用于约束关键 chunk 体积回归；请确认仓库中已包含 `.meta/build-budget-baseline.json`。',
+      ].join('\n'),
+    );
+  }
+};
+
 const [files, baselineRaw] = await Promise.all([
-  readdir(distAssetsDir),
-  readFile(baselinePath, 'utf8'),
+  readAssetsDir(),
+  readBaseline(),
 ]);
 
 const baseline = JSON.parse(baselineRaw);
