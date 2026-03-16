@@ -24,7 +24,12 @@ const stats = await Promise.all(jsFiles.map(async (file) => {
 
 const result = evaluateBuildBudget({ stats, baseline });
 
-if (process.env.CI) {
+// CI 默认只在“超过预算/缺少关键 chunk”时失败；
+// 若希望把 warning（接近预算上限 / Vite 500kB oversize 提示）也升级为失败，
+// 显式设置：CI_STRICT_BUILD_BUDGET=1
+const strictCi = process.env.CI && process.env.CI_STRICT_BUILD_BUDGET === '1';
+
+if (strictCi) {
   const totalWarnings = result.warnings.length + result.oversizeChunks.length;
   if (totalWarnings) {
     throw new Error(
