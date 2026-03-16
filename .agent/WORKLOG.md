@@ -12,6 +12,12 @@
 - 2026-03-16 23:21–23:23（Asia/Shanghai）固化 CI 稳定性：CI 使用 `actions/setup-node@v4` 的 `node-version-file: .node-version` 对齐本地/线上 Node 版本；显式设置 `cache-dependency-path: package-lock.json` 提升 npm cache 命中确定性；安装步骤使用 `npm ci --prefer-offline --no-audit`（锁文件严格 + 更友好缓存命中）。本地验收：`npm run smoke`、`npm run build:verify` 全通过。
 
 ## 2026-03-17
+- 补齐环境变量/开关文档：新增 `docs/ENV.md`（CI/构建校验开关 + AI 配置说明），新增 `.env.example`（仅占位符），并在 README 增加“环境变量快速开始”入口链接。
+- 验收命令与结果：
+  - `npm test` ✅（39 files / 272 tests passed）
+  - `npm run type-check` ✅
+  - `npm run build` ✅（Vite 正常提示 `vendor-antd` > 500kB 属于 warning；严格失败可用 `CI_STRICT_VITE_OVERSIZE=1`）
+
 - 为“错误可诊断（最小复现模板）”补齐 GitHub Issue 模板：新增 `.github/ISSUE_TEMPLATE/bug_report.yml`，引导提交者提供 **最小复现步骤** + **诊断信息**（浏览器/系统、Console/Network、AI 场景下的 provider/model/http status/traceId），并提醒导出的 JSON 快照需脱敏。
 - README 在「贡献」处补充指引：报告 Bug 使用 Bug report 模板，按诊断字段填写，降低来回追问成本。
 - 验收命令：`npm test`（39 files / 272 tests passed）。
