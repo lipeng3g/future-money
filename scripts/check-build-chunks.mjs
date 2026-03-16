@@ -24,6 +24,16 @@ const stats = await Promise.all(jsFiles.map(async (file) => {
 
 const result = evaluateBuildBudget({ stats, baseline });
 
+if (process.env.CI) {
+  const totalWarnings = result.warnings.length + result.oversizeChunks.length;
+  if (totalWarnings) {
+    throw new Error(
+      `CI build budget warnings detected: ${totalWarnings} (budget: ${result.warnings.length}, oversize: ${result.oversizeChunks.length})`,
+    );
+  }
+}
+
+
 if (result.missingChunks.length) {
   throw new Error(`缺少关键 chunk：${result.missingChunks.join(', ')}`);
 }
