@@ -17,3 +17,6 @@ tmp-browser-chart-smoke/
 tsconfig.*.tsbuildinfo
 tsconfig.app.tsbuildinfo
 tsconfig.node.tsbuildinfo
+
+# Agent local private notes (DO NOT COMMIT)
+.agent/local/
