@@ -14,7 +14,7 @@
 
 ## 2. 技术债与风险
 - [ ] secrets/环境变量规范（本地、CI、生产）
-- [ ] 错误可诊断：错误码/trace id/最小复现模板
+- [x] 错误可诊断：错误码/trace id/最小复现模板（已添加 GitHub Bug report Issue 模板并在 README 指引）
 
 ## 3. 待澄清
 - [ ] 后续是否要求所有变更都走 PR（禁止直推 main）？
