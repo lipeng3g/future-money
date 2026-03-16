@@ -303,3 +303,8 @@
 [2026-03-16 08:13:00] deliverables: reran full validation on current main tree and reconfirmed P0-1 empty_stream mitigation is present end-to-end (pre-first-packet auto retry with 300ms/800ms backoff, automatic fallback downgrade/non-stream recovery after retry exhaustion, copyable diagnostics provider/model/traceId/httpStatus/retries, retry success without duplicate output while preserving draft and scope lock), P0-2 clear/delete refresh persistence cleanup surviving refresh, and P1 wrapped "查看图上日期" event-card layout on narrow cards; refreshed audit trail for this acceptance cycle
 [2026-03-16 08:13:00] validation: npm test && npm run type-check && npm run build
 [2026-03-16 08:13:00] remote-check: git fetch origin main && git log -1 --oneline origin/main
+[2026-03-16 09:15:48] task: future-money autonomous worker acceptance rerun for P0-1/P0-2/P1 before mandatory origin/main push discipline
+[2026-03-16 09:15:48] deliverables: reran full validation on current main tree and reconfirmed P0-1 empty_stream mitigation remains shipped end-to-end (pre-first-packet auto retry with 300ms/800ms backoff, automatic fallback downgrade/non-stream recovery after retry exhaustion, copyable diagnostics provider/model/traceId/httpStatus/retries, retry success without duplicate output while preserving draft and scope lock), P0-2 clear/delete refresh persistence cleanup surviving refresh, and P1 wrapped “查看图上日期” event-card layout on narrow cards; refreshed audit trail for this acceptance cycle
+[2026-03-16 09:15:48] validation: npm test && npm run type-check && npm run build
+[2026-03-16 09:15:48] remote-check: git log -1 --oneline origin/main
+
