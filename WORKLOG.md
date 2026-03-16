@@ -312,3 +312,6 @@
 [2026-03-16 09:15:48] validation: npm test && npm run type-check && npm run build
 [2026-03-16 09:15:48] remote-check: git log -1 --oneline origin/main
 
+[2026-03-16 12:15:35] task: autonomous acceptance rerun for P0-1 empty_stream mitigation, P0-2 clear-session refresh regression, and P1 event-card overflow before mandatory push
+[2026-03-16 12:15:35] deliverables: re-audited current origin/main source (not just WORKLOG) and reconfirmed shipped behavior: pre-first-packet empty_stream auto retry with 300ms/800ms backoff, one-shot fallback downgrade to gpt-5.2 via non-stream recovery path, copyable diagnostics (provider/model/traceId/httpStatus/retries), retry success without duplicate output while preserving draft/scope lock, scoped clear/delete refresh persistence cleanup, and wrapped "查看图上日期" event-card layout; validation passed with npm test && npm run type-check && npm run build
+
