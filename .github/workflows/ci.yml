@@ -20,11 +20,15 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .node-version
           cache: npm
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies (lockfile)
+        run: |
+          echo "node: $(node -v)"
+          echo "npm:  $(npm -v)"
+          npm ci --prefer-offline --no-audit
 
       - name: Smoke tests
         run: npm run smoke
