@@ -13,7 +13,8 @@
   - 后续可选（需决策）：是否将 `CI_STRICT_BUILD_BUDGET=1` / `CI_STRICT_VITE_OVERSIZE=1` 作为默认失败条件（见下方待澄清）。
 
 ## 2. 技术债与风险
-- [ ] secrets/环境变量规范（本地、CI、生产）
+- [x] secrets/环境变量规范（本地、CI、生产）
+  - 已新增：`docs/ENV.md`、`.env.example`，并在 README 增加快速入口。
 - [x] 错误可诊断：错误码/trace id/最小复现模板（已添加 GitHub Bug report Issue 模板并在 README 指引）
 
 ## 3. 待澄清
