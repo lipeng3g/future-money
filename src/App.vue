@@ -23,9 +23,12 @@
 </template>
 
 <script setup lang="ts">
+import { defineAsyncComponent } from 'vue';
 import AppHeader from '@/layouts/AppHeader.vue';
 import MainLayout from '@/layouts/MainLayout.vue';
-import OnboardingGuide from '@/components/common/OnboardingGuide.vue';
+
+// Lazy-load onboarding so initial bundle is more stable and smaller.
+const OnboardingGuide = defineAsyncComponent(() => import('@/components/common/OnboardingGuide.vue'));
 
 const themeConfig = {
   token: {
