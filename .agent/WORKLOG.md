@@ -15,3 +15,10 @@
 - 为“错误可诊断（最小复现模板）”补齐 GitHub Issue 模板：新增 `.github/ISSUE_TEMPLATE/bug_report.yml`，引导提交者提供 **最小复现步骤** + **诊断信息**（浏览器/系统、Console/Network、AI 场景下的 provider/model/http status/traceId），并提醒导出的 JSON 快照需脱敏。
 - README 在「贡献」处补充指引：报告 Bug 使用 Bug report 模板，按诊断字段填写，降低来回追问成本。
 - 验收命令：`npm test`（39 files / 272 tests passed）。
+- 2026-03-17 02:14–02:16（Asia/Shanghai）future-money autonomous worker 再次复核 P0-1/P0-2/P1：
+  - `npm test` 通过（39 files / 272 tests）
+  - `npm run type-check` 通过
+  - `npm run build` 通过
+  - 复核实现位置：`src/utils/ai.ts`、`src/components/ai/AiAnalysisModal.vue`、`src/utils/__tests__/ai-stream.test.ts`、`src/components/ai/__tests__/AiAnalysisModal.test.ts`、`src/stores/__tests__/finance-smoke.test.ts`、`src/components/events/EventCard.vue`
+  - 结论：P0-1 已包含 empty_stream 首包前自动重试（300ms/800ms）+ 降级恢复（当前实现为优先备用模型 `gpt-5.2` 且使用 `stream=false` 拉全量结果）+ 诊断信息 provider/model/traceId/httpStatus/retries + 成功时清空旧 buffer 避免重复输出；P0-2 清空会话刷新不回归；P1 “查看图上日期” 已通过换行/断词约束避免撑爆布局。
+  - 远端确认命令：`git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`。
