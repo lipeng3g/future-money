@@ -22,8 +22,18 @@
   - `npm run type-check` 通过
   - `npm run build` 通过
   - 再次复核实现位置：`src/utils/ai.ts`、`src/components/ai/AiAnalysisModal.vue`、`src/utils/__tests__/ai-stream.test.ts`、`src/components/ai/__tests__/AiAnalysisModal.test.ts`、`src/stores/__tests__/finance-smoke.test.ts`、`src/components/events/EventCard.vue`
-  - 结论：P0-1 当前 `main` 已覆盖 `empty_stream` 首包前自动重试（300ms / 800ms）+ 重试耗尽后的单次降级补拉（当前实现为同通道备用模型 `gpt-5.2` 且 `stream=false`），并输出可复制诊断 `provider/model/traceId/httpStatus/retries`，重试成功时不会残留旧 buffer 或重复 assistant 输出；P0-2 清空会话刷新不回归；P1 “查看图上日期” 仍通过换行/断词约束避免撑爆布局。
+  - 结论：P0-1 当前 `main` 已覆盖 `empty_stream` 首包前自动重试（300ms / 800ms）+ 重试耗尽后的单次降级补拉（当前实现为同通道备用模型 `gpt-5.2` 且 `stream=false`），并输出可复制诊断 `provider/model/traceId/httpStatus/retries`，重试成功时不会残留旧 buffer 或重复 assistant 输出；P0-2 清空会话刷新不回流；P1 “查看图上日期” 仍通过换行/断词约束避免撑爆布局。
   - 验证命令：`npm test`、`npm run type-check`、`npm run build`、`git status --short --branch`、`git rev-parse HEAD && git rev-parse origin/main`、`git log -1 --oneline`
+
+- 为 `scripts/check-build-log.mjs` 增加脚本级单测：新增 `scripts/__tests__/check-build-log.test.ts` 覆盖：
+  - 正常完整日志通过
+  - `Circular chunk:` 警告直接失败
+  - Vite oversize 仅警告列出 chunk 列表（默认不失败）
+  - `CI=1` + `CI_STRICT_VITE_OVERSIZE=1` 时 oversize 升级为失败
+  - 缺失 `built in` 完成标记时失败
+- 验收命令与结果：
+  - `npm test` ✅（40 files / 277 tests passed）
+  - `npm run type-check` ✅
 
 - 为“错误可诊断（最小复现模板）”补齐 GitHub Issue 模板：新增 `.github/ISSUE_TEMPLATE/bug_report.yml`，引导提交者提供 **最小复现步骤** + **诊断信息**（浏览器/系统、Console/Network、AI 场景下的 provider/model/http status/traceId），并提醒导出的 JSON 快照需脱敏。
 - README 在「贡献」处补充指引：报告 Bug 使用 Bug report 模板，按诊断字段填写，降低来回追问成本。
