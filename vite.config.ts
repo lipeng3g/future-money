@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'node:url';
 import type { Plugin } from 'vite';
+import { isAllowedAiProxyTargetUrl } from './src/utils/ai-proxy-guard';
 
 /**
  * Vite 插件：AI API CORS 代理
@@ -47,10 +48,9 @@ function aiProxyPlugin(): Plugin {
           return;
         }
 
-        const normalizedPath = parsedUrl.pathname.replace(/\/+$/, '');
-        if (!normalizedPath.endsWith('/chat/completions')) {
+        if (!isAllowedAiProxyTargetUrl(targetUrl)) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Only OpenAI-compatible chat completions endpoints are allowed' }));
+          res.end(JSON.stringify({ error: 'Only public OpenAI-compatible chat completions endpoints are allowed' }));
           return;
         }
 
