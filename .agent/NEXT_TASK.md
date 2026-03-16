@@ -6,8 +6,8 @@
 - 
 
 ## 1. 近期最小可交付（按优先级）
-- [ ] 梳理 future-money 当前“最小闭环”验收路径，并补齐 README 的验收步骤
-- [ ] 为关键页面/关键链路补 1-2 个 smoke 测试（CI 里跑）
+- [x] 梳理 future-money 当前“最小闭环”验收路径，并补齐 README 的验收步骤
+- [x] 为关键页面/关键链路补 1-2 个 smoke 测试（CI 里跑）
 - [ ] 梳理并固化构建/CI 的稳定性策略（chunk budget、warnings-as-fail、缓存命中）
 
 ## 2. 技术债与风险
