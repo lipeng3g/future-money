@@ -31,7 +31,9 @@
             <span>{{ activeInsight.date }}</span>
           </div>
           <div class="focus-insight-actions">
-            <button type="button" class="focus-insight-copy" @click="copyInsightSummary">复制摘要</button>
+            <button type="button" class="focus-insight-copy" @click="copyInsightSummary">
+              {{ insightCopied ? '已复制' : '复制摘要' }}
+            </button>
             <button
               v-if="activeFocusEvents.length"
               type="button"
@@ -326,6 +328,18 @@ const downloadActiveFocusEventsCsv = () => {
   }, 0);
 };
 
+const insightCopied = ref(false);
+let insightCopiedTimer: number | undefined;
+
+const markInsightCopied = () => {
+  insightCopied.value = true;
+  if (insightCopiedTimer) window.clearTimeout(insightCopiedTimer);
+  insightCopiedTimer = window.setTimeout(() => {
+    insightCopied.value = false;
+    insightCopiedTimer = undefined;
+  }, 1600);
+};
+
 const copyInsightSummary = async () => {
   if (!activeInsight.value) return;
   const insight = activeInsight.value;
@@ -346,7 +360,11 @@ const copyInsightSummary = async () => {
   const text = summaryLines.join('\n');
 
   try {
+    if (!navigator.clipboard?.writeText) {
+      throw new Error('Clipboard API not available');
+    }
     await navigator.clipboard.writeText(text);
+    markInsightCopied();
   } catch (error) {
     // 兼容不支持 Clipboard API 的环境（或因权限/https 受限失败）
     const fallback = document.createElement('textarea');
@@ -363,6 +381,7 @@ const copyInsightSummary = async () => {
       console.warn('[future-money] copy insight summary failed', error);
       return;
     }
+    markInsightCopied();
   }
 };
 
@@ -624,6 +643,10 @@ const handleChartClick = (params: ECElementEvent) => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+.focus-insight-copy {
+  min-width: 72px;
 }
 
 .focus-insight-copy:hover,

@@ -27,6 +27,12 @@ beforeEach(() => {
     cb(0);
     return 1;
   });
+
+  vi.stubGlobal('navigator', {
+    clipboard: {
+      writeText: vi.fn().mockResolvedValue(undefined),
+    },
+  });
 });
 
 afterEach(() => {
@@ -184,6 +190,18 @@ describe('BalanceChart', () => {
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
 
     await wrapper.find('.focus-insight-export').trigger('click');
+
+    // 复制摘要：应切换为“已复制”并在短暂提示后恢复
+    vi.useFakeTimers();
+    await wrapper.find('.focus-insight-copy').trigger('click');
+    await flushPromises();
+    await nextTick();
+    expect(wrapper.find('.focus-insight-copy').text()).toContain('已复制');
+
+    vi.advanceTimersByTime(1700);
+    await nextTick();
+    expect(wrapper.find('.focus-insight-copy').text()).toContain('复制摘要');
+    vi.useRealTimers();
 
     expect(createObjectUrlMock).toHaveBeenCalledTimes(1);
     expect(clickSpy).toHaveBeenCalledTimes(1);
