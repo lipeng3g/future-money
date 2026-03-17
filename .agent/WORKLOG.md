@@ -117,3 +117,14 @@
   - P0-2 复核：`src/stores/__tests__/finance-smoke.test.ts` 仍覆盖清空当前 scope 会话/草稿后刷新不回流；删除账户时相关 AI 持久化也会一并清理。
   - P1 复核：`src/components/events/EventCard.vue` 仍通过 `min-width: 0`、`white-space: normal`、`word-break: break-word`、`overflow-wrap: anywhere` 约束“查看图上日期”按钮，避免窄宽度下撑爆布局。
   - 远端确认命令：`git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`。
+
+- 交付：为 `scripts/check-build-chunks.mjs` 增加脚本级单测（与 `check-build-log` 形式一致），覆盖：
+  - 正常 dist/assets + baseline 情况通过
+  - dist/assets 缺失时失败并给出清晰提示
+  - baseline 缺失时失败并给出清晰提示
+  - requiredChunks 缺失时报错
+  - `CI=1` + `CI_STRICT_BUILD_BUDGET=1` 时 warnings 升级为失败
+  - 非 strict 下 warnings 输出但不失败
+- 验收命令与结果：
+  - `npm test` ✅（41 files / 286 tests passed）
+  - `npm run type-check` ✅
