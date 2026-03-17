@@ -6,7 +6,13 @@
  */
 
 const normalizeHostname = (hostname: string): string => {
-  return hostname.trim().toLowerCase().replace(/^\[(.*)\]$/, '$1');
+  // new URL('http://example.com./').hostname === 'example.com.' (trailing dot)
+  // We strip trailing dots so FQDN forms can't bypass suffix checks.
+  return hostname
+    .trim()
+    .toLowerCase()
+    .replace(/^\[(.*)\]$/, '$1')
+    .replace(/\.+$/, '');
 };
 
 const isIPv4Literal = (value: string) => {
