@@ -180,3 +180,7 @@
   - P0-2 复核：`src/stores/__tests__/finance-smoke.test.ts` 继续覆盖清空当前 scope 会话/草稿后刷新不回流，确认“清空会话刷新仍存在”未回归。
   - P1 复核：`src/components/events/EventCard.vue` 与 `src/components/events/__tests__/EventCard.test.ts` 继续锁定“查看图上日期”按钮在窄宽度下允许换行/断词，不再撑爆事件卡片布局。
   - 提交纪律：本次仅追加可审计 WORKLOG；提交后立即 `git push origin main`，再用 `git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`、`git status --short --branch` 复核远端可见且工作区干净。
+
+- 2026-03-17 17:25–17:26（Asia/Shanghai）修复：`validateCashFlowEvent` 在日期字符串非法时仍继续做 `YYYY-MM-DD` 字符串比较的问题。
+  - 变更：`src/utils/validators.ts` 缓存 `hasValidStartDate/hasValidEndDate/hasValidOnceDate`，仅在相关日期均为合法 `YYYY-MM-DD` 时才执行 `endDate < startDate`、`onceDate < startDate`、`onceDate > endDate` 的字符串比较；避免非法日期触发“比较逻辑”造成误判/噪音。
+  - 验收：`npm test` ✅（41 files / 289 tests passed）。
