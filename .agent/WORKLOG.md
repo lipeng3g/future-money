@@ -12,6 +12,11 @@
 - 2026-03-16 23:21–23:23（Asia/Shanghai）固化 CI 稳定性：CI 使用 `actions/setup-node@v4` 的 `node-version-file: .node-version` 对齐本地/线上 Node 版本；显式设置 `cache-dependency-path: package-lock.json` 提升 npm cache 命中确定性；安装步骤使用 `npm ci --prefer-offline --no-audit`（锁文件严格 + 更友好缓存命中）。本地验收：`npm run smoke`、`npm run build:verify` 全通过。
 
 ## 2026-03-17
+- 2026-03-17 16:55–17:03（Asia/Shanghai）交付一个可验收的小改进：消除 `EventPanel` 单测中因未 stub Ant Design Vue dropdown/menu 导致的 Vue warn 噪音。
+  - 变更：`src/components/events/__tests__/EventPanel.test.ts` 补齐 `a-dropdown` / `a-menu` / `a-menu-item` stub，并在 `mountPanel()` 的 `global.stubs` 中注册。
+  - 效果：测试输出不再出现 `Failed to resolve component: a-menu-item/a-menu/a-dropdown` 警告，便于 CI/本地定位真正异常。
+  - 验收：`npm test` ✅（41 files / 289 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+
 - 2026-03-17 16:06–16:07（Asia/Shanghai）交付：加固 `isValidISODate` 的时区安全性。
   - 变更：`src/utils/validators.ts` 改为使用 `date-fns/format(parsed, 'yyyy-MM-dd') === value` 进行 round-trip 比对，避免 `toISOString()` 在时区边界导致日期偏移；保留正则约束仅允许 `YYYY-MM-DD`。
   - 测试：`src/utils/__tests__/validators.test.ts` 新增用例，明确拒绝带时间的字符串（例如 `2025-02-28T00:00:00Z`），避免误把 datetime 当 date。

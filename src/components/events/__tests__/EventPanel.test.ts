@@ -149,6 +149,22 @@ const EventFormModalStub = defineComponent({
   `,
 });
 
+const DropdownStub = defineComponent({
+  name: 'ADropdown',
+  template: '<div class="dropdown-stub"><slot /><slot name="overlay" /></div>',
+});
+
+const MenuStub = defineComponent({
+  name: 'AMenu',
+  emits: ['click'],
+  template: '<div class="menu-stub"><slot /></div>',
+});
+
+const MenuItemStub = defineComponent({
+  name: 'AMenuItem',
+  template: '<button type="button" class="menu-item-stub"><slot /></button>',
+});
+
 const AButtonStub = defineComponent({
   name: 'AButton',
   props: ['disabled', 'size', 'type'],
@@ -182,6 +198,9 @@ const mountPanel = () => mount(EventPanel, {
       EventList: EventListStub,
       EventFormModal: EventFormModalStub,
       AButton: AButtonStub,
+      'a-dropdown': DropdownStub,
+      'a-menu': MenuStub,
+      'a-menu-item': MenuItemStub,
     },
   },
 });

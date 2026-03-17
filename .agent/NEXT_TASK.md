@@ -9,6 +9,7 @@
 - [x] 梳理 future-money 当前“最小闭环”验收路径，并补齐 README 的验收步骤
 - [x] 为关键页面/关键链路补 1-2 个 smoke 测试（CI 里跑）
 - [x] 梳理并固化构建/CI 的稳定性策略（chunk budget、warnings-as-fail、缓存命中）
+- [x] 降噪：补齐 EventPanel 单测对 ant-design-vue 下拉/菜单组件的 stub，消除 `Failed to resolve component` 警告
   - 已固化：CI Node 版本对齐 `.node-version`（setup-node `node-version-file`），并显式 `cache-dependency-path: package-lock.json`；安装使用 `npm ci --prefer-offline --no-audit`，提升 cache 命中与可复现性。
   - 已补齐：`scripts/check-build-log.mjs` 对 Vite oversize 输出行解析的兼容性（支持 `│`/`|`、缺失 gzip 列、严格模式下无法解析会失败），避免 CI 静默放过。
   - 已补齐：`scripts/check-build-chunks.mjs` baseline 非法 JSON / 非 object（含 array）时报错更明确，并有脚本级单测覆盖，避免 CI 里定位困难。
