@@ -86,3 +86,9 @@
   - P1 复核：`src/components/events/EventCard.vue` 仍通过 `min-width: 0`、`white-space: normal`、`word-break: break-word`、`overflow-wrap: anywhere` 约束“查看图上日期”按钮；`src/components/events/__tests__/EventCard.test.ts` 仍锁定窄屏长文案场景。
   - 远端状态：复核前 `HEAD == origin/main == 3041391`；本次提交仅追加可审计 WORKLOG，并立即 push 到 `origin/main`。
   - 验证命令：`npm test`、`npm run type-check`、`npm run build`、`git status --short --branch`、`git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`
+
+- 2026-03-17 08:50–08:52（Asia/Shanghai）交付一个可验收的小改进：增强 `scripts/check-build-log.mjs` 对 Vite 资产输出格式的兼容性（更稳定地提取 oversize chunk 列表），并补充单测覆盖边界：
+  - 支持 `│`/`|` 分隔符
+  - 支持缺失 `gzip:` 列（仍输出 oversize 列表）
+  - 若检测到 oversize warning 但无法解析出任何 `dist/assets` 行：会明确告警；在 `CI_STRICT_VITE_OVERSIZE=1` 时直接失败，避免 CI 静默放过
+  - 验收：`npm test` ✅（40 files / 278 tests passed）、`npm run type-check` ✅、`npm run build` ✅

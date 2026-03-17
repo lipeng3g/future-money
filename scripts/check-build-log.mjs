@@ -43,15 +43,36 @@ if (!content.includes('built in')) {
 // build:verify output actionable.
 const hasViteOversizeWarning = content.includes('Some chunks are larger than 500 kB after minification');
 
+const sizeToKb = (value, unit) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+
+  const normalized = String(unit).toLowerCase();
+  if (normalized === 'kb') return n;
+  if (normalized === 'mb') return n * 1000;
+  if (normalized === 'mib') return n * 1024;
+  return null;
+};
+
 const parseViteAssetLine = (line) => {
-  // Example:
+  // Vite output examples (depending on version/terminal):
   // dist/assets/vendor-antd-CCw70g6z.js               640.22 kB │ gzip: 191.50 kB
-  const match = line.match(/^(dist\/assets\/.+?)\s+(\d+(?:\.\d+)?)\s+kB\s+│\s+gzip:\s+(\d+(?:\.\d+)?)\s+kB\s*$/);
+  // dist/assets/vendor-antd-CCw70g6z.js               640.22 kB | gzip: 191.50 kB
+  // dist/assets/vendor-antd-CCw70g6z.js               640.22 kB
+
+  const match = line.match(
+    /^(dist\/assets\/\S+)\s+(\d+(?:\.\d+)?)\s+(kB|KB|MB|MiB)(?:\s*[│|]\s*gzip:\s*(\d+(?:\.\d+)?)\s+(kB|KB|MB|MiB))?\s*$/,
+  );
   if (!match) return null;
+
+  const sizeKb = sizeToKb(match[2], match[3]);
+  const gzipKb = match[4] ? sizeToKb(match[4], match[5]) : null;
+  if (sizeKb == null) return null;
+
   return {
     file: match[1],
-    sizeKb: Number(match[2]),
-    gzipKb: Number(match[3]),
+    sizeKb,
+    gzipKb,
   };
 };
 
@@ -64,12 +85,26 @@ if (hasViteOversizeWarning) {
   if (oversize.length) {
     console.warn(`\nVite oversize chunks detected (>500kB after minification):`);
     for (const item of oversize) {
-      console.warn(`- ${item.file}: ${item.sizeKb.toFixed(2)} kB (gzip: ${item.gzipKb.toFixed(2)} kB)`);
+      const gzipPart = item.gzipKb == null ? '' : ` (gzip: ${item.gzipKb.toFixed(2)} kB)`;
+      console.warn(`- ${item.file}: ${item.sizeKb.toFixed(2)} kB${gzipPart}`);
     }
 
     // Optional strict mode for CI.
     if (process.env.CI && process.env.CI_STRICT_VITE_OVERSIZE === '1') {
       throw new Error(`CI strict mode: found ${oversize.length} oversize chunks in ${path.basename(logPath)}.`);
+    }
+  } else {
+    // Vite has already told us something is oversize, but the exact asset line
+    // format can change between versions. Make this visible in logs.
+    console.warn(
+      `\nVite oversize warning detected, but no parseable dist/assets lines were found. ` +
+        `If Vite changed its output format, update scripts/check-build-log.mjs to match.`,
+    );
+
+    if (process.env.CI && process.env.CI_STRICT_VITE_OVERSIZE === '1') {
+      throw new Error(
+        `CI strict mode: oversize warning present in ${path.basename(logPath)}, but chunk details could not be parsed.`,
+      );
     }
   }
 }

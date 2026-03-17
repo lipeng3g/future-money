@@ -52,11 +52,14 @@ describe('scripts/check-build-log.mjs', () => {
     });
   });
 
-  it('prints oversize chunk list as warning but still passes by default', async () => {
+  it('prints oversize chunk list as warning but still passes by default (supports | and missing gzip)', async () => {
     const logPath = await writeTempLog([
       'Some chunks are larger than 500 kB after minification.',
-      'dist/assets/vendor-antd-CCw70g6z.js               640.22 kB │ gzip: 191.50 kB',
-      'dist/assets/index-aaa.js                          12.10 kB │ gzip:   4.00 kB',
+      // The separator can be a pipe in some environments.
+      'dist/assets/vendor-antd-CCw70g6z.js               640.22 kB | gzip: 191.50 kB',
+      // Some lines may omit gzip.
+      'dist/assets/other.js                              501.00 kB',
+      'dist/assets/index-aaa.js                           12.10 kB | gzip:   4.00 kB',
       '✓ built in 2.00s',
       '',
     ].join('\n'));
@@ -68,6 +71,8 @@ describe('scripts/check-build-log.mjs', () => {
 
     // console.warn goes to stderr
     expect(result.stderr).toContain('Vite oversize chunks detected');
+    expect(result.stderr).toContain('vendor-antd-CCw70g6z.js');
+    expect(result.stderr).toContain('other.js');
     expect(result.stdout).toContain('Build log check passed');
   });
 
@@ -86,6 +91,25 @@ describe('scripts/check-build-log.mjs', () => {
       }),
     ).rejects.toMatchObject({
       stderr: expect.stringContaining('CI strict mode'),
+    });
+  });
+
+  it('fails in CI strict oversize mode when warning exists but chunk lines are not parseable', async () => {
+    const logPath = await writeTempLog([
+      'Some chunks are larger than 500 kB after minification.',
+      // Intentionally not matching dist/assets pattern.
+      'random output that does not include asset size table',
+      '✓ built in 2.00s',
+      '',
+    ].join('\n'));
+
+    await expect(
+      runCheckBuildLog(logPath, {
+        CI: '1',
+        CI_STRICT_VITE_OVERSIZE: '1',
+      }),
+    ).rejects.toMatchObject({
+      stderr: expect.stringContaining('could not be parsed'),
     });
   });
 
