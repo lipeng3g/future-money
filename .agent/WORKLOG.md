@@ -128,3 +128,12 @@
 - 验收命令与结果：
   - `npm test` ✅（41 files / 286 tests passed）
   - `npm run type-check` ✅
+- 2026-03-17 13:14–13:16（Asia/Shanghai）按最新 future-money autonomous dev worker 指令再次执行强制验收并复核主线需求：
+  - `npm test` 通过（41 files / 286 tests）
+  - `npm run type-check` 通过
+  - `npm run build` 通过
+  - P0-1 复核：`src/utils/ai.ts` 的 `streamChatWithRecovery()` 仍对首包前 `empty_stream` 执行自动重试 2 次（300ms / 800ms 指数退避），重试耗尽后执行单次降级补拉（当前实现为 `gpt-5.4 -> gpt-5.2` 且 `stream=false`）；`src/components/ai/AiAnalysisModal.vue` 仍在重试期间保留草稿与 scope 锁定，恢复成功时覆盖旧 buffer 避免重复输出，失败时展示并支持复制 `provider/model/traceId/httpStatus/retries` 诊断信息与“已降级模型重试”提示。
+  - P0-1 测试复核：`src/utils/__tests__/ai-stream.test.ts` 覆盖 `empty_stream -> 自动重试 -> 成功`、`empty_stream -> 重试耗尽 -> 降级补拉成功`、`empty_stream -> 重试/降级均失败 -> 诊断信息`；`src/components/ai/__tests__/AiAnalysisModal.test.ts` 覆盖“自动重试成功时用户无感且无重复输出”与“重试耗尽后展示可恢复提示 + 可复制诊断”。
+  - P0-2 复核：`src/stores/__tests__/finance-smoke.test.ts` 仍覆盖清空当前 scope 会话/草稿后刷新不回流；删除账户时关联 AI 持久化也会同步清理。
+  - P1 复核：`src/components/events/EventCard.vue` 与 `src/components/events/__tests__/EventCard.test.ts` 仍锁定“查看图上日期”在窄宽度下可换行/断词，不再撑爆卡片布局。
+  - 提交纪律：本次复核后立即提交并 push 到 `origin/main`；远端确认命令：`git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`。
