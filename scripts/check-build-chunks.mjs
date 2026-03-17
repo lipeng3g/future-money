@@ -63,11 +63,11 @@ try {
   );
 }
 
-if (!baseline || typeof baseline !== 'object') {
+if (!baseline || typeof baseline !== 'object' || Array.isArray(baseline)) {
   throw new Error(
     [
       `build budget baseline 内容非法（应为 object）：${baselinePath}`,
-      `实际类型：${baseline === null ? 'null' : typeof baseline}`,
+      `实际类型：${baseline === null ? 'null' : Array.isArray(baseline) ? 'array' : typeof baseline}`,
     ].join('\n'),
   );
 }

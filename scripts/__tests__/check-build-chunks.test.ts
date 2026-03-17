@@ -27,6 +27,11 @@ async function writeBaseline(tempDir: string, baseline: unknown) {
   await writeFile(baselinePath, JSON.stringify(baseline, null, 2), 'utf8');
 }
 
+async function writeBaselineRaw(tempDir: string, content: string) {
+  const baselinePath = path.join(tempDir, '.meta', 'build-budget-baseline.json');
+  await writeFile(baselinePath, content, 'utf8');
+}
+
 async function runCheckBuildChunks(cwd: string, env?: NodeJS.ProcessEnv) {
   return execFileAsync(process.execPath, [scriptPath], {
     cwd,
@@ -98,6 +103,30 @@ describe('scripts/check-build-chunks.mjs', () => {
 
     await expect(runCheckBuildChunks(tempDir)).rejects.toMatchObject({
       stderr: expect.stringContaining('缺少关键 chunk'),
+    });
+  });
+
+  it('fails with a clear hint when baseline JSON is invalid', async () => {
+    const tempDir = await setupTempProject();
+
+    await writeBaselineRaw(tempDir, '{ this is not json }');
+
+    await writeSizedFile(path.join(tempDir, 'dist', 'assets', 'index-aaa.js'), 512);
+
+    await expect(runCheckBuildChunks(tempDir)).rejects.toMatchObject({
+      stderr: expect.stringContaining('无法解析 build budget baseline JSON'),
+    });
+  });
+
+  it('fails with a clear hint when baseline JSON is not an object', async () => {
+    const tempDir = await setupTempProject();
+
+    await writeBaselineRaw(tempDir, '[]');
+
+    await writeSizedFile(path.join(tempDir, 'dist', 'assets', 'index-aaa.js'), 512);
+
+    await expect(runCheckBuildChunks(tempDir)).rejects.toMatchObject({
+      stderr: expect.stringContaining('build budget baseline 内容非法'),
     });
   });
 

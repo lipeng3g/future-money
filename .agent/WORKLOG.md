@@ -139,4 +139,5 @@
   - 提交纪律：本次复核后立即提交并 push 到 `origin/main`；远端确认命令：`git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`。
 
 - 交付：增强 `scripts/check-build-chunks.mjs` 的 baseline 解析错误提示：当 `.meta/build-budget-baseline.json` 为非法 JSON 或不是 object 时，给出明确报错与修复提示，避免 Node 的 `JSON.parse` 原始异常造成定位困难。
-  - 验收：`npm test` ✅（41 files / 286 tests passed）
+  - 补充：进一步修正 baseline 类型校验（排除 array），并补齐脚本级单测覆盖「非法 JSON」与「非 object（array）」两类场景。
+  - 验收：`npm test` ✅（41 files / 288 tests passed）、`npm run type-check` ✅
