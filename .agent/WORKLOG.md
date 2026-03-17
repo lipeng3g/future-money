@@ -190,3 +190,8 @@
   - 测试：`src/utils/__tests__/ai-stream.test.ts` 新增用例覆盖「首包前 read() 直接 reject -> 归一化为 empty_stream -> 自动重试 -> 第二次成功返回内容」。
   - 兼容修正：`src/utils/validators.ts` 将 `startDate/endDate/onceDate` 先收窄到局部字符串变量，再做日期合法性与字典序比较，消除 `vue-tsc` 对 `event.startDate` / `event.endDate` 可能为 `undefined` 的报错；逻辑不变。
   - 验收：`npm test` ✅（41 files / 290 tests passed）、`npm run type-check` ✅、`npm run build` ✅。
+
+- 2026-03-17 19:24–19:25（Asia/Shanghai）补充单测：当起始日期非法时，不应再执行 endDate < startDate 的字符串比较。
+  - 背景：`validateCashFlowEvent` 仅在相关日期均为合法 `YYYY-MM-DD` 时才做字典序比较；该测试显式锁定该行为，避免未来重构回归。
+  - 变更：`src/utils/__tests__/validators.test.ts` 新增用例：`startDate='2025-02-30'` 且 `endDate='2024-12-31'` 时只报“起始日期格式不正确”，不应同时报“结束日期不得早于起始日期”。
+  - 验收：`npm test` ✅（41 files / 291 tests passed）。

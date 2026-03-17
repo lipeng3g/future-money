@@ -79,6 +79,18 @@ describe('validateCashFlowEvent', () => {
     expect(errors).toContain('结束日期不得早于起始日期');
   });
 
+  it('当起始日期非法时，不应再进行结束日期早于起始日期的字符串比较', () => {
+    const errors = validateCashFlowEvent(
+      createEvent({
+        startDate: '2025-02-30',
+        endDate: '2024-12-31',
+      }),
+    );
+
+    expect(errors).toContain('起始日期格式不正确');
+    expect(errors).not.toContain('结束日期不得早于起始日期');
+  });
+
   it('拒绝一次性事件日期早于起始日期', () => {
     const errors = validateCashFlowEvent(
       createEvent({
