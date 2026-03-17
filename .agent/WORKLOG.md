@@ -12,7 +12,7 @@
 - 2026-03-16 23:21–23:23（Asia/Shanghai）固化 CI 稳定性：CI 使用 `actions/setup-node@v4` 的 `node-version-file: .node-version` 对齐本地/线上 Node 版本；显式设置 `cache-dependency-path: package-lock.json` 提升 npm cache 命中确定性；安装步骤使用 `npm ci --prefer-offline --no-audit`（锁文件严格 + 更友好缓存命中）。本地验收：`npm run smoke`、`npm run build:verify` 全通过。
 
 ## 2026-03-17
-- scripts/check-build-log.mjs：增强 Vite oversize 解析与提示（支持 Windows 路径分隔符、可选 map 列、可通过 `VITE_CHUNK_SIZE_WARNING_LIMIT_KB` 覆盖 500kB 阈值；并在“有 generic warning 但没有 chunk 超阈值”时给出明确提示）。新增配套单测覆盖上述边界条件。
+- scripts/check-build-log.mjs：增强 Vite oversize 解析与提示（支持 Windows 路径分隔符、可选 map 列、可通过 `VITE_CHUNK_SIZE_WARNING_LIMIT_KB` 覆盖 500kB 阈值；并在“有 generic warning 但没有 chunk 超阈值”时给出明确提示）。新增配套单测覆盖上述边界条件。提交：`01fdb6f chore(build): harden check-build-log parsing (windows paths, map, configurable limit)`
 - 验收命令与结果：
   - `npm test` ✅（40 files / 280 tests passed）
   - `npm run type-check` ✅
@@ -108,3 +108,12 @@
   - P1 复核：`src/components/events/EventCard.vue` 仍通过 `min-width: 0`、`white-space: normal`、`word-break: break-word`、`overflow-wrap: anywhere` 约束“查看图上日期”按钮，`src/components/events/__tests__/EventCard.test.ts` 仍锁定窄宽度布局场景。
   - 提交纪律：本次复核前工作区干净；本条审计记录提交后立即 push 到 `origin/main`，并用 `git log -1 --oneline` 与 `git rev-parse HEAD && git rev-parse origin/main` 复核远端可见。
   - 验证命令：`npm test`、`npm run type-check`、`npm run build`、`git status --short --branch`、`git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`
+- 2026-03-17 10:16–10:18（Asia/Shanghai）按 future-money autonomous dev worker 最新指令再次执行现网前验收复核：
+  - `npm test` 通过（40 files / 280 tests）
+  - `npm run type-check` 通过
+  - `npm run build` 通过
+  - P0-1 复核：`src/utils/ai.ts` 的 `streamChatWithRecovery()` 仍在 `empty_stream` 且首包前断流时自动重试 2 次（300ms / 800ms 指数退避），重试耗尽后执行单次降级补拉（当前实现为 `gpt-5.4 -> gpt-5.2` 且 `stream=false`）；`src/components/ai/AiAnalysisModal.vue` 仍保留草稿与 scope 锁定，重试成功时清空旧 buffer 避免重复输出，重试/降级均失败时展示并支持复制 `provider/model/traceId/httpStatus/retries` 诊断信息与“已降级模型重试”提示。
+  - P0-1 测试复核：`src/utils/__tests__/ai-stream.test.ts` 覆盖 `empty_stream -> 自动重试 -> 成功`、`empty_stream -> 重试耗尽 -> 降级补拉成功`、`empty_stream -> 重试/降级均失败 -> 诊断信息`；`src/components/ai/__tests__/AiAnalysisModal.test.ts` 覆盖“自动重试成功时用户无感且无重复输出”与“重试耗尽后展示可恢复提示 + 可复制诊断”。
+  - P0-2 复核：`src/stores/__tests__/finance-smoke.test.ts` 仍覆盖清空当前 scope 会话/草稿后刷新不回流；删除账户时相关 AI 持久化也会一并清理。
+  - P1 复核：`src/components/events/EventCard.vue` 仍通过 `min-width: 0`、`white-space: normal`、`word-break: break-word`、`overflow-wrap: anywhere` 约束“查看图上日期”按钮，避免窄宽度下撑爆布局。
+  - 远端确认命令：`git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`。
