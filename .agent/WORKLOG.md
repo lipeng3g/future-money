@@ -188,4 +188,5 @@
 - 2026-03-17 18:17–18:20（Asia/Shanghai）修复：流式 reader 在首包前 read() 直接抛错时，将其归一化为可恢复的 `empty_stream`，以触发 `streamChatWithRecovery()` 的自动重试逻辑。
   - 变更：`src/utils/ai.ts` 在 `reader.read()` 的 try/catch 中，如果 `receivedFirstPayload === false` 且发生非 timeout/非 abort 的异常，则抛出 `AiRequestError`（status=500, code=empty_stream, retryable=true）并携带原始错误信息（归入 `empty_stream: <message>`）。
   - 测试：`src/utils/__tests__/ai-stream.test.ts` 新增用例覆盖「首包前 read() 直接 reject -> 归一化为 empty_stream -> 自动重试 -> 第二次成功返回内容」。
-  - 验收：`npm test` ✅（41 files / 290 tests passed）、`npm run type-check` ✅。
+  - 兼容修正：`src/utils/validators.ts` 将 `startDate/endDate/onceDate` 先收窄到局部字符串变量，再做日期合法性与字典序比较，消除 `vue-tsc` 对 `event.startDate` / `event.endDate` 可能为 `undefined` 的报错；逻辑不变。
+  - 验收：`npm test` ✅（41 files / 290 tests passed）、`npm run type-check` ✅、`npm run build` ✅。
