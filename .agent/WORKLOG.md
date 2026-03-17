@@ -92,3 +92,13 @@
   - 支持缺失 `gzip:` 列（仍输出 oversize 列表）
   - 若检测到 oversize warning 但无法解析出任何 `dist/assets` 行：会明确告警；在 `CI_STRICT_VITE_OVERSIZE=1` 时直接失败，避免 CI 静默放过
   - 验收：`npm test` ✅（40 files / 278 tests passed）、`npm run type-check` ✅、`npm run build` ✅
+- 2026-03-17 09:14–09:16（Asia/Shanghai）按最新 future-money autonomous dev worker 指令再次执行 P0-1 / P0-2 / P1 强制验收并复核源码实现：
+  - `npm test` 通过（40 files / 278 tests）
+  - `npm run type-check` 通过
+  - `npm run build` 通过
+  - P0-1 复核：`src/utils/ai.ts` 的 `streamChatWithRecovery()` 仍对 `empty_stream` 执行首包前自动重试 2 次（300ms / 800ms 指数退避），重试耗尽后执行单次降级补拉（当前实现为 `gpt-5.4 -> gpt-5.2` 且 `stream=false`）；`src/components/ai/AiAnalysisModal.vue` 仍在重试期间保留草稿与 scope 锁定，成功恢复时以新结果覆盖 buffer 避免重复输出，失败时展示并支持复制 `provider/model/traceId/httpStatus/retries` 诊断信息。
+  - P0-1 测试复核：`src/utils/__tests__/ai-stream.test.ts` 继续覆盖 `empty_stream -> 自动重试 -> 成功`、`empty_stream -> 重试耗尽 -> 降级补拉成功` 与 `empty_stream -> 重试/降级均失败 -> 展示诊断`；`src/components/ai/__tests__/AiAnalysisModal.test.ts` 继续覆盖“自动重试成功时用户无感且无重复输出”与“重试耗尽后展示可恢复提示 + 可复制诊断”。
+  - P0-2 复核：`src/stores/__tests__/finance-smoke.test.ts` 仍覆盖清空当前 scope 会话/草稿后刷新不回流，说明“清空会话刷新仍存在”未回归。
+  - P1 复核：`src/components/events/EventCard.vue` 仍通过 `min-width: 0`、`white-space: normal`、`word-break: break-word`、`overflow-wrap: anywhere` 约束“查看图上日期”按钮，`src/components/events/__tests__/EventCard.test.ts` 仍锁定窄宽度布局场景。
+  - 提交纪律：本次复核前工作区干净；本条审计记录提交后立即 push 到 `origin/main`，并用 `git log -1 --oneline` 与 `git rev-parse HEAD && git rev-parse origin/main` 复核远端可见。
+  - 验证命令：`npm test`、`npm run type-check`、`npm run build`、`git status --short --branch`、`git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`
