@@ -35,8 +35,10 @@ const recurrenceLabels: Record<RecurrenceType, string> = {
 export const validateCashFlowEvent = (event: Partial<CashFlowEvent>): string[] => {
   const errors: string[] = [];
 
-  const hasValidStartDate = isValidISODate(event.startDate);
-  const hasValidEndDate = event.endDate ? isValidISODate(event.endDate) : true;
+  const startDate = event.startDate;
+  const endDate = event.endDate;
+  const hasValidStartDate = isValidISODate(startDate);
+  const hasValidEndDate = endDate ? isValidISODate(endDate) : true;
 
   if (!event.name || !event.name.trim()) {
     errors.push('事件名称不能为空');
@@ -58,11 +60,11 @@ export const validateCashFlowEvent = (event: Partial<CashFlowEvent>): string[] =
     errors.push('起始日期格式不正确');
   }
 
-  if (event.endDate && !hasValidEndDate) {
+  if (endDate && !hasValidEndDate) {
     errors.push('结束日期格式不正确');
   }
 
-  if (event.endDate && hasValidStartDate && hasValidEndDate && event.endDate < event.startDate) {
+  if (endDate && startDate && hasValidStartDate && hasValidEndDate && endDate < startDate) {
     errors.push('结束日期不得早于起始日期');
   }
 
@@ -72,10 +74,10 @@ export const validateCashFlowEvent = (event: Partial<CashFlowEvent>): string[] =
       if (!hasValidOnceDate) {
         errors.push('一次性事件需要有效日期');
       }
-      if (event.onceDate && hasValidOnceDate && hasValidStartDate && event.onceDate < event.startDate) {
+      if (event.onceDate && hasValidOnceDate && startDate && hasValidStartDate && event.onceDate < startDate) {
         errors.push('一次性事件日期不得早于起始日期');
       }
-      if (event.onceDate && hasValidOnceDate && event.endDate && hasValidEndDate && event.onceDate > event.endDate) {
+      if (event.onceDate && hasValidOnceDate && endDate && hasValidEndDate && event.onceDate > endDate) {
         errors.push('一次性事件日期不得晚于结束日期');
       }
       break;

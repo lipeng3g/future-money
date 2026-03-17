@@ -195,3 +195,8 @@
   - 背景：`validateCashFlowEvent` 仅在相关日期均为合法 `YYYY-MM-DD` 时才做字典序比较；该测试显式锁定该行为，避免未来重构回归。
   - 变更：`src/utils/__tests__/validators.test.ts` 新增用例：`startDate='2025-02-30'` 且 `endDate='2024-12-31'` 时只报“起始日期格式不正确”，不应同时报“结束日期不得早于起始日期”。
   - 验收：`npm test` ✅（41 files / 291 tests passed）。
+
+- 2026-03-17 20:25–20:30（Asia/Shanghai）交付一个可验收的小改进：降低 `AiAnalysisModal` 单测的 stderr 噪音，并修复 `validateCashFlowEvent` 的 `vue-tsc` 可选属性告警。
+  - 变更 1（测试降噪）：`src/components/ai/__tests__/AiAnalysisModal.test.ts` 在“请求失败并可重试”用例中临时 stub `console.error`，避免预期内的错误日志污染测试输出（其他用例仍保留显式断言 `console.error` 的行为）。
+  - 变更 2（类型安全）：`src/utils/validators.ts` 将 `startDate/endDate` 收窄为局部变量后再比较，避免 `event.startDate` 可能为 `undefined` 触发 `TS18048`；逻辑不变。
+  - 验收：`npm test` ✅（41 files / 291 tests passed）；`npm run type-check` ✅；`npm run build` ✅。

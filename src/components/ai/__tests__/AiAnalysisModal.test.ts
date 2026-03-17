@@ -266,44 +266,51 @@ describe('AiAnalysisModal', () => {
   });
 
   it('请求失败时会保留已提交问题、展示内联错误，并允许一键重试而不污染历史', async () => {
-    streamChatWithRecoveryMock
-      .mockImplementationOnce(async function* () {
-        throw new Error('网络异常');
-      })
-      .mockImplementationOnce(async function* (_config: unknown, messages: ChatMessage[]) {
-        expect(messages).not.toEqual(expect.arrayContaining([
-          expect.objectContaining({ role: 'assistant', content: expect.stringContaining('请求失败') }),
-        ]));
-        yield { type: 'content', text: '重试后恢复成功' };
-      });
+    // 该用例会走到组件的兜底 console.error 分支；为了避免污染测试 stderr，这里将其静音。
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const wrapper = await mountModal();
-    await wrapper.find('textarea.a-textarea').setValue('分析失败恢复');
-    await wrapper.find('button.a-button').trigger('click');
-    await flushPromises();
-    await nextTick();
+    try {
+      streamChatWithRecoveryMock
+        .mockImplementationOnce(async function* () {
+          throw new Error('网络异常');
+        })
+        .mockImplementationOnce(async function* (_config: unknown, messages: ChatMessage[]) {
+          expect(messages).not.toEqual(expect.arrayContaining([
+            expect.objectContaining({ role: 'assistant', content: expect.stringContaining('请求失败') }),
+          ]));
+          yield { type: 'content', text: '重试后恢复成功' };
+        });
 
-    expect(messageError).toHaveBeenCalledWith('请求失败: 网络异常');
-    expect(wrapper.text()).toContain('请求失败: 网络异常');
-    expect(wrapper.find('[role="alert"]').exists()).toBe(true);
-    expect(wrapper.findAll('.msg-row')).toHaveLength(1);
-    expect(wrapper.findAll('.msg-row')[0]?.text()).toContain('分析失败恢复');
-    expect(wrapper.text()).not.toContain('请求失败: 网络异常请求失败: 网络异常');
-    expect(localStorage.getItem('fm-ai-chat:account-1,account-2') ?? '').not.toContain('请求失败: 网络异常');
+      const wrapper = await mountModal();
+      await wrapper.find('textarea.a-textarea').setValue('分析失败恢复');
+      await wrapper.find('button.a-button').trigger('click');
+      await flushPromises();
+      await nextTick();
 
-    const retryButton = wrapper.findAll('button.request-retry-btn').find((node) => node.text() === '直接重试');
-    expect(retryButton?.exists()).toBe(true);
-    await retryButton!.trigger('click');
-    await flushPromises();
-    await nextTick();
+      expect(messageError).toHaveBeenCalledWith('请求失败: 网络异常');
+      expect(wrapper.text()).toContain('请求失败: 网络异常');
+      expect(wrapper.find('[role="alert"]').exists()).toBe(true);
+      expect(wrapper.findAll('.msg-row')).toHaveLength(1);
+      expect(wrapper.findAll('.msg-row')[0]?.text()).toContain('分析失败恢复');
+      expect(wrapper.text()).not.toContain('请求失败: 网络异常请求失败: 网络异常');
+      expect(localStorage.getItem('fm-ai-chat:account-1,account-2') ?? '').not.toContain('请求失败: 网络异常');
 
-    expect(streamChatWithRecoveryMock).toHaveBeenCalledTimes(2);
-    expect(wrapper.findAll('.msg-row')).toHaveLength(2);
-    expect(wrapper.findAll('.msg-row')[1]?.text()).toContain('重试后恢复成功');
-    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
-    const store = useFinanceStore();
-    const historyKey = `fm-ai-chat:${[store.accounts[0].id, store.accounts[1].id].sort().join(',')}`;
-    expect(localStorage.getItem(historyKey) ?? '').toContain('重试后恢复成功');
+      const retryButton = wrapper.findAll('button.request-retry-btn').find((node) => node.text() === '直接重试');
+      expect(retryButton?.exists()).toBe(true);
+      await retryButton!.trigger('click');
+      await flushPromises();
+      await nextTick();
+
+      expect(streamChatWithRecoveryMock).toHaveBeenCalledTimes(2);
+      expect(wrapper.findAll('.msg-row')).toHaveLength(2);
+      expect(wrapper.findAll('.msg-row')[1]?.text()).toContain('重试后恢复成功');
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+      const store = useFinanceStore();
+      const historyKey = `fm-ai-chat:${[store.accounts[0].id, store.accounts[1].id].sort().join(',')}`;
+      expect(localStorage.getItem(historyKey) ?? '').toContain('重试后恢复成功');
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   it('empty_stream 首包前断开时会展示可恢复提示，并记录 provider/model/trace 元信息', async () => {
