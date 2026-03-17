@@ -222,3 +222,7 @@
     - baseUrl strip `query/hash`
     - proxy target guard 一并拒绝 `query/hash` + credentials
   - 验收：`npm test` ✅（41 files / 293 tests passed）；`npm run type-check` ✅。
+
+- 2026-03-18 01:39–01:40（Asia/Shanghai）交付：为轻量模块 `src/utils/ai-config.ts` 补齐单测，防止与主实现 `src/utils/ai.ts` 的校验规则漂移。
+  - 新增：`src/utils/__tests__/ai-config.test.ts` 覆盖 baseUrl 规范化、/v1 拼接、query/hash 剥离、credentials 拒绝、私网/localhost 拒绝、以及 `sanitizeAiConfig` 裁剪与默认模型。
+  - 验收：`npm test` ✅（42 files / 299 tests passed）。
