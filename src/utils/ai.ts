@@ -794,6 +794,21 @@ export async function* streamChat(
             });
         }
 
+        if (!receivedFirstPayload) {
+            const readErrorMessage = error instanceof Error ? error.message : String(error ?? 'unknown_stream_error');
+            throw buildAiRequestError(
+                `API 请求失败 (500): ${getRecoverableStreamFailureMessage(`empty_stream: ${readErrorMessage}`)}`,
+                sanitizedConfig,
+                {
+                    status: 500,
+                    traceId: getTraceIdFromHeaders(response.headers),
+                    code: 'empty_stream',
+                    type: error instanceof Error ? error.name : 'stream_read_error',
+                    retryable: true,
+                },
+            );
+        }
+
         throw error;
     } finally {
         firstPayloadTimeout.dispose();

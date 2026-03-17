@@ -202,6 +202,59 @@ describe('streamChat / streamChatWithRecovery', () => {
     });
   });
 
+  it('首包前流读取直接报错时，也会归一化为 empty_stream 并自动重试成功', async () => {
+    vi.useFakeTimers();
+
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    const brokenReader = {
+      read: vi.fn().mockRejectedValue(new Error('upstream stream closed before first payload')),
+      releaseLock: vi.fn(),
+    };
+    const successReader = {
+      read: vi.fn()
+        .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode('data: {"choices":[{"delta":{"content":"读流报错后恢复成功"}}]}\n\n') })
+        .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode('data: [DONE]\n\n') })
+        .mockResolvedValueOnce({ done: true, value: undefined }),
+      releaseLock: vi.fn(),
+    };
+
+    fetchMock
+      .mockResolvedValueOnce(new Response(new ReadableStream(), {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'x-request-id': 'trace-read-error-1',
+        },
+      }) as Response)
+      .mockResolvedValueOnce(new Response(new ReadableStream(), {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'x-request-id': 'trace-read-error-2',
+        },
+      }) as Response);
+
+    vi.spyOn(Response.prototype, 'body', 'get')
+      .mockReturnValueOnce({ getReader: () => brokenReader } as ReadableStream<Uint8Array>)
+      .mockReturnValueOnce({ getReader: () => successReader } as ReadableStream<Uint8Array>);
+
+    const resultPromise = streamChatWithRecovery(sampleConfig, sampleMessages);
+    await vi.advanceTimersByTimeAsync(300);
+    const result = await resultPromise;
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({
+      content: '读流报错后恢复成功',
+      retries: 1,
+      downgraded: false,
+      diagnostics: expect.objectContaining({
+        provider: 'api.deepseek.com',
+        model: 'deepseek-chat',
+        retries: 1,
+      }),
+    });
+  });
+
   it('empty_stream 重试耗尽后会自动降级为非流式补拉，并记录降级诊断', async () => {
     vi.useFakeTimers();
 

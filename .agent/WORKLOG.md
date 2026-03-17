@@ -184,3 +184,8 @@
 - 2026-03-17 17:25–17:26（Asia/Shanghai）修复：`validateCashFlowEvent` 在日期字符串非法时仍继续做 `YYYY-MM-DD` 字符串比较的问题。
   - 变更：`src/utils/validators.ts` 缓存 `hasValidStartDate/hasValidEndDate/hasValidOnceDate`，仅在相关日期均为合法 `YYYY-MM-DD` 时才执行 `endDate < startDate`、`onceDate < startDate`、`onceDate > endDate` 的字符串比较；避免非法日期触发“比较逻辑”造成误判/噪音。
   - 验收：`npm test` ✅（41 files / 289 tests passed）。
+
+- 2026-03-17 18:17–18:20（Asia/Shanghai）修复：流式 reader 在首包前 read() 直接抛错时，将其归一化为可恢复的 `empty_stream`，以触发 `streamChatWithRecovery()` 的自动重试逻辑。
+  - 变更：`src/utils/ai.ts` 在 `reader.read()` 的 try/catch 中，如果 `receivedFirstPayload === false` 且发生非 timeout/非 abort 的异常，则抛出 `AiRequestError`（status=500, code=empty_stream, retryable=true）并携带原始错误信息（归入 `empty_stream: <message>`）。
+  - 测试：`src/utils/__tests__/ai-stream.test.ts` 新增用例覆盖「首包前 read() 直接 reject -> 归一化为 empty_stream -> 自动重试 -> 第二次成功返回内容」。
+  - 验收：`npm test` ✅（41 files / 290 tests passed）、`npm run type-check` ✅。
