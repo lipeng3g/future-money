@@ -4,6 +4,8 @@
  * 目的：避免在非 AI 场景把完整 AI 工具链打进 index chunk。
  */
 
+import { isAllowedAiProxyTargetUrl, isPrivateOrUnsafeHostname } from '@/utils/ai-proxy-guard';
+
 export interface AiConfig {
   baseUrl: string;
   apiKey: string;
@@ -13,113 +15,8 @@ export interface AiConfig {
 const CONFIG_KEY = 'fm-ai-config';
 const DEFAULT_AI_MODEL = 'gpt-4o-mini';
 
-const isPrivateOrUnsafeAiHostname = (hostname: string): boolean => {
-  if (!hostname) return true;
-
-  const normalized = hostname.trim().toLowerCase();
-  const withoutBrackets = normalized.replace(/^\[(.*)\]$/, '$1');
-
-  const endsWithHost = (host: string) => withoutBrackets === host || withoutBrackets.endsWith(`.${host}`);
-
-  // Block localhost-like special domains that resolve to loopback.
-  if (endsWithHost('lvh.me') || endsWithHost('localtest.me')) {
-    return true;
-  }
-
-  // Block wildcard IP-to-hostname services.
-  const isIpEncodedHost = (suffix: string) => {
-    if (!endsWithHost(suffix)) return false;
-
-    const prefix = withoutBrackets.slice(0, -suffix.length).replace(/\.$/, '');
-    if (!prefix) return false;
-
-    const parseOctets = (raw: string, delimiter: '.' | '-') => {
-      const parts = raw.split(delimiter);
-      if (parts.length !== 4) return null;
-      const nums = parts.map((p) => Number.parseInt(p, 10));
-      if (nums.some((n) => !Number.isFinite(n) || n < 0 || n > 255)) return null;
-      return nums;
-    };
-
-    const octets = prefix.includes('.')
-      ? parseOctets(prefix, '.')
-      : prefix.includes('-')
-        ? parseOctets(prefix, '-')
-        : null;
-
-    return Boolean(octets);
-  };
-
-  if (isIpEncodedHost('nip.io') || isIpEncodedHost('xip.io') || isIpEncodedHost('sslip.io')) {
-    return true;
-  }
-
-  // Block IPv6-mapped IPv4.
-  if (/^::ffff:/i.test(withoutBrackets)) {
-    return true;
-  }
-
-  if (
-    withoutBrackets === 'localhost'
-    || withoutBrackets === 'localhost.'
-    || withoutBrackets.endsWith('.localhost')
-    || withoutBrackets.endsWith('.localhost.')
-    || withoutBrackets === '0.0.0.0'
-    || withoutBrackets === '::'
-    || withoutBrackets === '::1'
-  ) {
-    return true;
-  }
-
-  const isIPv4Literal = (value: string) => {
-    if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(value)) return false;
-    return value.split('.').every((part) => {
-      const num = Number.parseInt(part, 10);
-      return Number.isFinite(num) && num >= 0 && num <= 255;
-    });
-  };
-
-  const isIPv6Literal = (value: string) => value.includes(':');
-
-  if (isIPv4Literal(withoutBrackets)) {
-    if (
-      withoutBrackets.startsWith('127.')
-      || withoutBrackets.startsWith('10.')
-      || withoutBrackets.startsWith('192.168.')
-      || /^172\.(1[6-9]|2\d|3[0-1])\./.test(withoutBrackets)
-      || /^169\.254\./.test(withoutBrackets)
-      || /^100\.(6[4-9]|[78]\d|9\d|1[01]\d|12[0-7])\./.test(withoutBrackets)
-    ) {
-      return true;
-    }
-  }
-
-  if (isIPv6Literal(withoutBrackets)) {
-    if (/^(fc|fd)[0-9a-f]{0,2}:/i.test(withoutBrackets)) return true;
-    if (/^fe[89ab][0-9a-f]{0,2}:/i.test(withoutBrackets)) return true;
-  }
-
-  return false;
-};
-
 export const isAllowedAiProxyTarget = (targetUrl: string): boolean => {
-  let parsedUrl: URL;
-  try {
-    parsedUrl = new URL(targetUrl);
-  } catch {
-    return false;
-  }
-
-  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-    return false;
-  }
-
-  const hostname = parsedUrl.hostname.trim().toLowerCase();
-  if (isPrivateOrUnsafeAiHostname(hostname)) {
-    return false;
-  }
-
-  return parsedUrl.pathname.replace(/\/+$/, '').endsWith('/chat/completions');
+  return isAllowedAiProxyTargetUrl(targetUrl);
 };
 
 export const normalizeAiBaseUrl = (input: string): string => {
@@ -139,8 +36,17 @@ export const normalizeAiBaseUrl = (input: string): string => {
     throw new Error('API 地址仅支持 http 或 https');
   }
 
+  if (parsedUrl.username || parsedUrl.password) {
+    throw new Error('API 地址不安全：不允许包含用户名或密码');
+  }
+
+  // Strip query/hash to make the base URL stable and avoid accidental leakage.
+  // e.g. "https://api.example.com/v1/chat/completions?foo=bar#baz".
+  parsedUrl.search = '';
+  parsedUrl.hash = '';
+
   const hostname = parsedUrl.hostname.trim().toLowerCase();
-  if (isPrivateOrUnsafeAiHostname(hostname)) {
+  if (isPrivateOrUnsafeHostname(hostname)) {
     throw new Error(
       'API 地址不安全：禁止 localhost / 内网 IP（含 127.0.0.1、RFC1918、169.254/16、100.64/10、IPv6 ULA/link-local 等）',
     );
@@ -166,6 +72,8 @@ export const normalizeAiBaseUrl = (input: string): string => {
 export const buildAiChatCompletionsUrl = (baseUrl: string): string => {
   const normalizedBaseUrl = normalizeAiBaseUrlForTarget(baseUrl);
 
+  // 兼容用户输入已包含 /v1 的情形（例如 https://api.openai.com/v1）
+  // 避免拼出 /v1/v1/chat/completions 导致 404。
   if (normalizedBaseUrl.endsWith('/v1')) {
     return `${normalizedBaseUrl}/chat/completions`;
   }
