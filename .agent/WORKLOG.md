@@ -34,6 +34,8 @@
 - 验收命令与结果：
   - `npm test` ✅（40 files / 277 tests passed）
   - `npm run type-check` ✅
+  - `npm run build` ✅（Vite chunk > 500kB 警告存在；如需严格失败可用 `CI_STRICT_VITE_OVERSIZE=1`）
+  - `npm run smoke` ✅（3 files / 8 tests passed；并生成 `tmp-browser-chart-smoke/*` 产物）
 
 - 为“错误可诊断（最小复现模板）”补齐 GitHub Issue 模板：新增 `.github/ISSUE_TEMPLATE/bug_report.yml`，引导提交者提供 **最小复现步骤** + **诊断信息**（浏览器/系统、Console/Network、AI 场景下的 provider/model/http status/traceId），并提醒导出的 JSON 快照需脱敏。
 - README 在「贡献」处补充指引：报告 Bug 使用 Bug report 模板，按诊断字段填写，降低来回追问成本。
@@ -74,3 +76,13 @@
   - 针对 P1：复核 `src/components/events/EventCard.vue` 与 `src/components/events/__tests__/EventCard.test.ts`，确认“查看图上日期”按钮在窄宽度下允许换行/断词，不再把事件卡片撑爆布局。
   - 远端状态：复核前 `HEAD == origin/main == bcd834d`；本次提交仅追加可审计 WORKLOG，并立即 push 到 `origin/main`。
   - 验证命令：`npm test`、`npm run type-check`、`npm run build`、`git status --short --branch`、`git rev-parse HEAD && git rev-parse origin/main`、`git log -1 --oneline`
+- 2026-03-17 08:14–08:16（Asia/Shanghai）按最新 future-money autonomous dev worker 指令复核 P0-1 / P0-2 / P1 并执行强制验收：
+  - `npm test` 通过（40 files / 277 tests）
+  - `npm run type-check` 通过
+  - `npm run build` 通过
+  - P0-1 复核：`src/utils/ai.ts` 的 `streamChatWithRecovery()` 仍对 `empty_stream` 执行首包前自动重试（300ms / 800ms），重试耗尽后走单次降级补拉（当前实现为 `gpt-5.4 -> gpt-5.2` 且 `stream=false`）；`src/components/ai/AiAnalysisModal.vue` 仍保留草稿与 scope 锁定，失败横幅可复制 `provider/model/traceId/httpStatus/retries`，且恢复成功时会直接用新结果覆盖 buffer，避免重复 assistant 输出。
+  - P0-1 测试复核：`src/utils/__tests__/ai-stream.test.ts` 覆盖 `empty_stream -> 自动重试 -> 成功` 与 `empty_stream -> 重试耗尽 -> 降级/失败诊断`；`src/components/ai/__tests__/AiAnalysisModal.test.ts` 覆盖前端“自动重试成功时无感且无重复输出”与“重试耗尽后展示可恢复提示 + 诊断信息”。
+  - P0-2 复核：`src/stores/__tests__/finance-smoke.test.ts` 仍覆盖清空当前账户/删除账户后的 AI 会话与草稿持久化清理，刷新后不会回流到当前或剩余账户。
+  - P1 复核：`src/components/events/EventCard.vue` 仍通过 `min-width: 0`、`white-space: normal`、`word-break: break-word`、`overflow-wrap: anywhere` 约束“查看图上日期”按钮；`src/components/events/__tests__/EventCard.test.ts` 仍锁定窄屏长文案场景。
+  - 远端状态：复核前 `HEAD == origin/main == 3041391`；本次提交仅追加可审计 WORKLOG，并立即 push 到 `origin/main`。
+  - 验证命令：`npm test`、`npm run type-check`、`npm run build`、`git status --short --branch`、`git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`
