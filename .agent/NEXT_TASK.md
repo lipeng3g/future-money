@@ -13,6 +13,7 @@
   - 已固化：CI Node 版本对齐 `.node-version`（setup-node `node-version-file`），并显式 `cache-dependency-path: package-lock.json`；安装使用 `npm ci --prefer-offline --no-audit`，提升 cache 命中与可复现性。
   - 已补齐：`scripts/check-build-log.mjs` 对 Vite oversize 输出行解析的兼容性（支持 `│`/`|`、缺失 gzip 列、严格模式下无法解析会失败），避免 CI 静默放过。
   - 已补齐：`scripts/check-build-chunks.mjs` baseline 非法 JSON / 非 object（含 array）时报错更明确，并有脚本级单测覆盖，避免 CI 里定位困难。
+  - 已补齐：为轻量模块 `src/utils/ai-config.ts` 增加单测，锁定其与 `src/utils/ai.ts` 一致的 baseUrl/target 校验策略，避免未来漂移。
   - 后续可选（需决策）：是否将 `CI_STRICT_BUILD_BUDGET=1` / `CI_STRICT_VITE_OVERSIZE=1` 作为默认失败条件（见下方待澄清）。
 
 ## 2. 技术债与风险
