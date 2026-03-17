@@ -46,7 +46,32 @@ const [files, baselineRaw] = await Promise.all([
   readBaseline(),
 ]);
 
-const baseline = JSON.parse(baselineRaw);
+let baseline;
+try {
+  baseline = JSON.parse(baselineRaw);
+} catch (error) {
+  const detail = error && typeof error === 'object' && 'message' in error
+    ? String(error.message)
+    : String(error);
+
+  throw new Error(
+    [
+      `无法解析 build budget baseline JSON：${baselinePath}`,
+      `原因：${detail}`,
+      '提示：请检查 `.meta/build-budget-baseline.json` 是否为合法 JSON，必要时重新生成/提交该文件。',
+    ].join('\n'),
+  );
+}
+
+if (!baseline || typeof baseline !== 'object') {
+  throw new Error(
+    [
+      `build budget baseline 内容非法（应为 object）：${baselinePath}`,
+      `实际类型：${baseline === null ? 'null' : typeof baseline}`,
+    ].join('\n'),
+  );
+}
+
 const jsFiles = files.filter((file) => file.endsWith('.js'));
 
 const stats = await Promise.all(jsFiles.map(async (file) => {

@@ -137,3 +137,6 @@
   - P0-2 复核：`src/stores/__tests__/finance-smoke.test.ts` 仍覆盖清空当前 scope 会话/草稿后刷新不回流；删除账户时关联 AI 持久化也会同步清理。
   - P1 复核：`src/components/events/EventCard.vue` 与 `src/components/events/__tests__/EventCard.test.ts` 仍锁定“查看图上日期”在窄宽度下可换行/断词，不再撑爆卡片布局。
   - 提交纪律：本次复核后立即提交并 push 到 `origin/main`；远端确认命令：`git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`。
+
+- 交付：增强 `scripts/check-build-chunks.mjs` 的 baseline 解析错误提示：当 `.meta/build-budget-baseline.json` 为非法 JSON 或不是 object 时，给出明确报错与修复提示，避免 Node 的 `JSON.parse` 原始异常造成定位困难。
+  - 验收：`npm test` ✅（41 files / 286 tests passed）
