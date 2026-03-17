@@ -91,6 +91,10 @@ export const isPrivateOrUnsafeHostname = (hostname: string): boolean => {
 
   if (isIPv4Literal(normalized)) {
     if (
+      // 0.0.0.0/8 is "this host on this network" and can behave like a localhost bypass
+      // (e.g. new URL('http://127/').hostname === '0.0.0.127' in Node).
+      normalized.startsWith('0.') ||
+      normalized === '255.255.255.255' ||
       normalized.startsWith('127.') ||
       normalized.startsWith('10.') ||
       normalized.startsWith('192.168.') ||

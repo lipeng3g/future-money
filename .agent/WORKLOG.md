@@ -198,6 +198,15 @@
 
 - 2026-03-17 20:25–20:30（Asia/Shanghai）交付一个可验收的小改进：降低 `AiAnalysisModal` 单测的 stderr 噪音，并修复 `validateCashFlowEvent` 的 `vue-tsc` 可选属性告警。
   - 变更 1（测试降噪）：`src/components/ai/__tests__/AiAnalysisModal.test.ts` 在“请求失败并可重试”用例中临时 stub `console.error`，避免预期内的错误日志污染测试输出（其他用例仍保留显式断言 `console.error` 的行为）。
+
+## 2026-03-18
+- 交付：加固 AI proxy guard 对“IPv4 非标准写法”的拦截（安全防 SSRF/内网探测）。
+  - 背景：Node/WHATWG URL 解析器会把一些看似不是 IPv4 dotted-quad 的 host 归一化成 IPv4（例如 `http://2130706433/`、`http://0x7f000001/`、`http://0177.0.0.1/` 会变成 `127.0.0.1`；而 `http://127/` 会变成 `0.0.0.127`）。如果 guard 只拦 127/10/192.168/172.16/169.254/100.64 等前缀，可能遗漏 0.0.0.0/8 这类“被归一化后出现”的回环/本机目标。
+  - 变更：`src/utils/ai-proxy-guard.ts` 对 IPv4 literal 增加拦截：`0.0.0.0/8`（`startsWith('0.')`）以及 `255.255.255.255` broadcast。
+  - 测试：`src/utils/__tests__/ai-proxy-guard.test.ts` 新增用例，明确拒绝 `http://127/`、`http://0.0.0.127/`、`http://0x7f000001/`、`http://2130706433/` 等输入。
+  - 验收：`npm test` ✅（42 files / 301 tests passed）、`npm run type-check` ✅、`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`。
+
   - 变更 2（类型安全）：`src/utils/validators.ts` 将 `startDate/endDate` 收窄为局部变量后再比较，避免 `event.startDate` 可能为 `undefined` 触发 `TS18048`；逻辑不变。
   - 验收：`npm test` ✅（41 files / 291 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
 

@@ -21,6 +21,13 @@ describe('ai proxy target guards', () => {
     expect(isAllowedAiProxyTarget('http://172.16.0.9/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://169.254.10.20/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://100.64.0.8/v1/chat/completions')).toBe(false);
+    // Node URL parser will normalize some "obfuscated" IPv4 forms into dotted quads.
+    // E.g. http://127/ => 0.0.0.127
+    expect(isAllowedAiProxyTarget('http://127/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://0.0.0.127/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://0x7f000001/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://2130706433/v1/chat/completions')).toBe(false);
+
     expect(isAllowedAiProxyTarget('http://[::1]:8080/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://[::ffff:127.0.0.1]/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://[::ffff:7f00:1]/v1/chat/completions')).toBe(false);
