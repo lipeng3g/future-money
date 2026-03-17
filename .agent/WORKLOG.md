@@ -205,3 +205,11 @@
   - 变更：`src/utils/ai.ts` 的 `normalizeAiBaseUrl()` 现在会清空 `search/hash`，并在 URL 含 `username/password` 时直接报错（"API 地址不安全：不允许包含用户名或密码"）。
   - 测试：`src/utils/__tests__/ai-proxy-guard.test.ts` 新增用例覆盖 `?foo=bar#baz` 会被忽略、以及 `https://user:pass@...` 会被拒绝。
   - 验收：`npm test` ✅（41 files / 292 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+
+- 2026-03-17 22:55–22:57（Asia/Shanghai）交付一个可验收的小改进：代理目标 URL 校验与前端 baseUrl 规范保持一致，进一步阻断 query/hash 与 URL credentials。
+  - 背景：前端 `normalizeAiBaseUrl()` 已会 strip query/hash 并拒绝 `username/password`，但 dev server 的 `isAllowedAiProxyTargetUrl()` 之前只校验 protocol/hostname/path，可能接受带 query/hash 或 credentials 的 targetUrl。
+  - 变更：`src/utils/ai-proxy-guard.ts` 的 `isAllowedAiProxyTargetUrl()` 现在额外拒绝：
+    - URL 中包含 `username/password`（必须通过 `Authorization` header 提供认证）
+    - URL 中包含 `search/hash`（避免意外泄漏、并保持 target 稳定）
+  - 测试：`src/utils/__tests__/ai-proxy-guard.test.ts` 新增用例覆盖上述拒绝条件。
+  - 验收：`npm test` ✅（41 files / 293 tests passed）；`npm run type-check` ✅。

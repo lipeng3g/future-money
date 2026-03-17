@@ -51,6 +51,12 @@ describe('ai config normalization', () => {
     expect(() => normalizeAiBaseUrl('https://user:pass@api.openai.com/v1/chat/completions')).toThrow(/用户名或密码/);
   });
 
+  it('proxy target guard 也拒绝 query/hash 与包含 credentials 的 URL', () => {
+    expect(isAllowedAiProxyTarget('https://api.openai.com/v1/chat/completions?foo=bar')).toBe(false);
+    expect(isAllowedAiProxyTarget('https://api.openai.com/v1/chat/completions#frag')).toBe(false);
+    expect(isAllowedAiProxyTarget('https://user:pass@api.openai.com/v1/chat/completions')).toBe(false);
+  });
+
   it('sanitizeAiConfig 会裁剪字段并补默认模型', () => {
     expect(
       sanitizeAiConfig({

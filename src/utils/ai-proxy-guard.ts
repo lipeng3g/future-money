@@ -118,6 +118,18 @@ export const isAllowedAiProxyTargetUrl = (targetUrl: string): boolean => {
     return false;
   }
 
+  // Disallow embedding credentials in the URL (e.g. https://user:pass@host/...).
+  // If auth is needed, it must be provided via Authorization header.
+  if (parsedUrl.username || parsedUrl.password) {
+    return false;
+  }
+
+  // Disallow query/hash to avoid accidental leakage and keep the target stable.
+  // This also prevents bypass patterns like appending junk query params.
+  if (parsedUrl.search || parsedUrl.hash) {
+    return false;
+  }
+
   const hostname = parsedUrl.hostname;
   if (isPrivateOrUnsafeHostname(hostname)) {
     return false;
