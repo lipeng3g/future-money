@@ -240,3 +240,10 @@
 - 2026-03-18 01:39–01:40（Asia/Shanghai）交付：为轻量模块 `src/utils/ai-config.ts` 补齐单测，防止与主实现 `src/utils/ai.ts` 的校验规则漂移。
   - 新增：`src/utils/__tests__/ai-config.test.ts` 覆盖 baseUrl 规范化、/v1 拼接、query/hash 剥离、credentials 拒绝、私网/localhost 拒绝、以及 `sanitizeAiConfig` 裁剪与默认模型。
   - 验收：`npm test` ✅（42 files / 299 tests passed）。
+
+- 2026-03-18 05:43（Asia/Shanghai）安全加固：阻断 IPv4 在 URL host 中的“0.0.0.0/8 混淆”绕过（SSRF/内网探测防护）。
+  - 背景：Node/WHATWG URL 会把一些非 dotted-quad 的 host 归一化为 IPv4（例如 `http://127/` -> `0.0.0.127`），若只拦 `127.*` 可能漏掉归一化后的 `0.*`。
+  - 变更：`src/utils/ai-proxy-guard.ts` 对 IPv4 literal 增加 `0.0.0.0/8` 拦截（`startsWith('0.')`），并新增对应单测（拒绝 `http://127/` / `http://0.0.0.127/`）。
+  - 提交：`ab49107 fix(security): block IPv4 obfuscation via 0.0.0.0/8`
+  - 验收（本地复跑）：`npm test` ✅（42 files / 301 tests passed）；`npm run type-check` ✅。
+  - 验证命令：`npm test && npm run type-check`
