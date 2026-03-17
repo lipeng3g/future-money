@@ -200,3 +200,8 @@
   - 变更 1（测试降噪）：`src/components/ai/__tests__/AiAnalysisModal.test.ts` 在“请求失败并可重试”用例中临时 stub `console.error`，避免预期内的错误日志污染测试输出（其他用例仍保留显式断言 `console.error` 的行为）。
   - 变更 2（类型安全）：`src/utils/validators.ts` 将 `startDate/endDate` 收窄为局部变量后再比较，避免 `event.startDate` 可能为 `undefined` 触发 `TS18048`；逻辑不变。
   - 验收：`npm test` ✅（41 files / 291 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+
+- 2026-03-17 21:24–21:26（Asia/Shanghai）交付一个可验收的小改进：加固 AI API Base URL 规范化，避免 query/hash 泄漏并拒绝包含用户名/密码的 URL。
+  - 变更：`src/utils/ai.ts` 的 `normalizeAiBaseUrl()` 现在会清空 `search/hash`，并在 URL 含 `username/password` 时直接报错（"API 地址不安全：不允许包含用户名或密码"）。
+  - 测试：`src/utils/__tests__/ai-proxy-guard.test.ts` 新增用例覆盖 `?foo=bar#baz` 会被忽略、以及 `https://user:pass@...` 会被拒绝。
+  - 验收：`npm test` ✅（41 files / 292 tests passed）；`npm run type-check` ✅；`npm run build` ✅。

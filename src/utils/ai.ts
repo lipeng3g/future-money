@@ -67,6 +67,15 @@ export const normalizeAiBaseUrl = (input: string): string => {
         throw new Error('API 地址仅支持 http 或 https');
     }
 
+    if (parsedUrl.username || parsedUrl.password) {
+        throw new Error('API 地址不安全：不允许包含用户名或密码');
+    }
+
+    // Strip query/hash to make the base URL stable and avoid accidental leakage.
+    // e.g. "https://api.example.com/v1/chat/completions?foo=bar#baz".
+    parsedUrl.search = '';
+    parsedUrl.hash = '';
+
     const hostname = parsedUrl.hostname.trim().toLowerCase();
     if (isPrivateOrUnsafeHostname(hostname)) {
         throw new Error(
