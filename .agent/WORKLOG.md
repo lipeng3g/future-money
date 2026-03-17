@@ -247,3 +247,8 @@
   - 提交：`ab49107 fix(security): block IPv4 obfuscation via 0.0.0.0/8`
   - 验收（本地复跑）：`npm test` ✅（42 files / 301 tests passed）；`npm run type-check` ✅。
   - 验证命令：`npm test && npm run type-check`
+
+- 2026-03-18 07:11–07:15（Asia/Shanghai）CI 小改进：新增每周 strict workflow，运行 build:verify 并开启 build budget / Vite oversize 严格模式（不影响 PR/默认 CI）。
+  - 新增：.github/workflows/ci-strict-weekly.yml（schedule + workflow_dispatch）
+  - env：CI_STRICT_BUILD_BUDGET=1, CI_STRICT_VITE_OVERSIZE=1
+  - 验收：npm test ✅；npm run type-check ✅。
