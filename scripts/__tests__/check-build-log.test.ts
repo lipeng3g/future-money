@@ -113,6 +113,43 @@ describe('scripts/check-build-log.mjs', () => {
     });
   });
 
+  it('parses Windows-style asset paths and optional map size columns', async () => {
+    const logPath = await writeTempLog([
+      'Some chunks are larger than 500 kB after minification.',
+      'dist\\assets\\vendor-antd-CCw70g6z.js              640.22 kB | gzip: 191.50 kB | map: 123.45 kB',
+      '✓ built in 2.00s',
+      '',
+    ].join('\n'));
+
+    const result = await runCheckBuildLog(logPath, {
+      CI: '',
+      CI_STRICT_VITE_OVERSIZE: '',
+    });
+
+    expect(result.stderr).toContain('vendor-antd-CCw70g6z.js');
+    expect(result.stderr).toContain('map: 123.45 kB');
+    expect(result.stdout).toContain('Build log check passed');
+  });
+
+  it('uses VITE_CHUNK_SIZE_WARNING_LIMIT_KB when provided', async () => {
+    const logPath = await writeTempLog([
+      'Some chunks are larger than 500 kB after minification.',
+      'dist/assets/vendor-antd-CCw70g6z.js               640.22 kB │ gzip: 191.50 kB',
+      '✓ built in 2.00s',
+      '',
+    ].join('\n'));
+
+    const result = await runCheckBuildLog(logPath, {
+      CI: '',
+      CI_STRICT_VITE_OVERSIZE: '',
+      VITE_CHUNK_SIZE_WARNING_LIMIT_KB: '700',
+    });
+
+    // No chunk should exceed 700kB; we still expect a warning since the generic Vite warning exists.
+    expect(result.stderr).toContain('no chunk exceeds 700kB');
+    expect(result.stdout).toContain('Build log check passed');
+  });
+
   it('fails when build completion marker is missing', async () => {
     const logPath = await writeTempLog('vite v5.0.0 building for production...\n');
 

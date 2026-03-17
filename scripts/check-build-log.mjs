@@ -55,45 +55,57 @@ const sizeToKb = (value, unit) => {
 };
 
 const parseViteAssetLine = (line) => {
-  // Vite output examples (depending on version/terminal):
+  // Vite output examples (depending on version/terminal/platform):
   // dist/assets/vendor-antd-CCw70g6z.js               640.22 kB │ gzip: 191.50 kB
   // dist/assets/vendor-antd-CCw70g6z.js               640.22 kB | gzip: 191.50 kB
+  // dist/assets/vendor-antd-CCw70g6z.js               640.22 kB | gzip: 191.50 kB | map: 123.45 kB
+  // dist\\assets\\vendor-antd-CCw70g6z.js              640.22 kB │ gzip: 191.50 kB
   // dist/assets/vendor-antd-CCw70g6z.js               640.22 kB
 
   const match = line.match(
-    /^(dist\/assets\/\S+)\s+(\d+(?:\.\d+)?)\s+(kB|KB|MB|MiB)(?:\s*[│|]\s*gzip:\s*(\d+(?:\.\d+)?)\s+(kB|KB|MB|MiB))?\s*$/,
+    /^(dist[\\/](?:assets)[\\/]\S+)\s+(\d+(?:\.\d+)?)\s+(kB|KB|MB|MiB)(?:\s*[│|]\s*gzip:\s*(\d+(?:\.\d+)?)\s+(kB|KB|MB|MiB))?(?:\s*[│|]\s*map:\s*(\d+(?:\.\d+)?)\s+(kB|KB|MB|MiB))?\s*$/,
   );
   if (!match) return null;
 
   const sizeKb = sizeToKb(match[2], match[3]);
   const gzipKb = match[4] ? sizeToKb(match[4], match[5]) : null;
+  const mapKb = match[6] ? sizeToKb(match[6], match[7]) : null;
   if (sizeKb == null) return null;
 
   return {
-    file: match[1],
+    file: match[1].replaceAll('\\\\', '/'),
     sizeKb,
     gzipKb,
+    mapKb,
   };
 };
+
+const chunkSizeWarningLimitKb = (() => {
+  const raw = process.env.VITE_CHUNK_SIZE_WARNING_LIMIT_KB;
+  if (!raw) return 500;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 500;
+})();
 
 if (hasViteOversizeWarning) {
   const assets = lines.map(parseViteAssetLine).filter(Boolean);
   const oversize = assets
-    .filter((item) => item.sizeKb > 500)
+    .filter((item) => item.sizeKb > chunkSizeWarningLimitKb)
     .sort((a, b) => b.sizeKb - a.sizeKb);
 
   if (oversize.length) {
-    console.warn(`\nVite oversize chunks detected (>500kB after minification):`);
+    console.warn(`\nVite oversize chunks detected (>${chunkSizeWarningLimitKb}kB after minification):`);
     for (const item of oversize) {
       const gzipPart = item.gzipKb == null ? '' : ` (gzip: ${item.gzipKb.toFixed(2)} kB)`;
-      console.warn(`- ${item.file}: ${item.sizeKb.toFixed(2)} kB${gzipPart}`);
+      const mapPart = item.mapKb == null ? '' : ` (map: ${item.mapKb.toFixed(2)} kB)`;
+      console.warn(`- ${item.file}: ${item.sizeKb.toFixed(2)} kB${gzipPart}${mapPart}`);
     }
 
     // Optional strict mode for CI.
     if (process.env.CI && process.env.CI_STRICT_VITE_OVERSIZE === '1') {
       throw new Error(`CI strict mode: found ${oversize.length} oversize chunks in ${path.basename(logPath)}.`);
     }
-  } else {
+  } else if (!assets.length) {
     // Vite has already told us something is oversize, but the exact asset line
     // format can change between versions. Make this visible in logs.
     console.warn(
@@ -106,6 +118,11 @@ if (hasViteOversizeWarning) {
         `CI strict mode: oversize warning present in ${path.basename(logPath)}, but chunk details could not be parsed.`,
       );
     }
+  } else {
+    console.warn(
+      `\nVite oversize warning detected, but no chunk exceeds ${chunkSizeWarningLimitKb}kB. ` +
+        `If you intentionally raised the limit, also consider adjusting Vite's chunkSizeWarningLimit to match.`,
+    );
   }
 }
 

@@ -12,6 +12,12 @@
 - 2026-03-16 23:21–23:23（Asia/Shanghai）固化 CI 稳定性：CI 使用 `actions/setup-node@v4` 的 `node-version-file: .node-version` 对齐本地/线上 Node 版本；显式设置 `cache-dependency-path: package-lock.json` 提升 npm cache 命中确定性；安装步骤使用 `npm ci --prefer-offline --no-audit`（锁文件严格 + 更友好缓存命中）。本地验收：`npm run smoke`、`npm run build:verify` 全通过。
 
 ## 2026-03-17
+- scripts/check-build-log.mjs：增强 Vite oversize 解析与提示（支持 Windows 路径分隔符、可选 map 列、可通过 `VITE_CHUNK_SIZE_WARNING_LIMIT_KB` 覆盖 500kB 阈值；并在“有 generic warning 但没有 chunk 超阈值”时给出明确提示）。新增配套单测覆盖上述边界条件。
+- 验收命令与结果：
+  - `npm test` ✅（40 files / 280 tests passed）
+  - `npm run type-check` ✅
+  - `npm run build` ✅
+
 - 补齐环境变量/开关文档：新增 `docs/ENV.md`（CI/构建校验开关 + AI 配置说明），新增 `.env.example`（仅占位符），并在 README 增加“环境变量快速开始”入口链接。
 - 验收命令与结果：
   - `npm test` ✅（39 files / 272 tests passed）
