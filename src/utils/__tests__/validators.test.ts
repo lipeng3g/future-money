@@ -27,6 +27,10 @@ describe('isValidISODate', () => {
     expect(isValidISODate('2025-2-8')).toBe(false);
     expect(isValidISODate('2025/02/08')).toBe(false);
   });
+
+  it('拒绝夹带时间的字符串（避免误把 datetime 当 date）', () => {
+    expect(isValidISODate('2025-02-28T00:00:00Z')).toBe(false);
+  });
 });
 
 describe('validateCashFlowEvent', () => {

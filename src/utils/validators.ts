@@ -1,4 +1,4 @@
-import { getDaysInMonth, isValid, parseISO } from 'date-fns';
+import { format, getDaysInMonth, isValid, parseISO } from 'date-fns';
 import type { CashFlowEvent, RecurrenceType } from '@/types/event';
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -6,7 +6,10 @@ const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export const isValidISODate = (value?: string | null): boolean => {
   if (!value || !ISO_DATE_PATTERN.test(value)) return false;
   const parsed = parseISO(value);
-  return isValid(parsed) && value === value.slice(0, 10);
+
+  // `parseISO('YYYY-MM-DD')` creates a local Date; comparing to `format(parsed, ...)`
+  // avoids edge cases where timezone offsets make `toISOString()` land on a different day.
+  return isValid(parsed) && format(parsed, 'yyyy-MM-dd') === value;
 };
 
 const isPositive = (value: unknown): boolean => typeof value === 'number' && Number.isFinite(value) && value > 0;
