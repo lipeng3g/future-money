@@ -141,3 +141,12 @@
 - 交付：增强 `scripts/check-build-chunks.mjs` 的 baseline 解析错误提示：当 `.meta/build-budget-baseline.json` 为非法 JSON 或不是 object 时，给出明确报错与修复提示，避免 Node 的 `JSON.parse` 原始异常造成定位困难。
   - 补充：进一步修正 baseline 类型校验（排除 array），并补齐脚本级单测覆盖「非法 JSON」与「非 object（array）」两类场景。
   - 验收：`npm test` ✅（41 files / 288 tests passed）、`npm run type-check` ✅
+- 2026-03-17 15:14–15:16（Asia/Shanghai）按 latest autonomous dev worker 指令再次执行完整验收并复核 `origin/main`：
+  - `npm test` 通过（41 files / 288 tests）
+  - `npm run type-check` 通过
+  - `npm run build` 通过
+  - P0-1 复核：`src/utils/ai.ts` 的 `streamChatWithRecovery()` 仍对首包前 `empty_stream` 执行自动重试 2 次（300ms / 800ms 指数退避），重试耗尽后执行单次降级补拉；当前实现命中方案 B+A 的组合：优先切到同通道备用模型 `gpt-5.2`，并以 `stream=false` 拉取完整结果。`src/components/ai/AiAnalysisModal.vue` 仍在重试期间保留草稿与 scope 锁定，恢复成功时直接用最终结果覆盖 buffer，避免重复 assistant 输出；失败时展示并支持复制 `provider/model/traceId/httpStatus/retries` 诊断信息，并在模型降级时提示“已降级模型重试”。
+  - P0-1 测试复核：`src/utils/__tests__/ai-stream.test.ts` 覆盖 `empty_stream -> 自动重试 -> 成功`、`empty_stream -> 重试耗尽 -> 降级补拉成功`、`empty_stream -> 重试/降级均失败 -> 诊断信息`；`src/components/ai/__tests__/AiAnalysisModal.test.ts` 覆盖“自动重试成功时用户无感且无重复输出”与“重试耗尽后展示可恢复提示 + 可复制诊断”。
+  - P0-2 复核：`src/stores/__tests__/finance-smoke.test.ts` 仍覆盖清空当前 scope 会话/草稿后刷新不回流，确认“清空会话刷新仍存在”未回归。
+  - P1 复核：`src/components/events/EventCard.vue` 与 `src/components/events/__tests__/EventCard.test.ts` 仍锁定“查看图上日期”按钮在窄宽度下可换行/断词，不再撑爆卡片布局。
+  - 提交纪律：本次变更仅追加可审计 WORKLOG；提交后立即 `git push origin main`，并用 `git log -1 --oneline`、`git rev-parse HEAD && git rev-parse origin/main`、`git status --short` 确认远端可见且工作区干净。
