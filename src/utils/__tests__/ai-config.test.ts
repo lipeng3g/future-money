@@ -17,6 +17,15 @@ describe('ai-config normalization (lightweight module)', () => {
     expect(() => normalizeAiBaseUrl('https://user:pass@api.openai.com/v1/chat/completions')).toThrow(/用户名或密码/);
   });
 
+  it('rejects non-string baseUrl inputs defensively', () => {
+    // @ts-expect-error - runtime hardening test
+    expect(() => normalizeAiBaseUrl(null)).toThrow(/格式不正确/);
+    // @ts-expect-error - runtime hardening test
+    expect(() => normalizeAiBaseUrl(undefined)).toThrow(/格式不正确/);
+    // @ts-expect-error - runtime hardening test
+    expect(() => normalizeAiBaseUrl(123)).toThrow(/格式不正确/);
+  });
+
   it('rejects unsafe localhost / private / link-local targets', () => {
     expect(() => normalizeAiBaseUrl('http://127.0.0.1:11434')).toThrow(/不安全/);
     expect(() => normalizeAiBaseUrl('http://localhost:11434')).toThrow(/不安全/);

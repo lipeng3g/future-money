@@ -20,6 +20,10 @@ export const isAllowedAiProxyTarget = (targetUrl: string): boolean => {
 };
 
 export const normalizeAiBaseUrl = (input: string): string => {
+  if (typeof input !== 'string') {
+    throw new Error('API 地址格式不正确');
+  }
+
   const trimmed = input.trim();
   if (!trimmed) {
     throw new Error('请填写 API 地址');

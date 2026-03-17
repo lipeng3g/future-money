@@ -215,6 +215,11 @@
   - 验收：`npm test` ✅（41 files / 293 tests passed）；`npm run type-check` ✅。
 
 ## 2026-03-18
+- 2026-03-18 03:10–03:15（Asia/Shanghai）小幅加固：`normalizeAiBaseUrl()` 防御性拒绝非 string 入参（避免上层误传 null/undefined 导致 `.trim()` 直接抛 TypeError，错误信息不友好）。
+  - 变更：`src/utils/ai.ts` 与轻量模块 `src/utils/ai-config.ts` 在 `trim()` 之前增加 `typeof input !== 'string'` 校验，并统一报错为“API 地址格式不正确”。
+  - 测试：`src/utils/__tests__/ai-proxy-guard.test.ts`、`src/utils/__tests__/ai-config.test.ts` 新增用例覆盖 `null/undefined/number`。
+  - 验收：`npm test` ✅（42 files / 301 tests passed）；`npm run type-check` ✅。
+
 - 2026-03-18 00:32–00:34（Asia/Shanghai）小幅重构：`ai-config` 复用 shared proxy guard，消除重复实现并对齐安全策略。
   - 背景：`src/utils/ai-config.ts`（配置弹窗使用的轻量模块）此前内置了一份 hostname/target 校验逻辑，容易与 `src/utils/ai-proxy-guard.ts` / `src/utils/ai.ts` 漂移。
   - 变更：`src/utils/ai-config.ts` 改为直接复用 `isPrivateOrUnsafeHostname` + `isAllowedAiProxyTargetUrl`；同时补齐与主实现一致的校验：
