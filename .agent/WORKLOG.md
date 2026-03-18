@@ -3,6 +3,20 @@
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
 ## 2026-03-18
+- 2026-03-18 21:46–21:48（Asia/Shanghai）交付：为 `ai-storage.ts` 工具模块补齐单测覆盖。
+  - 变更：新增 `src/utils/__tests__/ai-storage.test.ts`，覆盖 26 个用例：
+    - `createChatHistoryScopeKey` 测试默认/空 scope/scoped account IDs
+    - `loadChatHistory` 测试空数据/正常加载/legacy 回退/非法 JSON 处理
+    - `saveChatHistory` 测试默认/Scoped key 保存/记录规范化
+    - `clearChatHistory` 测试默认/Scoped key 清理
+    - `createChatDraftScopeKey` 测试默认/scoped key 生成
+    - `loadChatDraft` 测试空数据/正常加载/字符串值处理/legacy 回退
+    - `saveChatDraft` 测试保存/空值/纯空白清理
+    - `clearChatDraft` 测试默认/Scoped key 清理
+    - `clearChatPersistenceByAccountIds` 测试空 ID/单 ID/多 ID 匹配清理
+  - 验收：`npm test` ✅（54 files / 483 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
 - 2026-03-18 21:05–21:07（Asia/Shanghai）交付：为 `chart-options-cashflow.ts` 工具模块补齐单测覆盖。
   - 变更：新增 `src/utils/__tests__/chart-options-cashflow.test.ts`，覆盖 15 个用例：
     - `buildCashFlowChartOption` 测试空数组/单月/多月数据映射、收入/支出/净额计算、动画阈值（180 点）、series 类型配置、tooltip/legend/xAxis/yAxis/grid 配置、负余额处理
