@@ -224,6 +224,12 @@
   - 验收：`npm test` ✅（41 files / 293 tests passed）；`npm run type-check` ✅。
 
 ## 2026-03-18
+- 2026-03-18 12:27–12:30（Asia/Shanghai）交付：新增 `CONTRIBUTING.md` 文件，包含 PR 检查清单（测试通过/代码质量/安全考虑/文档/提交规范）和开发环境说明。
+  - 变更：新增 `CONTRIBUTING.md`
+  - 验收：`npm test` ✅（42 files / 301 tests passed）；`npm run type-check` ✅；`npm run build` ✅
+  - 提交：`d957d71 docs: add CONTRIBUTING.md with PR checklist`
+  - 验证命令：`git log -1 --oneline`
+
 - 2026-03-18 03:10–03:15（Asia/Shanghai）小幅加固：`normalizeAiBaseUrl()` 防御性拒绝非 string 入参（避免上层误传 null/undefined 导致 `.trim()` 直接抛 TypeError，错误信息不友好）。
   - 变更：`src/utils/ai.ts` 与轻量模块 `src/utils/ai-config.ts` 在 `trim()` 之前增加 `typeof input !== 'string'` 校验，并统一报错为“API 地址格式不正确”。
   - 测试：`src/utils/__tests__/ai-proxy-guard.test.ts`、`src/utils/__tests__/ai-config.test.ts` 新增用例覆盖 `null/undefined/number`。
