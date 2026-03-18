@@ -3,6 +3,31 @@
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
 ## 2026-03-18
+- 2026-03-18 19:47–19:49（Asia/Shanghai）交付：为 `defaults.ts` 工具模块补齐单测覆盖。
+  - 变更：新增 `src/utils/__tests__/defaults.test.ts`，覆盖 16 个用例：
+    - APP_VERSION semver 格式验证
+    - ACCOUNT_COLORS 颜色数组（7 个有效 hex）
+    - ACCOUNT_ICONS 图标 key 数组（7 个非空字符串）
+    - DEFAULT_ACCOUNT_CONFIG 必填字段、唯一 ID、ISO 时间戳
+    - DEFAULT_SNAPSHOT 初始快照、accountId 关联、valid date
+    - DEFAULT_PREFERENCES 默认视图配置
+    - DEFAULT_RECONCILIATION 初始对账、唯一 ID
+    - COLOR_PALETTE 收入/支出/警告/中性颜色 valid hex
+  - 验收：`npm test` ✅（50 files / 422 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
+- 2026-03-18 19:11–19:13（Asia/Shanghai）交付：为 `analytics.ts` 工具模块补齐单测覆盖。
+  - 变更：新增 `src/utils/__tests__/analytics.test.ts`，覆盖 8 个用例：
+    - 空 timeline 返回默认值
+    - 单日 timeline 处理
+    - 多月收入/支出/净额聚合
+    - 最低/最高余额及日期追踪
+    - 余额低于阈值时的 warningDates 收集
+    - 负净额与 fallback 行为
+  - 验收：`npm test` ✅（49 files / 406 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 提交：`7c673b1 test(utils): add unit tests for AnalyticsEngine module`
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
 - 2026-03-18 18:34–18:36（Asia/Shanghai）交付：为 `export-events.ts` 工具模块补齐单测覆盖。
   - 变更：新增 `src/utils/__tests__/export-events.test.ts`，覆盖 17 个用例：
     - `buildEventsCsv` 测试 CSV 头部生成、账户名称映射、收入/支出分类、每月/一次性周期处理、禁用事件、特殊字符转义（逗号/引号/换行）
