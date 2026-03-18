@@ -3,6 +3,11 @@
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
 ## 2026-03-18
+- 2026-03-18 17:59–18:02（Asia/Shanghai）交付：为 `id.ts` 和 `color.ts` 工具模块补齐单测覆盖。
+  - 变更：新增 `src/utils/__tests__/id.test.ts`（3 个用例：非空字符串、唯一性、crypto.randomUUID 使用）和 `src/utils/__tests__/color.ts`（8 个用例：sanitizeHexColor 边界情况）
+  - 验收：`npm test` ✅（47 files / 381 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
 - 2026-03-18 16:49–16:52（Asia/Shanghai）交付：为 `reconciliation.ts` 工具模块补齐单测覆盖。
   - 变更：新增 `src/utils/__tests__/reconciliation.test.ts`，覆盖 21 个用例：
     - `computePeriodKey` 测试 once/monthly/quarterly/semi-annual/yearly 的周期键生成
