@@ -228,6 +228,11 @@
   - 验收：`npm test` ✅（42 files / 313 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
 
 ## 2026-03-18
+- 2026-03-18 15:41–15:44（Asia/Shanghai）交付：为 `recurrence.ts` 工具函数补齐单测覆盖。
+  - 背景：该模块包含事件日期激活判断 (`isEventActiveOnDate`) 与重复周期计算 (`shouldEventOccurOnDate`) 的核心逻辑（once/monthly/quarterly/semi-annual/yearly），此前缺少测试。
+  - 变更：新增 `src/utils/__tests__/recurrence.test.ts`，覆盖 26 个用例，包括边界情况（月份天数 clamping、闰年 2 月 29 处理、季度/半年周期计算）。
+  - 验收：`npm test` ✅（44 files / 349 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+
 - 2026-03-18 15:06–15:08（Asia/Shanghai）交付：为 `escape-html` 工具函数补齐单测覆盖。
   - 背景：该工具函数是 XSS 防护的核心组件，此前缺少测试覆盖。
   - 变更：新增 `src/utils/__tests__/escape-html.test.ts`，覆盖 HTML 特殊字符转义（<, >, &, ", '）、空字符串、纯文本、换行与空格保留等边界场景。
