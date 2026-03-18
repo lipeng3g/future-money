@@ -223,6 +223,10 @@
   - 测试：`src/utils/__tests__/ai-proxy-guard.test.ts` 新增用例覆盖上述拒绝条件。
   - 验收：`npm test` ✅（41 files / 293 tests passed）；`npm run type-check` ✅。
 
+- 2026-03-18 14:38–14:41（Asia/Shanghai）补齐 markdown 工具函数单测覆盖缺口。
+  - 变更：为 `createCachedMarkdownRenderer` 新增 `clear()` 方法测试；为 `createStreamingMarkdownRenderer` 新增 `reset()` 方法测试、相同文本不重复渲染测试、中文标点触发刷新测试、反引号触发刷新测试。
+  - 验收：`npm test` ✅（42 files / 313 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+
 ## 2026-03-18
 - 2026-03-18 13:33–13:36（Asia/Shanghai）交付：修复 `clampMonthlyDay` 函数的 bug 并补齐测试覆盖。
   - 背景：`src/utils/date.ts` 中的 `clampMonthlyDay` 使用了错误的算法（`addMonths(date, 1)` 再 `-1 day`），导致永远返回 14 而非当月实际天数。
