@@ -3,6 +3,14 @@
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
 ## 2026-03-18
+- 2026-03-18 21:05–21:07（Asia/Shanghai）交付：为 `chart-options-cashflow.ts` 工具模块补齐单测覆盖。
+  - 变更：新增 `src/utils/__tests__/chart-options-cashflow.test.ts`，覆盖 15 个用例：
+    - `buildCashFlowChartOption` 测试空数组/单月/多月数据映射、收入/支出/净额计算、动画阈值（180 点）、series 类型配置、tooltip/legend/xAxis/yAxis/grid 配置、负余额处理
+    - `getAdaptiveAxisLabelInterval` 测试目标标签数边界与区间计算
+    - `shouldDisableChartAnimation` 测试 180 点阈值开关
+  - 验收：`npm test` ✅（53 files / 455 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
 - 2026-03-18 20:29–20:30（Asia/Shanghai）交付：为 `chart-base.ts` 和 `sample-data.ts` 工具模块补齐单测覆盖。
   - 变更：新增 `src/utils/__tests__/chart-base.test.ts`（7 个用例：getAdaptiveAxisLabelInterval 边界与区间计算、shouldDisableChartAnimation 180 点阈值）与 `src/utils/__tests__/sample-data.test.ts`（11 个用例：账户 ID 关联、必填字段、收入/支出分类、周期类型（monthly/yearly/quarterly/semi-annual/once）、唯一 ID 生成）。
   - 验收：`npm test` ✅（52 files / 440 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
