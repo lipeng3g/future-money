@@ -252,3 +252,8 @@
   - 新增：.github/workflows/ci-strict-weekly.yml（schedule + workflow_dispatch）
   - env：CI_STRICT_BUILD_BUDGET=1, CI_STRICT_VITE_OVERSIZE=1
   - 验收：npm test ✅；npm run type-check ✅。
+
+- 2026-03-18 08:44–08:46（Asia/Shanghai）补强安全测试：为 AI proxy guard 增加更多「IPv4 非标准写法会被 URL 解析器归一化」的回归用例。
+  - 背景：Node/WHATWG URL 会把短写法/八进制/十六进制/整数形式归一化到 dotted-quad；如果 guard 只覆盖少数形式，未来重构/依赖升级容易漏拦。
+  - 变更：`src/utils/__tests__/ai-proxy-guard.test.ts` 新增拒绝用例：`127.1`、`127.0.1`、`0177.0.0.1`、`0x7f.0x0.0x0.0x1`、`0xffffffff`、`4294967295`、`0300.0250.0000.0001`、`0`、`0000`。
+  - 验收：`npm test` ✅（42 files / 301 tests passed）；`npm run type-check` ✅。

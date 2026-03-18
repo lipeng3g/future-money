@@ -28,6 +28,24 @@ describe('ai proxy target guards', () => {
     expect(isAllowedAiProxyTarget('http://0x7f000001/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://2130706433/v1/chat/completions')).toBe(false);
 
+    // More IPv4 normalization cases (short form / octal / hex / integer).
+    expect(isAllowedAiProxyTarget('http://127.1/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://127.0.1/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://0177.0.0.1/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://0x7f.0x0.0x0.0x1/v1/chat/completions')).toBe(false);
+
+    // Broadcast / max-int forms.
+    expect(isAllowedAiProxyTarget('http://255.255.255.255/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://0xffffffff/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://4294967295/v1/chat/completions')).toBe(false);
+
+    // Private network via octal-ish dotted quads.
+    expect(isAllowedAiProxyTarget('http://0300.0250.0000.0001/v1/chat/completions')).toBe(false);
+
+    // 0.0.0.0 special forms.
+    expect(isAllowedAiProxyTarget('http://0/v1/chat/completions')).toBe(false);
+    expect(isAllowedAiProxyTarget('http://0000/v1/chat/completions')).toBe(false);
+
     expect(isAllowedAiProxyTarget('http://[::1]:8080/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://[::ffff:127.0.0.1]/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://[::ffff:7f00:1]/v1/chat/completions')).toBe(false);
