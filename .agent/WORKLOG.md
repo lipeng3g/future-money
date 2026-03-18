@@ -3,6 +3,27 @@
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
 ## 2026-03-19
+- 2026-03-19 01:27–01:29（Asia/Shanghai）交付：为 `upcoming-items.ts` 工具模块补齐单测覆盖。
+  - 变更：新增 `src/utils/__tests__/upcoming-items.test.ts`，覆盖 16 个用例：
+    - 空 timeline 返回空数组
+    - 无 upcoming events 时返回空数组
+    - 默认 60 天窗口过滤
+    - 自定义 daysAhead 选项
+    - 自定义 limit 选项
+    - 默认 DEFAULT_UPCOMING_ITEM_LIMIT (18) 限制
+    - 同日 expense 优先于 income
+    - 同类别按金额降序
+    - 同金额按名称拼音排序
+    - 唯一 ID 生成（event id + date）
+    - 元数据保留（period/overrideId/overrideAction/accountId）
+    - 多日按日期升序
+    - 今日事件包含
+    - 零金额处理
+    - DEFAULT_UPCOMING_ITEM_LIMIT 常量验证
+  - 验收：`npm test` ✅（55 files / 523 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 提交：`76c2bc1 test(utils): add unit tests for upcoming-items module`
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
 - 2026-03-19 00:51–00:53（Asia/Shanghai）交付：增强 CI 验证覆盖率，在主 workflow 中显式运行单元测试和类型检查。
   - 变更：在 `.github/workflows/ci.yml` 新增两个步骤：
     - `Run unit tests`：执行 `npm test` 运行全部 511 个单元测试
