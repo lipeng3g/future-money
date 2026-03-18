@@ -3,6 +3,14 @@
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
 ## 2026-03-19
+- 2026-03-19 00:51–00:53（Asia/Shanghai）交付：增强 CI 验证覆盖率，在主 workflow 中显式运行单元测试和类型检查。
+  - 变更：在 `.github/workflows/ci.yml` 新增两个步骤：
+    - `Run unit tests`：执行 `npm test` 运行全部 511 个单元测试
+    - `Run type check`：执行 `npm run type-check` 运行 TypeScript 类型检查
+  - 背景：原 CI 仅运行 smoke tests 和 build:verify，未显式运行单元测试和类型检查；现在显式运行确保每次 CI 都进行完整的代码质量门禁。
+  - 验收：`npm test` ✅（55 files / 511 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
 - 2026-03-19 00:14–00:16（Asia/Shanghai）交付：为 `storage.test.ts` 补齐导入/导出的边界测试覆盖。
   - 变更：在 `src/utils/__tests__/storage.test.ts` 新增 2 个测试用例：
     - `exportState` 生成包含 version/timestamp/scope/state 的有效 JSON 信封

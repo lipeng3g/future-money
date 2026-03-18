@@ -30,6 +30,12 @@ jobs:
           echo "npm:  $(npm -v)"
           npm ci --prefer-offline --no-audit
 
+      - name: Run unit tests
+        run: npm test
+
+      - name: Run type check
+        run: npm run type-check
+
       - name: Smoke tests
         run: npm run smoke
 
