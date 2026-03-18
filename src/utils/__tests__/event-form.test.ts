@@ -115,6 +115,18 @@ describe('event-form helpers', () => {
       showMonthlyDay: false,
       showYearlyFields: true,
     });
+
+    expect(getEventFormVisibleSections('quarterly')).toEqual({
+      showOnceDate: false,
+      showMonthlyDay: true,
+      showYearlyFields: false,
+    });
+
+    expect(getEventFormVisibleSections('semi-annual')).toEqual({
+      showOnceDate: false,
+      showMonthlyDay: true,
+      showYearlyFields: false,
+    });
   });
 
   it('会为起止日期和一次性日期给出即时字段级错误提示', () => {

@@ -3,6 +3,13 @@
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
 ## 2026-03-19
+- 2026-03-19 03:55–03:56（Asia/Shanghai）交付：为 `getEventFormVisibleSections` 补齐 quarterly/semi-annual 测试用例。
+  - 变更：在 `src/utils/__tests__/event-form.test.ts` 新增测试用例，覆盖 `quarterly` 和 `semi-annual` 两种频率类型。
+  - 背景：该函数根据事件频率类型返回表单应展示的字段区块，原有测试仅覆盖 once/monthly/yearly，遗漏了 quarterly 和 semi-annual。补充测试确保这两种频率正确展示 monthlyDay 字段。
+  - 验收：`npm test` ✅（55 files / 525 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
+## 2026-03-19
 - 2026-03-19 03:17–03:18（Asia/Shanghai）交付：为 `formatLocalISODate` 补齐 UTC 午夜边界的时区测试用例。
   - 变更：在 `src/utils/__tests__/date.test.ts` 新增 `describe('formatLocalISODate timezone edge case')` 测试块，包含一个测试用例：验证当 UTC 时间 00:30 但本地时间为前一天时，`formatLocalISODate` 能正确返回本地日期而非 UTC 日期。
   - 背景：该函数的核心价值是避免 `toISOString()` 在 UTC 下造成的跨日偏移，这个测试用例显式锁定该行为，防止未来重构回归。
