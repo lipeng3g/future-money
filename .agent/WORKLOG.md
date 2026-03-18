@@ -3,6 +3,13 @@
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
 ## 2026-03-18
+- 2026-03-18 18:34–18:36（Asia/Shanghai）交付：为 `export-events.ts` 工具模块补齐单测覆盖。
+  - 变更：新增 `src/utils/__tests__/export-events.test.ts`，覆盖 17 个用例：
+    - `buildEventsCsv` 测试 CSV 头部生成、账户名称映射、收入/支出分类、每月/一次性周期处理、禁用事件、特殊字符转义（逗号/引号/换行）
+    - `buildEventsJson` 测试 exportedAt 时间戳、事件计数、JSON 格式化、空数组处理
+  - 验收：`npm test` ✅（48 files / 398 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
 - 2026-03-18 17:59–18:02（Asia/Shanghai）交付：为 `id.ts` 和 `color.ts` 工具模块补齐单测覆盖。
   - 变更：新增 `src/utils/__tests__/id.test.ts`（3 个用例：非空字符串、唯一性、crypto.randomUUID 使用）和 `src/utils/__tests__/color.ts`（8 个用例：sanitizeHexColor 边界情况）
   - 验收：`npm test` ✅（47 files / 381 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
