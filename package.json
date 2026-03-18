@@ -11,6 +11,7 @@
     "type-check": "vue-tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "verify": "npm test && npm run type-check && npm run build",
     "smoke": "vitest run src/stores/__tests__/finance-smoke.test.ts src/layouts/__tests__/AppHeaderImportUndo.smoke.test.ts src/stores/__tests__/reconciliation-journey.smoke.test.ts && node scripts/browser-chart-smoke.mjs && node scripts/browser-chart-runtime-failure-smoke.mjs",
     "build:check": "node scripts/check-build-chunks.mjs",
     "build:log-check": "node scripts/check-build-log.mjs"
