@@ -228,6 +228,13 @@
   - 验收：`npm test` ✅（42 files / 313 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
 
 ## 2026-03-18
+- 2026-03-18 15:06–15:08（Asia/Shanghai）交付：为 `escape-html` 工具函数补齐单测覆盖。
+  - 背景：该工具函数是 XSS 防护的核心组件，此前缺少测试覆盖。
+  - 变更：新增 `src/utils/__tests__/escape-html.test.ts`，覆盖 HTML 特殊字符转义（<, >, &, ", '）、空字符串、纯文本、换行与空格保留等边界场景。
+  - 验收：`npm test` ✅（43 files / 323 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 提交：`245c727 test(utils): add escape-html unit tests`
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
 - 2026-03-18 13:33–13:36（Asia/Shanghai）交付：修复 `clampMonthlyDay` 函数的 bug 并补齐测试覆盖。
   - 背景：`src/utils/date.ts` 中的 `clampMonthlyDay` 使用了错误的算法（`addMonths(date, 1)` 再 `-1 day`），导致永远返回 14 而非当月实际天数。
   - 修复：改用 `date-fns/endOfMonth` 正确获取月末天数。
