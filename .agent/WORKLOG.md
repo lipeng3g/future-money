@@ -3,6 +3,11 @@
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
 ## 2026-03-18
+- 2026-03-18 20:29–20:30（Asia/Shanghai）交付：为 `chart-base.ts` 和 `sample-data.ts` 工具模块补齐单测覆盖。
+  - 变更：新增 `src/utils/__tests__/chart-base.test.ts`（7 个用例：getAdaptiveAxisLabelInterval 边界与区间计算、shouldDisableChartAnimation 180 点阈值）与 `src/utils/__tests__/sample-data.test.ts`（11 个用例：账户 ID 关联、必填字段、收入/支出分类、周期类型（monthly/yearly/quarterly/semi-annual/once）、唯一 ID 生成）。
+  - 验收：`npm test` ✅（52 files / 440 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
 - 2026-03-18 19:47–19:49（Asia/Shanghai）交付：为 `defaults.ts` 工具模块补齐单测覆盖。
   - 变更：新增 `src/utils/__tests__/defaults.test.ts`，覆盖 16 个用例：
     - APP_VERSION semver 格式验证
