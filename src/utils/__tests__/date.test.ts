@@ -172,3 +172,23 @@ describe('isSameISODate', () => {
     expect(isSameISODate(date1, date2)).toBe(false);
   });
 });
+
+describe('formatLocalISODate timezone edge case', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('正确处理 UTC 午夜边界（本地时间仍是前一天）', () => {
+    // 创建一个 UTC 时间 00:30，但本地时间可能是前一天晚上
+    // 这是一个真实场景：用户在 UTC+8 时区的早上 00:30 查看日期
+    vi.useFakeTimers();
+    // 强制设置系统时区为 UTC+8
+    vi.setSystemTime(new Date('2025-03-15T00:30:00.000+08:00'));
+
+    const date = new Date('2025-03-15T00:30:00.000+08:00');
+    const result = formatLocalISODate(date);
+
+    // 期望返回本地日期 2025-03-15，而不是 UTC 日期 2025-03-14
+    expect(result).toBe('2025-03-15');
+  });
+});
