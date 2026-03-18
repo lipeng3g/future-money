@@ -224,6 +224,12 @@
   - 验收：`npm test` ✅（41 files / 293 tests passed）；`npm run type-check` ✅。
 
 ## 2026-03-18
+- 2026-03-18 13:33–13:36（Asia/Shanghai）交付：修复 `clampMonthlyDay` 函数的 bug 并补齐测试覆盖。
+  - 背景：`src/utils/date.ts` 中的 `clampMonthlyDay` 使用了错误的算法（`addMonths(date, 1)` 再 `-1 day`），导致永远返回 14 而非当月实际天数。
+  - 修复：改用 `date-fns/endOfMonth` 正确获取月末天数。
+  - 测试：新增 9 个用例覆盖 `clampMonthlyDay`、`isWeekendDate`、`todayStart`，确保边界情况（2 月闰年/非闰年、30 天月份、31 天月份）。
+  - 验收：`npm test` ✅（42 files / 308 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+
 - 2026-03-18 12:27–12:30（Asia/Shanghai）交付：新增 `CONTRIBUTING.md` 文件，包含 PR 检查清单（测试通过/代码质量/安全考虑/文档/提交规范）和开发环境说明。
   - 变更：新增 `CONTRIBUTING.md`
   - 验收：`npm test` ✅（42 files / 301 tests passed）；`npm run type-check` ✅；`npm run build` ✅

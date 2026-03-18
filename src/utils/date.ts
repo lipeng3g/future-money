@@ -1,4 +1,4 @@
-import { addDays, addMonths, format, isSameDay, isWeekend, parseISO, setHours, startOfDay } from 'date-fns';
+import { addDays, addMonths, endOfMonth, format, isSameDay, isWeekend, parseISO, setHours, startOfDay } from 'date-fns';
 
 export const toISODate = (date: Date): string => format(date, 'yyyy-MM-dd');
 
@@ -20,6 +20,6 @@ export const isWeekendDate = (date: Date): boolean => isWeekend(date);
 export const todayStart = (): Date => startOfDay(setHours(new Date(), 0));
 
 export const clampMonthlyDay = (date: Date, desiredDay: number): number => {
-  const endOfMonth = addDays(startOfDay(addMonths(date, 1)), -1).getDate();
-  return Math.min(desiredDay, endOfMonth);
+  const lastDay = endOfMonth(date).getDate();
+  return Math.min(desiredDay, lastDay);
 };
