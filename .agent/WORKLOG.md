@@ -3,6 +3,19 @@
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
 ## 2026-03-18
+- 2026-03-18 22:03–22:05（Asia/Shanghai）交付：为 `download.ts` 工具模块补齐单测覆盖。
+  - 变更：新增 `src/utils/__tests__/download.test.ts`，覆盖 10 个用例：
+    - Blob 创建与 content-type 验证
+    - link href 与 download 属性设置
+    - document.body.appendChild/removeChild 调用
+    - link.click() 触发
+    - setTimeout 后 URL.revokeObjectURL 调用
+    - 特殊字符文件名处理
+    - 空内容处理
+    - 二进制内容处理
+  - 验收：`npm test` ✅（55 files / 493 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
 - 2026-03-18 21:46–21:48（Asia/Shanghai）交付：为 `ai-storage.ts` 工具模块补齐单测覆盖。
   - 变更：新增 `src/utils/__tests__/ai-storage.test.ts`，覆盖 26 个用例：
     - `createChatHistoryScopeKey` 测试默认/空 scope/scoped account IDs
