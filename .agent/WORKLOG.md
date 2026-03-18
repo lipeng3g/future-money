@@ -257,3 +257,13 @@
   - 背景：Node/WHATWG URL 会把短写法/八进制/十六进制/整数形式归一化到 dotted-quad；如果 guard 只覆盖少数形式，未来重构/依赖升级容易漏拦。
   - 变更：`src/utils/__tests__/ai-proxy-guard.test.ts` 新增拒绝用例：`127.1`、`127.0.1`、`0177.0.0.1`、`0x7f.0x0.0x0.0x1`、`0xffffffff`、`4294967295`、`0300.0250.0000.0001`、`0`、`0000`。
   - 验收：`npm test` ✅（42 files / 301 tests passed）；`npm run type-check` ✅。
+
+- 2026-03-18 11:54–11:58（Asia/Shanghai）补强 IPv6 边界测试：为 ai-proxy-guard 增加更多 IPv6 前缀的明确测试用例。
+  - 背景：现有测试已覆盖 IPv6 loopback (`[::1]`), IPv4-mapped (`[::ffff:127.0.0.1]`), ULA (`fc00::/7`), link-local (`fe80::/10`)，但未明确覆盖 NAT64/文档前缀等公网可路由地址的行为。
+  - 变更：`src/utils/__tests__/ai-proxy-guard.test.ts` 新增用例：
+    - `64:ff9b::1` (NAT64 前缀) → ALLOWED (公网可路由)
+    - `2001:db8::1` (IPv6 文档前缀) → ALLOWED (文档空间，非私网)
+    - `2001:4860:4860::8888` (Google Public DNS) → ALLOWED (公网 DNS)
+    - `::` (未指定地址) → BLOCKED
+  - 验收：`npm test` ✅（42 files / 301 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`。

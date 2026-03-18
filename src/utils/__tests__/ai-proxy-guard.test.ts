@@ -60,6 +60,17 @@ describe('ai proxy target guards', () => {
     expect(isAllowedAiProxyTarget('http://lvh.me/v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('http://lvh.me./v1/chat/completions')).toBe(false);
     expect(isAllowedAiProxyTarget('not-a-url')).toBe(false);
+
+    // IPv6 edge cases: NAT64 prefix (64:ff9b::) is public and routable.
+    expect(isAllowedAiProxyTarget('https://[64:ff9b::1]/v1/chat/completions')).toBe(true);
+    // IPv6 documentation prefix (2001:db8::) is non-routable but not private.
+    // Allowed because it's documentation space, not a security risk.
+    expect(isAllowedAiProxyTarget('https://[2001:db8::1]/v1/chat/completions')).toBe(true);
+    // Google Public DNS over IPv6 is public.
+    expect(isAllowedAiProxyTarget('https://[2001:4860:4860::8888]/v1/chat/completions')).toBe(true);
+
+    // IPv6 loopback variants.
+    expect(isAllowedAiProxyTarget('http://[::]/v1/chat/completions')).toBe(false);
   });
 });
 
