@@ -2,6 +2,14 @@
 
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
+## 2026-03-19
+- 2026-03-19 00:14–00:16（Asia/Shanghai）交付：为 `storage.test.ts` 补齐导入/导出的边界测试覆盖。
+  - 变更：在 `src/utils/__tests__/storage.test.ts` 新增 2 个测试用例：
+    - `exportState` 生成包含 version/timestamp/scope/state 的有效 JSON 信封
+    - `importState` 当 state 为空对象时使用默认值补齐
+  - 验收：`npm test` ✅（55 files / 511 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
 ## 2026-03-18
 - 2026-03-18 23:29–23:31（Asia/Shanghai）交付：为 `validators.test.ts` 补齐边缘用例测试覆盖。
   - 变更：在 `src/utils/__tests__/validators.test.ts` 新增 3 个测试用例：

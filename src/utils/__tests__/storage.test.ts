@@ -649,4 +649,35 @@ describe('LocalStorageStateRepository', () => {
     repository.clearRollbackSnapshot();
     expect(repository.loadRollbackSnapshot()).toBeNull();
   });
+
+  it('exportState 生成包含 version/timestamp/scope/state 的有效 JSON 信封', () => {
+    const storage = createMemoryStorage();
+    const repository = new LocalStorageStateRepository(storage);
+    const state = createDefaultState();
+    state.account.name = '测试账户';
+
+    const exported = repository.exportState(state, 'current');
+    const parsed = JSON.parse(exported);
+
+    expect(parsed.version).toBe(APP_VERSION);
+    expect(parsed.timestamp).toBeTruthy();
+    expect(parsed.scope).toBe('current');
+    expect(parsed.state).toBeDefined();
+    expect(parsed.state.account.name).toBe('测试账户');
+  });
+
+  it('importState 当 state 为空对象时使用默认值补齐', () => {
+    const storage = createMemoryStorage();
+    const repository = new LocalStorageStateRepository(storage);
+
+    const imported = repository.importState(JSON.stringify({
+      version: APP_VERSION,
+      state: {},
+    }));
+
+    // 空对象会触发默认补齐逻辑
+    expect(imported.accounts).toHaveLength(1);
+    expect(imported.events).toEqual([]);
+    expect(imported.reconciliations).toEqual([]);
+  });
 });
