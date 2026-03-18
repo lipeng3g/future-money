@@ -3,6 +3,16 @@
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
 ## 2026-03-18
+- 2026-03-18 22:40–22:43（Asia/Shanghai）交付：为 `date.ts` 工具模块补齐剩余单测覆盖。
+  - 变更：在 `src/utils/__tests__/date.test.ts` 新增测试覆盖 5 个函数：
+    - `toISODate`：格式化 YYYY-MM-DD（月初/月末/普通日期）
+    - `parseISODate`：解析 ISO 字符串为当天起始时间
+    - `addMonthsSafe`：月份递增加法（含月末溢出回弹处理）
+    - `addDaysSafe`：天数递增加法（跨月/负数减法）
+    - `isSameISODate`：同一天判断（不同时刻应返回 false）
+  - 验收：`npm test` ✅（55 files / 506 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
 - 2026-03-18 22:03–22:05（Asia/Shanghai）交付：为 `download.ts` 工具模块补齐单测覆盖。
   - 变更：新增 `src/utils/__tests__/download.test.ts`，覆盖 10 个用例：
     - Blob 创建与 content-type 验证

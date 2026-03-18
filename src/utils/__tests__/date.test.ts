@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { clampMonthlyDay, formatLocalISODate, isWeekendDate, todayStart } from '@/utils/date';
+import { clampMonthlyDay, formatLocalISODate, isWeekendDate, todayStart, toISODate, parseISODate, addMonthsSafe, addDaysSafe, isSameISODate } from '@/utils/date';
 
 describe('formatLocalISODate', () => {
   afterEach(() => {
@@ -76,5 +76,99 @@ describe('todayStart', () => {
     expect(result.getMinutes()).toBe(0);
     expect(result.getSeconds()).toBe(0);
     expect(result.getMilliseconds()).toBe(0);
+  });
+});
+
+describe('toISODate', () => {
+  it('格式化为 YYYY-MM-DD', () => {
+    const date = new Date(2025, 2, 15); // March 15, 2025
+    expect(toISODate(date)).toBe('2025-03-15');
+  });
+
+  it('处理月初日期', () => {
+    const date = new Date(2025, 0, 1); // January 1, 2025
+    expect(toISODate(date)).toBe('2025-01-01');
+  });
+
+  it('处理月末日期', () => {
+    const date = new Date(2024, 11, 31); // December 31, 2024
+    expect(toISODate(date)).toBe('2024-12-31');
+  });
+});
+
+describe('parseISODate', () => {
+  it('解析 ISO 字符串为当天起始', () => {
+    const result = parseISODate('2025-03-15');
+    expect(result.getFullYear()).toBe(2025);
+    expect(result.getMonth()).toBe(2); // March (0-indexed)
+    expect(result.getDate()).toBe(15);
+    expect(result.getHours()).toBe(0);
+    expect(result.getMinutes()).toBe(0);
+    expect(result.getSeconds()).toBe(0);
+    expect(result.getMilliseconds()).toBe(0);
+  });
+
+  it('解析月初日期', () => {
+    const result = parseISODate('2025-01-01');
+    expect(result.getDate()).toBe(1);
+  });
+});
+
+describe('addMonthsSafe', () => {
+  it('月份递增加法', () => {
+    const date = new Date(2025, 1, 15); // Feb 15, 2025
+    const result = addMonthsSafe(date, 2);
+    expect(result.getMonth()).toBe(3); // April
+    expect(result.getDate()).toBe(15);
+  });
+
+  it('处理月末日期溢出（自动回弹）', () => {
+    const date = new Date(2025, 0, 31); // Jan 31, 2025
+    const result = addMonthsSafe(date, 1);
+    expect(result.getMonth()).toBe(1); // February
+    // date-fns 会回弹到月末有效的最后一天
+    expect(result.getDate()).toBe(28); // Feb 28, 2025 (non-leap year)
+  });
+});
+
+describe('addDaysSafe', () => {
+  it('天数递增加法', () => {
+    const date = new Date(2025, 2, 15); // March 15, 2025
+    const result = addDaysSafe(date, 10);
+    expect(result.getDate()).toBe(25);
+  });
+
+  it('跨月加法', () => {
+    const date = new Date(2025, 2, 28); // March 28, 2025
+    const result = addDaysSafe(date, 5);
+    expect(result.getMonth()).toBe(3); // April
+    expect(result.getDate()).toBe(2);
+  });
+
+  it('负数减法', () => {
+    const date = new Date(2025, 2, 5); // March 5, 2025
+    const result = addDaysSafe(date, -3);
+    expect(result.getDate()).toBe(2);
+  });
+});
+
+describe('isSameISODate', () => {
+  it('相同日期返回 true', () => {
+    const date1 = new Date(2025, 2, 15, 10, 30, 0);
+    const date2 = new Date(2025, 2, 15, 18, 45, 0);
+    expect(isSameISODate(date1, date2)).toBe(true);
+  });
+
+  it('不同日期返回 false', () => {
+    const date1 = new Date(2025, 2, 15);
+    const date2 = new Date(2025, 2, 16);
+    expect(isSameISODate(date1, date2)).toBe(false);
+  });
+
+  it('跨日时间应视为同一天（本地时间）', () => {
+    const date1 = new Date(2025, 2, 15, 23, 59, 0);
+    const date2 = new Date(2025, 2, 16, 0, 1, 0);
+    // isSameDay 比较的是 year/month/date，不比较时间
+    expect(isSameISODate(date1, date2)).toBe(false);
   });
 });
