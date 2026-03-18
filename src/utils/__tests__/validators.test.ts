@@ -113,4 +113,19 @@ describe('validateCashFlowEvent', () => {
 
     expect(errors).toContain('一次性事件日期不得晚于结束日期');
   });
+
+  it('拒绝名称为空或纯空白的事件', () => {
+    expect(validateCashFlowEvent(createEvent({ name: '' }))).toContain('事件名称不能为空');
+    expect(validateCashFlowEvent(createEvent({ name: '   ' }))).toContain('事件名称不能为空');
+  });
+
+  it('拒绝金额为 0 或负数的事件', () => {
+    expect(validateCashFlowEvent(createEvent({ amount: 0 }))).toContain('金额必须大于 0');
+    expect(validateCashFlowEvent(createEvent({ amount: -100 }))).toContain('金额必须大于 0');
+  });
+
+  it('拒绝金额为 NaN 或 Infinity', () => {
+    expect(validateCashFlowEvent(createEvent({ amount: NaN }))).toContain('金额必须大于 0');
+    expect(validateCashFlowEvent(createEvent({ amount: Infinity }))).toContain('金额必须大于 0');
+  });
 });

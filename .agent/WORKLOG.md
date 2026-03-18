@@ -3,6 +3,14 @@
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
 ## 2026-03-18
+- 2026-03-18 23:29–23:31（Asia/Shanghai）交付：为 `validators.test.ts` 补齐边缘用例测试覆盖。
+  - 变更：在 `src/utils/__tests__/validators.test.ts` 新增 3 个测试用例：
+    - 拒绝名称为空或纯空白的事件
+    - 拒绝金额为 0 或负数的事件
+    - 拒绝金额为 NaN 或 Infinity
+  - 验收：`npm test` ✅（55 files / 509 tests passed）；`npm run type-check` ✅；`npm run build` ✅。
+  - 验证命令：`npm test && npm run type-check && npm run build`
+
 - 2026-03-18 22:40–22:43（Asia/Shanghai）交付：为 `date.ts` 工具模块补齐剩余单测覆盖。
   - 变更：在 `src/utils/__tests__/date.test.ts` 新增测试覆盖 5 个函数：
     - `toISODate`：格式化 YYYY-MM-DD（月初/月末/普通日期）
