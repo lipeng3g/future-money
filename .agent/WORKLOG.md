@@ -3,6 +3,13 @@
 > 只记录"可验证的改动/结论/取舍"。不要写入敏感信息。
 
 ## 2026-03-19
+- 2026-03-19 02:09–02:11（Asia/Shanghai）交付：为 package.json 新增 `verify` 脚本，方便本地开发一键运行完整验证。
+  - 变更：在 `package.json` 新增 `"verify": "npm test && npm run type-check && npm run build"` 脚本
+  - 背景：开发者本地验证需要分别运行 test、type-check、build，新增 verify 脚本将这些步骤合并为一个命令，简化贡献者的工作流
+  - 验收：`npm test` ✅（55 files / 523 tests passed）；`npm run type-check` ✅；`npm run build` ✅
+  - 提交：`ac581d5 chore: add npm verify script for full test + type-check + build`
+  - 验证命令：`npm run verify`
+
 - 2026-03-19 01:27–01:29（Asia/Shanghai）交付：为 `upcoming-items.ts` 工具模块补齐单测覆盖。
   - 变更：新增 `src/utils/__tests__/upcoming-items.test.ts`，覆盖 16 个用例：
     - 空 timeline 返回空数组
