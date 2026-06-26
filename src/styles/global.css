@@ -1,0 +1,545 @@
+:root {
+  --fm-radius-card: 12px;
+  --fm-radius-control: 8px;
+  --fm-gap: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+  background: var(--semi-color-bg-0);
+  color: var(--semi-color-text-0);
+}
+
+/* 数字等宽，便于金额对齐 */
+.mono-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 整体布局 ===== */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--semi-color-border);
+  background: var(--semi-color-bg-1);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.brand__logo {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--semi-color-primary);
+}
+
+.brand__name {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.brand__tagline {
+  font-size: 12px;
+  color: var(--semi-color-text-2);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  gap: var(--fm-gap);
+  padding: var(--fm-gap);
+  overflow: hidden;
+}
+
+.account-zone {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--fm-gap);
+  overflow-y: auto;
+}
+
+.content-zone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--fm-gap);
+  min-width: 0;
+}
+
+.zone-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--semi-color-text-1);
+}
+
+/* ===== 账户面板 ===== */
+.account-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.account-panel__subtitle {
+  font-size: 12px;
+  color: var(--semi-color-text-2);
+  margin-top: 4px;
+}
+
+.account-card {
+  padding: 12px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--fm-radius-card);
+  background: var(--semi-color-bg-1);
+}
+
+.account-card.is-archived {
+  opacity: 0.6;
+}
+
+.account-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.account-card__name {
+  font-weight: 600;
+  flex: 1;
+}
+
+.account-card__balance {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 8px 0;
+}
+
+.account-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ===== 概览指标条 ===== */
+.overview-bar {
+  display: flex;
+  gap: var(--fm-gap);
+}
+
+.stat {
+  flex: 1;
+  padding: 16px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--fm-radius-card);
+  background: var(--semi-color-bg-1);
+}
+
+.stat__label {
+  font-size: 13px;
+  color: var(--semi-color-text-2);
+}
+
+.stat__value {
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.stat__value--pos {
+  color: var(--semi-color-success);
+}
+
+.stat__value--neg {
+  color: var(--semi-color-danger);
+}
+
+.stat__hint {
+  font-size: 12px;
+  color: var(--semi-color-text-2);
+  margin-top: 2px;
+}
+
+/* ===== 图表卡片 ===== */
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 320px;
+  padding: 16px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--fm-radius-card);
+  background: var(--semi-color-bg-1);
+}
+
+.chart-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chart-toolbar__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chart-toolbar__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--semi-color-border);
+  background: transparent;
+  color: var(--semi-color-text-2);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.chip.is-on {
+  color: var(--semi-color-text-0);
+  border-color: var(--semi-color-primary);
+  background: var(--semi-color-primary-light-default);
+}
+
+.chart-host {
+  flex: 1;
+  min-height: 260px;
+}
+
+.chart-host--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== 账本明细 ===== */
+.ledger-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ledger-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ledger-group__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 4px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.ledger-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.amount-pos {
+  color: var(--semi-color-success);
+}
+
+.amount-neg {
+  color: var(--semi-color-danger);
+}
+
+/* ===== 空状态 ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.empty-state__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.empty-state__desc {
+  font-size: 13px;
+  color: var(--semi-color-text-2);
+}
+
+.empty-state__action {
+  margin-top: 8px;
+}
+
+/* ===== 分类管理 ===== */
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.category-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: var(--fm-radius-control);
+}
+
+.category-row:hover {
+  background: var(--semi-color-fill-0);
+}
+
+.account-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.category-name {
+  flex: 1;
+}
+
+.modal-foot {
+  margin-top: 12px;
+}
+
+/* ===== 表单字段 ===== */
+.form-field {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--semi-color-text-1);
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.form-field--grow {
+  flex: 1;
+}
+
+.form-field--inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: var(--semi-color-text-2);
+  margin-top: 8px;
+}
+
+.recurrence-box {
+  padding: 12px;
+  border-radius: var(--fm-radius-control);
+  background: var(--semi-color-fill-0);
+  margin-top: 8px;
+}
+
+.recurrence-box > * + * {
+  margin-top: 12px;
+}
+
+/* ===== 当日明细抽屉 ===== */
+.day-detail__section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--semi-color-text-1);
+  margin: 16px 0 8px;
+}
+
+.day-detail__balances {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.day-balance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-balance__name {
+  flex: 1;
+}
+
+.day-detail__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.day-tx {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+}
+
+.day-tx__main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.day-tx__note {
+  color: var(--semi-color-text-2);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledger-row-actions {
+  display: inline-flex;
+  gap: 2px;
+}
+
+/* ===== 导入确认 ===== */
+.import-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ===== 首屏引导 ===== */
+.onboarding {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+/* ===== 周期组批量管理 ===== */
+.series-manage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.series-manage__quick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.series-manage__count {
+  margin-left: auto;
+  color: var(--semi-color-text-2);
+  font-size: 13px;
+}
+
+.series-manage__edit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--semi-color-fill-0);
+}
+
+.series-manage__edit-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.series-manage__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.series-manage__footer-right {
+  display: flex;
+  gap: 8px;
+}
+
+/* ===== 调色板 ===== */
+.swatch-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+  transition: transform 0.1s ease;
+}
+
+.swatch:hover {
+  transform: scale(1.1);
+}
+
+.swatch.is-active {
+  border-color: var(--semi-color-text-0);
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .app-main {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .account-zone {
+    width: 100%;
+  }
+}
