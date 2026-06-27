@@ -13,6 +13,8 @@ export interface DataSlice {
   exportData: () => AppData;
   importData: (data: AppData, mode?: ImportMode) => void;
   resetAll: () => void;
+  /** 用示例数据（账户/分类/收支）替换当前全部数据 */
+  loadSeed: () => void;
 }
 
 export type Store = AccountsSlice &

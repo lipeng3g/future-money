@@ -183,7 +183,7 @@ export default function TransactionFormModal({
               <label className="form-label">金额（元）</label>
               <InputNumber
                 value={amount}
-                onChange={(v) => setAmount(typeof v === 'number' ? v : 0)}
+                onNumberChange={setAmount}
                 min={0}
                 precision={2}
                 style={{ width: '100%' }}
@@ -251,7 +251,7 @@ export default function TransactionFormModal({
                   <label className="form-label">间隔</label>
                   <InputNumber
                     value={interval}
-                    onChange={(v) => setIntervalValue(typeof v === 'number' ? Math.max(1, v) : 1)}
+                    onNumberChange={(v) => setIntervalValue(Math.max(1, v))}
                     min={1}
                     style={{ width: '100%' }}
                   />
@@ -272,7 +272,7 @@ export default function TransactionFormModal({
               {endKind === 'count' ? (
                 <InputNumber
                   value={count}
-                  onChange={(v) => setCount(typeof v === 'number' ? Math.max(1, v) : 1)}
+                  onNumberChange={(v) => setCount(Math.max(1, v))}
                   min={1}
                   prefix="共"
                   suffix="笔"

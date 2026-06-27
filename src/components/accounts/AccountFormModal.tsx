@@ -24,6 +24,8 @@ export default function AccountFormModal({ visible, account, onClose }: Props) {
   const [color, setColor] = useState(randomColor);
   const [categoryId, setCategoryId] = useState<string | undefined>();
 
+  // 仅在弹窗"打开瞬间"按 props 重置表单值，避免 useEffect 在打字过程被覆盖；
+  // 依赖用 account?.id 而非 account 对象引用，store 内对象重建不会误触发同步。
   useEffect(() => {
     if (!visible) return;
     setName(account?.name ?? '');
@@ -31,7 +33,7 @@ export default function AccountFormModal({ visible, account, onClose }: Props) {
     setOpeningDate(account?.openingDate ?? today());
     setColor(account?.color ?? randomColor());
     setCategoryId(account?.categoryId);
-  }, [visible, account]);
+  }, [visible, account?.id]);
 
   const handleOk = () => {
     const trimmed = name.trim();
@@ -41,7 +43,7 @@ export default function AccountFormModal({ visible, account, onClose }: Props) {
     }
     const payload = {
       name: trimmed,
-      openingBalance: yuanToCents(balance || 0),
+      openingBalance: yuanToCents(Number.isFinite(balance) ? balance : 0),
       openingDate,
       color,
       categoryId,
@@ -68,11 +70,12 @@ export default function AccountFormModal({ visible, account, onClose }: Props) {
         <label className="form-label">初始余额（元）</label>
         <InputNumber
           value={balance}
-          onChange={(v) => setBalance(typeof v === 'number' ? v : 0)}
+          onNumberChange={setBalance}
           style={{ width: '100%' }}
           precision={2}
           placeholder="可为负"
         />
+        <div className="form-hint">起始日期当天的账户余额；修改后将重新计算之后所有日期的余额。</div>
       </div>
       <div className="form-field">
         <label className="form-label">起始日期</label>

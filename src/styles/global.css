@@ -1,7 +1,7 @@
 :root {
   --fm-radius-card: 12px;
   --fm-radius-control: 8px;
-  --fm-gap: 16px;
+  --fm-gap: 12px;
 }
 
 * {
@@ -75,26 +75,11 @@ body {
 .app-main {
   flex: 1;
   display: flex;
+  flex-direction: column;
   gap: var(--fm-gap);
   padding: var(--fm-gap);
-  overflow: hidden;
-}
-
-.account-zone {
-  width: 280px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--fm-gap);
   overflow-y: auto;
-}
-
-.content-zone {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--fm-gap);
-  min-width: 0;
+  min-height: 0;
 }
 
 .zone-title {
@@ -103,21 +88,24 @@ body {
   color: var(--semi-color-text-1);
 }
 
-/* ===== 账户面板 ===== */
-.account-panel {
+/* ===== 账户横向条 ===== */
+.account-strip {
   display: flex;
-  flex-direction: column;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   gap: 12px;
-}
-
-.account-panel__subtitle {
-  font-size: 12px;
-  color: var(--semi-color-text-2);
-  margin-top: 4px;
+  align-items: stretch;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
 .account-card {
-  padding: 12px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 220px;
+  padding: 4px 8px 4px 12px;
   border: 1px solid var(--semi-color-border);
   border-radius: var(--fm-radius-card);
   background: var(--semi-color-bg-1);
@@ -130,49 +118,86 @@ body {
 .account-card__head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
 }
 
 .account-card__name {
   font-weight: 600;
-  flex: 1;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .account-card__balance {
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 600;
-  margin: 8px 0;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .account-card__actions {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 0;
+  margin-left: 2px;
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+.account-card:hover .account-card__actions,
+.account-card:focus-within .account-card__actions {
+  opacity: 1;
+}
+
+.account-add {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 110px;
+  padding: 6px 12px;
+  border: 1px dashed var(--semi-color-border);
+  border-radius: var(--fm-radius-card);
+  background: transparent;
+  color: var(--semi-color-text-2);
+  cursor: pointer;
+  font-size: 13px;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.account-add:hover {
+  border-color: var(--semi-color-primary);
+  color: var(--semi-color-primary);
 }
 
 /* ===== 概览指标条 ===== */
 .overview-bar {
   display: flex;
+  flex: 0 0 auto;
   gap: var(--fm-gap);
 }
 
 .stat {
   flex: 1;
-  padding: 16px;
+  padding: 8px 14px;
   border: 1px solid var(--semi-color-border);
   border-radius: var(--fm-radius-card);
   background: var(--semi-color-bg-1);
 }
 
 .stat__label {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--semi-color-text-2);
 }
 
 .stat__value {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .stat__value--pos {
@@ -193,10 +218,11 @@ body {
 .chart-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  flex: 1;
-  min-height: 320px;
-  padding: 16px;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-height: 480px;
+  max-height: 80vh;
+  padding: 12px 16px;
   border: 1px solid var(--semi-color-border);
   border-radius: var(--fm-radius-card);
   background: var(--semi-color-bg-1);
@@ -205,7 +231,7 @@ body {
 .chart-toolbar {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .chart-toolbar__row {
@@ -214,10 +240,15 @@ body {
   gap: 12px;
 }
 
+.chart-toolbar__row--right {
+  margin-left: auto;
+}
+
 .chart-toolbar__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+  flex: 1;
 }
 
 .chip {
@@ -241,7 +272,31 @@ body {
 
 .chart-host {
   flex: 1;
-  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chart-host__hint {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 2px;
+  font-size: 12px;
+  color: var(--semi-color-text-2);
+  min-height: 24px;
+}
+
+.chart-host__hint-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chart-host__canvas {
+  flex: 1;
+  min-height: 0;
 }
 
 .chart-host--empty {
@@ -253,6 +308,7 @@ body {
 /* ===== 账本明细 ===== */
 .ledger-area {
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
   gap: 12px;
 }
@@ -267,9 +323,31 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 4px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--fm-radius-control);
+  background: var(--semi-color-fill-0);
   font-weight: 600;
   font-size: 13px;
+  color: var(--semi-color-text-0);
+  cursor: pointer;
+}
+
+.ledger-group__head:hover {
+  background: var(--semi-color-fill-1);
+}
+
+.ledger-group__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ledger-group__count {
+  color: var(--semi-color-text-2);
+  font-weight: 400;
+  font-size: 12px;
 }
 
 .ledger-account {
@@ -340,8 +418,11 @@ body {
   flex: 1;
 }
 
-.modal-foot {
-  margin-top: 12px;
+.category-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 /* ===== 表单字段 ===== */
@@ -534,12 +615,16 @@ body {
 
 /* ===== 响应式 ===== */
 @media (max-width: 768px) {
-  .app-main {
-    flex-direction: column;
-    overflow-y: auto;
+  .overview-bar {
+    flex-wrap: wrap;
   }
 
-  .account-zone {
-    width: 100%;
+  .stat {
+    flex: 1 1 140px;
+  }
+
+  .chart-card {
+    min-height: 360px;
+    max-height: 70vh;
   }
 }

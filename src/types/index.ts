@@ -31,10 +31,16 @@ export interface AppData {
 /** 持久化的界面设置 */
 export interface AppSettings {
   theme: Theme;
-  /** 时间范围预设，如 'P1M-F12M'（过去1月~未来12月） */
+  /** 时间范围预设，如 'P1M-F12M'（过去1月~未来12月）；'custom' 时使用 customFrom/customTo */
   rangePreset: string;
+  /** 自定义范围起始日 YYYY-MM-DD（rangePreset 为 'custom' 时生效） */
+  customFrom?: string;
+  /** 自定义范围结束日 YYYY-MM-DD（rangePreset 为 'custom' 时生效） */
+  customTo?: string;
   granularity: Granularity;
   /** 图表中显示的账户 id；空数组表示全部显示 */
   visibleAccountIds: string[];
   showTotal: boolean;
+  /** 曲线上是否显示数据点金额标签，默认关闭 */
+  showChartLabels: boolean;
 }

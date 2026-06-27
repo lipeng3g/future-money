@@ -1,5 +1,5 @@
-import { Button, Popconfirm, Tag } from '@douyinfe/semi-ui';
-import { IconDelete, IconEdit } from '@douyinfe/semi-icons';
+import { Button, Popconfirm, Tag, Tooltip } from '@douyinfe/semi-ui';
+import { IconDelete, IconEdit, IconArchive, IconUndo } from '@douyinfe/semi-icons';
 import type { Account } from '@/types';
 import { useStore } from '@/store/useStore';
 import { balanceAt } from '@/utils/balance';
@@ -33,22 +33,26 @@ export default function AccountCard({ account, onEdit }: Props) {
       </div>
       <div className="account-card__balance mono-num">{formatMoney(balance)}</div>
       <div className="account-card__actions">
-        <Button
-          size="small"
-          theme="borderless"
-          type="tertiary"
-          icon={<IconEdit />}
-          onClick={() => onEdit(account)}
-          aria-label="编辑账户"
-        />
-        <Button
-          size="small"
-          theme="borderless"
-          type="tertiary"
-          onClick={() => archiveAccount(account.id, !account.archived)}
-        >
-          {account.archived ? '取消归档' : '归档'}
-        </Button>
+        <Tooltip content="编辑">
+          <Button
+            size="small"
+            theme="borderless"
+            type="tertiary"
+            icon={<IconEdit />}
+            onClick={() => onEdit(account)}
+            aria-label="编辑账户"
+          />
+        </Tooltip>
+        <Tooltip content={account.archived ? '取消归档' : '归档'}>
+          <Button
+            size="small"
+            theme="borderless"
+            type="tertiary"
+            icon={account.archived ? <IconUndo /> : <IconArchive />}
+            onClick={() => archiveAccount(account.id, !account.archived)}
+            aria-label={account.archived ? '取消归档' : '归档'}
+          />
+        </Tooltip>
         <Popconfirm
           title="删除账户"
           content="将同时删除该账户的所有变动记录，不可恢复"
@@ -57,13 +61,15 @@ export default function AccountCard({ account, onEdit }: Props) {
           cancelText="取消"
           onConfirm={() => removeAccount(account.id)}
         >
-          <Button
-            size="small"
-            theme="borderless"
-            type="danger"
-            icon={<IconDelete />}
-            aria-label="删除账户"
-          />
+          <Tooltip content="删除">
+            <Button
+              size="small"
+              theme="borderless"
+              type="danger"
+              icon={<IconDelete />}
+              aria-label="删除账户"
+            />
+          </Tooltip>
         </Popconfirm>
       </div>
     </div>

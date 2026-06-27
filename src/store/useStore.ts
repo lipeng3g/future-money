@@ -6,6 +6,7 @@ import { createAccountsSlice } from './slices/accountsSlice';
 import { createCategoriesSlice } from './slices/categoriesSlice';
 import { createSettingsSlice, initialSettings } from './slices/settingsSlice';
 import { createTransactionsSlice } from './slices/transactionsSlice';
+import { createSeedData } from '@/utils/seed';
 import type { Store } from './types';
 
 const PERSIST_KEY = 'future-money';
@@ -42,6 +43,8 @@ export const useStore = create<Store>()(
         resetAll: () => {
           set({ accounts: [], transactions: [], series: [], categories: [], ...initialSettings });
         },
+
+        loadSeed: () => set(createSeedData()),
       };
     },
     {
@@ -54,10 +57,17 @@ export const useStore = create<Store>()(
         categories: s.categories,
         theme: s.theme,
         rangePreset: s.rangePreset,
+        customFrom: s.customFrom,
+        customTo: s.customTo,
         granularity: s.granularity,
         visibleAccountIds: s.visibleAccountIds,
         showTotal: s.showTotal,
+        showChartLabels: s.showChartLabels,
       }),
     },
   ),
 );
+
+if (typeof window !== 'undefined' && !window.localStorage.getItem(PERSIST_KEY)) {
+  useStore.setState(createSeedData());
+}

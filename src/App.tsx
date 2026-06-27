@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Button, Toast } from '@douyinfe/semi-ui';
+import { IconImport } from '@douyinfe/semi-icons';
 import AppHeader from '@/components/layout/AppHeader';
 import AccountPanel from '@/components/accounts/AccountPanel';
 import CategoryManager from '@/components/categories/CategoryManager';
@@ -14,35 +16,43 @@ export default function App() {
   const [categoryVisible, setCategoryVisible] = useState(false);
   const [dayDate, setDayDate] = useState<string | null>(null);
   const hasAccounts = useStore((s) => s.accounts.length > 0);
+  const loadSeed = useStore((s) => s.loadSeed);
 
   return (
     <div className="app">
       <AppHeader onManageCategories={() => setCategoryVisible(true)} />
 
       <main className="app-main">
-        <aside className="account-zone">
-          <AccountPanel />
-        </aside>
-
-        <section className="content-zone">
-          {hasAccounts ? (
-            <>
-              <OverviewStats />
-              <div className="chart-card">
-                <ChartToolbar />
-                <BalanceChart onDayClick={setDayDate} />
-              </div>
-              <LedgerTable />
-            </>
-          ) : (
-            <div className="onboarding">
-              <EmptyState
-                title="开始你的资金未来推演"
-                description="先在左侧「账户」面板创建第一个账户，再记录收支或周期性变动，即可看到资金走势曲线与未来预测。"
-              />
+        {hasAccounts ? (
+          <>
+            <OverviewStats />
+            <AccountPanel />
+            <div className="chart-card">
+              <ChartToolbar />
+              <BalanceChart onDayClick={setDayDate} />
             </div>
-          )}
-        </section>
+            <LedgerTable />
+          </>
+        ) : (
+          <div className="onboarding">
+            <EmptyState
+              title="开始你的资金未来推演"
+              description="先创建第一个账户，再记录收支或周期性变动，即可看到资金走势曲线与未来预测。也可一键载入示例数据快速体验。"
+              action={
+                <Button
+                  theme="solid"
+                  icon={<IconImport />}
+                  onClick={() => {
+                    loadSeed();
+                    Toast.success('已载入示例数据');
+                  }}
+                >
+                  载入示例数据
+                </Button>
+              }
+            />
+          </div>
+        )}
       </main>
 
       <CategoryManager visible={categoryVisible} onClose={() => setCategoryVisible(false)} />

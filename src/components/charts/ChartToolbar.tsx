@@ -1,13 +1,17 @@
-import { Radio, RadioGroup, Select } from '@douyinfe/semi-ui';
+import { DatePicker, Radio, RadioGroup, Select } from '@douyinfe/semi-ui';
 import type { Granularity } from '@/types';
 import { TOTAL_NAME } from '@/hooks/useChartData';
 import { useStore } from '@/store/useStore';
 
 const RANGES = [
-  { label: '过去1月 ~ 未来1年', value: 'P1M-F12M' },
-  { label: '过去半年 ~ 未来半年', value: 'P6M-F6M' },
-  { label: '过去1年 ~ 未来1年', value: 'P12M-F12M' },
-  { label: '未来2年', value: 'P0M-F24M' },
+  { label: '今后 1 年', value: 'P0M-F12M' },
+  { label: '今后 2 年', value: 'P0M-F24M' },
+  { label: '今后 5 年', value: 'P0M-F60M' },
+  { label: '今后 10 年', value: 'P0M-F120M' },
+  { label: '今后 20 年', value: 'P0M-F240M' },
+  { label: '过去 1 年 ~ 今后 1 年', value: 'P12M-F12M' },
+  { label: '过去 5 年 ~ 今后 5 年', value: 'P60M-F60M' },
+  { label: '自定义范围', value: 'custom' },
 ];
 const TOTAL_COLOR = '#64748b';
 
@@ -16,6 +20,9 @@ export default function ChartToolbar() {
   const setGranularity = useStore((s) => s.setGranularity);
   const rangePreset = useStore((s) => s.rangePreset);
   const setRangePreset = useStore((s) => s.setRangePreset);
+  const customFrom = useStore((s) => s.customFrom);
+  const customTo = useStore((s) => s.customTo);
+  const setCustomRange = useStore((s) => s.setCustomRange);
   const showTotal = useStore((s) => s.showTotal);
   const toggleTotal = useStore((s) => s.toggleTotal);
   const accounts = useStore((s) => s.accounts);
@@ -56,6 +63,18 @@ export default function ChartToolbar() {
             </Select.Option>
           ))}
         </Select>
+        {rangePreset === 'custom' && (
+          <DatePicker
+            type="dateRange"
+            density="compact"
+            value={customFrom && customTo ? [customFrom, customTo] : undefined}
+            onChange={(_, str) => {
+              const [from, to] = str as string[];
+              if (from && to) setCustomRange(from, to);
+            }}
+            style={{ width: 260 }}
+          />
+        )}
       </div>
 
       {active.length > 0 && (

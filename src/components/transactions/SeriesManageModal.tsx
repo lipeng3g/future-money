@@ -182,7 +182,7 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
                   </RadioGroup>
                   <InputNumber
                     value={amount}
-                    onChange={(v) => setAmount(typeof v === 'number' ? v : 0)}
+                    onNumberChange={setAmount}
                     min={0}
                     precision={2}
                     prefix="¥"

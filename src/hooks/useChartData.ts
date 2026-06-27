@@ -28,8 +28,18 @@ export interface ChartDataResult {
 export const TOTAL_NAME = '总资产';
 const TOTAL_COLOR = '#64748b';
 
-/** 解析时间范围预设，如 'P1M-F12M' = 过去 1 月 ~ 未来 12 月 */
-export function parseRange(preset: string): { from: string; to: string } {
+/**
+ * 解析时间范围。preset 为 'custom' 且提供了 customFrom/customTo 时使用自定义范围，
+ * 否则按 'P1M-F12M'（过去 1 月 ~ 未来 12 月）格式解析。
+ */
+export function parseRange(
+  preset: string,
+  customFrom?: string,
+  customTo?: string,
+): { from: string; to: string } {
+  if (preset === 'custom' && customFrom && customTo) {
+    return { from: customFrom, to: customTo };
+  }
   const matched = /P(\d+)M-F(\d+)M/.exec(preset);
   const past = matched ? Number(matched[1]) : 1;
   const future = matched ? Number(matched[2]) : 12;
@@ -43,11 +53,13 @@ export function useChartData(): ChartDataResult {
   const transactions = useStore((s) => s.transactions);
   const granularity = useStore((s) => s.granularity);
   const rangePreset = useStore((s) => s.rangePreset);
+  const customFrom = useStore((s) => s.customFrom);
+  const customTo = useStore((s) => s.customTo);
   const visibleAccountIds = useStore((s) => s.visibleAccountIds);
   const showTotal = useStore((s) => s.showTotal);
 
   return useMemo(() => {
-    const { from, to } = parseRange(rangePreset);
+    const { from, to } = parseRange(rangePreset, customFrom, customTo);
     const activeAccounts = accounts.filter((a) => !a.archived);
     const shown = visibleAccountIds.length
       ? activeAccounts.filter((a) => visibleAccountIds.includes(a.id))
@@ -80,5 +92,5 @@ export function useChartData(): ChartDataResult {
     }
 
     return { values, series, labelToDate, from, to };
-  }, [accounts, transactions, granularity, rangePreset, visibleAccountIds, showTotal]);
+  }, [accounts, transactions, granularity, rangePreset, customFrom, customTo, visibleAccountIds, showTotal]);
 }

@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent } from 'react';
-import { Button, Toast } from '@douyinfe/semi-ui';
+import { Button, Popconfirm, Toast } from '@douyinfe/semi-ui';
 import { IconMoon, IconSun } from '@douyinfe/semi-icons';
 import type { AppData } from '@/types';
 import type { ImportMode } from '@/store/types';
@@ -17,6 +17,8 @@ export default function AppHeader({ onManageCategories }: Props) {
   const { theme, toggleTheme } = useTheme();
   const exportData = useStore((s) => s.exportData);
   const importData = useStore((s) => s.importData);
+  const resetAll = useStore((s) => s.resetAll);
+  const loadSeed = useStore((s) => s.loadSeed);
   const fileRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<AppData | null>(null);
 
@@ -66,6 +68,35 @@ export default function AppHeader({ onManageCategories }: Props) {
         <Button theme="borderless" type="tertiary" onClick={() => fileRef.current?.click()}>
           导入
         </Button>
+        <Popconfirm
+          title="载入示例数据"
+          content="将用一组示例账户、分类与收支替换当前全部数据"
+          okText="载入"
+          cancelText="取消"
+          onConfirm={() => {
+            loadSeed();
+            Toast.success('已载入示例数据');
+          }}
+        >
+          <Button theme="borderless" type="tertiary">
+            载入示例
+          </Button>
+        </Popconfirm>
+        <Popconfirm
+          title="清空所有数据"
+          content="将删除全部账户、变动与分类，且无法恢复"
+          okType="danger"
+          okText="清空"
+          cancelText="取消"
+          onConfirm={() => {
+            resetAll();
+            Toast.success('已清空数据');
+          }}
+        >
+          <Button theme="borderless" type="danger">
+            清空
+          </Button>
+        </Popconfirm>
         <Button
           theme="borderless"
           type="tertiary"

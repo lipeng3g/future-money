@@ -26,11 +26,13 @@ export default function OverviewStats() {
   const accounts = useStore((s) => s.accounts);
   const transactions = useStore((s) => s.transactions);
   const rangePreset = useStore((s) => s.rangePreset);
+  const customFrom = useStore((s) => s.customFrom);
+  const customTo = useStore((s) => s.customTo);
 
   const stats = useMemo(() => {
     const active = accounts.filter((a) => !a.archived);
     const activeIds = new Set(active.map((a) => a.id));
-    const { to } = parseRange(rangePreset);
+    const { to } = parseRange(rangePreset, customFrom, customTo);
     const now = today();
     const ym = now.slice(0, 7);
 
@@ -41,7 +43,7 @@ export default function OverviewStats() {
       .reduce((sum, t) => sum + t.amount, 0);
 
     return { current, forecast, monthNet, to };
-  }, [accounts, transactions, rangePreset]);
+  }, [accounts, transactions, rangePreset, customFrom, customTo]);
 
   return (
     <div className="overview-bar">

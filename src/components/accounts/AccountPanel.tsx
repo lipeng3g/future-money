@@ -30,9 +30,7 @@ export default function AccountPanel() {
   };
 
   return (
-    <div className="account-panel">
-      <div className="zone-title">账户</div>
-
+    <div className="account-strip">
       {accounts.length === 0 ? (
         <EmptyState
           title="还没有账户"
@@ -48,19 +46,13 @@ export default function AccountPanel() {
           {active.map((a) => (
             <AccountCard key={a.id} account={a} onEdit={openEdit} />
           ))}
-
-          {archived.length > 0 && (
-            <>
-              <div className="account-panel__subtitle">已归档</div>
-              {archived.map((a) => (
-                <AccountCard key={a.id} account={a} onEdit={openEdit} />
-              ))}
-            </>
-          )}
-
-          <Button block theme="light" icon={<IconPlus />} onClick={openCreate}>
-            新建账户
-          </Button>
+          {archived.map((a) => (
+            <AccountCard key={a.id} account={a} onEdit={openEdit} />
+          ))}
+          <button type="button" className="account-add" onClick={openCreate}>
+            <IconPlus />
+            <span>新建账户</span>
+          </button>
         </>
       )}
 

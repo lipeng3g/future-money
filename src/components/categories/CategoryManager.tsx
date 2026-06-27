@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Button, Modal, Popconfirm } from '@douyinfe/semi-ui';
-import { IconDelete, IconEdit, IconPlus } from '@douyinfe/semi-icons';
+import { Button, Modal, Popconfirm, Toast } from '@douyinfe/semi-ui';
+import { IconDelete, IconEdit, IconImport, IconPlus } from '@douyinfe/semi-icons';
 import type { Category } from '@/types';
 import EmptyState from '@/components/common/EmptyState';
 import { useStore } from '@/store/useStore';
+import { DEFAULT_CATEGORY_SEEDS } from '@/utils/seed';
 import CategoryFormModal from './CategoryFormModal';
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 
 export default function CategoryManager({ visible, onClose }: Props) {
   const categories = useStore((s) => s.categories);
+  const addCategory = useStore((s) => s.addCategory);
   const removeCategory = useStore((s) => s.removeCategory);
 
   const [formVisible, setFormVisible] = useState(false);
@@ -27,10 +29,39 @@ export default function CategoryManager({ visible, onClose }: Props) {
     setFormVisible(true);
   };
 
+  const loadPresets = () => {
+    const existing = new Set(categories.map((c) => c.name));
+    const added = DEFAULT_CATEGORY_SEEDS.filter((s) => !existing.has(s.name));
+    added.forEach((s) => addCategory({ name: s.name, color: s.color }));
+    Toast.success(added.length ? `已载入 ${added.length} 个常用分类` : '常用分类已全部存在');
+  };
+
   return (
-    <Modal title="分类管理" visible={visible} onCancel={onClose} footer={null}>
+    <Modal
+      title="分类管理"
+      visible={visible}
+      onCancel={onClose}
+      footer={
+        <div className="category-footer">
+          <Button theme="borderless" icon={<IconImport />} onClick={loadPresets}>
+            载入常用分类
+          </Button>
+          <Button theme="solid" icon={<IconPlus />} onClick={openCreate}>
+            新建分类
+          </Button>
+        </div>
+      }
+    >
       {categories.length === 0 ? (
-        <EmptyState title="还没有分类" description="分类可用于标记工资、房贷、投资等" />
+        <EmptyState
+          title="还没有分类"
+          description="分类可用于标记工资、房贷、投资等，可一键载入常用分类"
+          action={
+            <Button theme="solid" icon={<IconImport />} onClick={loadPresets}>
+              载入常用分类
+            </Button>
+          }
+        />
       ) : (
         <div className="category-list">
           {categories.map((c) => (
@@ -65,11 +96,6 @@ export default function CategoryManager({ visible, onClose }: Props) {
           ))}
         </div>
       )}
-      <div className="modal-foot">
-        <Button block theme="light" icon={<IconPlus />} onClick={openCreate}>
-          新建分类
-        </Button>
-      </div>
       <CategoryFormModal
         visible={formVisible}
         category={editing}
