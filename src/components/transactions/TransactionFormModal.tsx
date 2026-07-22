@@ -16,11 +16,14 @@ import { useStore } from '@/store/useStore';
 import { addMonths, today } from '@/utils/date';
 import { centsToYuan, yuanToCents } from '@/utils/money';
 import {
-  FREQUENCY_LABELS,
+  formatRecurrenceRule,
+  FREQUENCY_INTERVAL_UNITS,
+  FREQUENCY_OPTION_LABELS,
   MAX_OCCURRENCES,
   RECURRING_FREQUENCIES,
   recurrenceDates,
 } from '@/utils/recurrence';
+import RecurrencePreviewList from './RecurrencePreviewList';
 
 interface Props {
   visible: boolean;
@@ -99,9 +102,22 @@ export default function TransactionFormModal({
       startDate: date,
       end,
     });
-    return { count: dates.length, first: dates[0], last: dates[dates.length - 1] };
+    return { count: dates.length, dates };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recurring, accountId, frequency, interval, date, endKind, count, until]);
+
+  const ruleExampleDates = useMemo(
+    () => recurrenceDates({
+      accountId: accountId ?? '',
+      frequency,
+      interval,
+      baseAmount: 0,
+      startDate: date,
+      end: { kind: 'count', count: 3 },
+    }),
+    [accountId, frequency, interval, date],
+  );
+  const previewAmount = yuanToCents(amount || 0) * (direction === 'out' ? -1 : 1);
 
   const handleOk = () => {
     if (!accountId) {
@@ -143,9 +159,10 @@ export default function TransactionFormModal({
       visible={visible}
       onOk={handleOk}
       onCancel={onClose}
-      okText="保存"
+      okText={recurring && preview ? `生成 ${preview.count} 笔` : '保存'}
       cancelText="取消"
       width={460}
+      bodyStyle={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto', paddingRight: 4 }}
     >
       {activeAccounts.length === 0 ? (
         <Banner type="warning" description="请先创建一个账户再记录变动" />
@@ -234,7 +251,7 @@ export default function TransactionFormModal({
             <div className="recurrence-box">
               <div className="form-row">
                 <div className="form-field form-field--grow">
-                  <label className="form-label">频率</label>
+                  <label className="form-label">周期单位</label>
                   <Select
                     value={frequency}
                     onChange={(v) => setFrequency(v as Frequency)}
@@ -242,20 +259,28 @@ export default function TransactionFormModal({
                   >
                     {RECURRING_FREQUENCIES.map((f) => (
                       <Select.Option key={f} value={f}>
-                        {FREQUENCY_LABELS[f]}
+                        {FREQUENCY_OPTION_LABELS[f]}
                       </Select.Option>
                     ))}
                   </Select>
                 </div>
                 <div className="form-field form-field--grow">
-                  <label className="form-label">间隔</label>
+                  <label className="form-label">重复规则</label>
                   <InputNumber
                     value={interval}
                     onNumberChange={(v) => setIntervalValue(Math.max(1, v))}
                     min={1}
+                    prefix="每"
+                    suffix={`${FREQUENCY_INTERVAL_UNITS[frequency]}一次`}
                     style={{ width: '100%' }}
                   />
                 </div>
+              </div>
+
+              <div className="recurrence-rule-hint">
+                {formatRecurrenceRule(frequency, interval)}：
+                {ruleExampleDates.join('、')}
+                {ruleExampleDates.length ? '……' : ''}
               </div>
 
               <div className="form-field">
@@ -287,16 +312,19 @@ export default function TransactionFormModal({
                 />
               )}
 
-              {preview && (
+              {preview && (preview.count === 0 || preview.count >= MAX_OCCURRENCES) && (
                 <Banner
                   type={preview.count >= MAX_OCCURRENCES ? 'danger' : 'info'}
                   description={
-                    preview.count
-                      ? `将生成 ${preview.count} 笔，从 ${preview.first} 到 ${preview.last}`
+                    preview.count >= MAX_OCCURRENCES
+                      ? `生成笔数达到安全上限 ${MAX_OCCURRENCES}，请收紧结束条件`
                       : '当前条件不会生成任何记录'
                   }
                   closeIcon={null}
                 />
+              )}
+              {preview && preview.count > 0 && (
+                <RecurrencePreviewList dates={preview.dates} amount={previewAmount} />
               )}
               <div className="form-hint">提示：按月/季/年重复时，若起始日为月末，将自动对齐到每月最后一天。</div>
             </div>

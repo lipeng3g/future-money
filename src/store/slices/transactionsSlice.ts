@@ -1,6 +1,6 @@
 import type { Money, Series, Transaction } from '@/types';
 import { uid } from '@/utils/id';
-import { expandRecurrence, type RecurrenceInput } from '@/utils/recurrence';
+import { expandRecurrence, extendRecurrence, type RecurrenceInput } from '@/utils/recurrence';
 import type { SliceCreator } from '../types';
 
 export interface TransactionInput {
@@ -13,11 +13,18 @@ export interface TransactionInput {
 
 export type TransactionPatch = Partial<Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>>;
 
+export interface ExtendRecurringResult {
+  added: number;
+  first?: string;
+  last?: string;
+}
+
 export interface TransactionsSlice {
   transactions: Transaction[];
   series: Series[];
   addTransaction: (input: TransactionInput) => string;
   addRecurring: (input: RecurrenceInput) => string;
+  extendRecurring: (seriesId: string, count: number) => ExtendRecurringResult;
   updateTransaction: (id: string, patch: TransactionPatch) => void;
   removeTransaction: (id: string) => void;
   batchUpdateTransactions: (ids: string[], patch: TransactionPatch) => void;
@@ -57,6 +64,46 @@ export const createTransactionsSlice: SliceCreator<TransactionsSlice> = (set) =>
       transactions: [...s.transactions, ...transactions],
     }));
     return series.id;
+  },
+
+  extendRecurring: (seriesId, count) => {
+    let result: ExtendRecurringResult = { added: 0 };
+    set((s) => {
+      const target = s.series.find((item) => item.id === seriesId);
+      if (!target) return s;
+
+      const groupTransactions = s.transactions.filter((t) => t.seriesId === seriesId);
+      const latestDate = groupTransactions.reduce<string | undefined>(
+        (latest, t) => (!latest || t.date > latest ? t.date : latest),
+        undefined,
+      );
+      const extension = extendRecurrence(target, latestDate, count);
+      const existingDates = new Set(groupTransactions.map((t) => t.date));
+      const dates = extension.dates.filter((date) => !existingDates.has(date));
+      if (!dates.length) return s;
+
+      const now = Date.now();
+      const transactions: Transaction[] = dates.map((date) => ({
+        id: uid(),
+        accountId: target.accountId,
+        date,
+        amount: target.baseAmount,
+        categoryId: target.categoryId,
+        note: target.note,
+        seriesId: target.id,
+        createdAt: now,
+        updatedAt: now,
+      }));
+      result = { added: dates.length, first: dates[0], last: dates[dates.length - 1] };
+
+      return {
+        transactions: [...s.transactions, ...transactions],
+        series: s.series.map((item) =>
+          item.id === seriesId ? { ...item, end: extension.end } : item,
+        ),
+      };
+    });
+    return result;
   },
 
   updateTransaction: (id, patch) => {

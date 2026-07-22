@@ -50,12 +50,26 @@ export const useStore = create<Store>()(
     {
       name: PERSIST_KEY,
       version: DATA_VERSION,
+      merge: (persistedState, currentState) => {
+        const saved = persistedState as Partial<Store> & { chartRangeVersion?: number };
+        const migrateOldDefault =
+          saved.chartRangeVersion === undefined && saved.rangePreset === 'P0M-F12M';
+        return {
+          ...currentState,
+          ...saved,
+          chartRangeVersion: initialSettings.chartRangeVersion,
+          rangePreset: migrateOldDefault
+            ? initialSettings.rangePreset
+            : saved.rangePreset ?? currentState.rangePreset,
+        };
+      },
       partialize: (s) => ({
         accounts: s.accounts,
         transactions: s.transactions,
         series: s.series,
         categories: s.categories,
         theme: s.theme,
+        chartRangeVersion: s.chartRangeVersion,
         rangePreset: s.rangePreset,
         customFrom: s.customFrom,
         customTo: s.customTo,

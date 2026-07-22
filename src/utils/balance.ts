@@ -23,7 +23,7 @@ export function groupTxsByAccount(txs: Transaction[]): Map<string, Transaction[]
 /**
  * 计算单账户在 [from, to] 区间内的逐日余额。
  * accountTxs 必须为该账户的交易且已按日期升序排序（见 groupTxsByAccount）。
- * 账户起始日之前不计入（视为账户尚未存在）。
+ * 账户起始日之前不输出数据点（视为账户尚未存在，避免图表伪造 0 余额线）。
  */
 export function dailyBalancesSorted(
   account: Account,
@@ -45,8 +45,9 @@ export function dailyBalancesSorted(
       running += accountTxs[idx].amount;
       idx++;
     }
-    const active = isSameOrBeforeDate(account.openingDate, day);
-    points.push({ date: day, value: active ? running : 0 });
+    if (isSameOrBeforeDate(account.openingDate, day)) {
+      points.push({ date: day, value: running });
+    }
   }
   return points;
 }
@@ -67,7 +68,7 @@ export function dailyBalances(
   return dailyBalancesSorted(account, accountTxs, from, to);
 }
 
-/** 计算所有账户的逐日总资产（账户起始日之前按 0 计） */
+/** 计算所有账户的逐日总资产（账户起始日之前不参与汇总） */
 export function totalDailyBalances(
   accounts: Account[],
   txs: Transaction[],
@@ -89,14 +90,16 @@ export function totalDailyBalancesFromDaily(
   to: string,
 ): BalancePoint[] {
   const days = eachDay(from, to);
-  const totals = new Map<string, Money>(days.map((d) => [d, 0]));
+  const totals = new Map<string, Money>();
 
   for (const points of perAccount) {
     for (const point of points) {
       totals.set(point.date, (totals.get(point.date) ?? 0) + point.value);
     }
   }
-  return days.map((date) => ({ date, value: totals.get(date) ?? 0 }));
+  return days
+    .filter((date) => totals.has(date))
+    .map((date) => ({ date, value: totals.get(date) ?? 0 }));
 }
 
 /** 账户在指定日期的余额（用于卡片展示） */

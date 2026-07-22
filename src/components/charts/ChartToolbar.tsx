@@ -1,15 +1,17 @@
-import { DatePicker, Radio, RadioGroup, Select } from '@douyinfe/semi-ui';
+import { Button, DatePicker, Radio, RadioGroup, Select } from '@douyinfe/semi-ui';
+import { IconHistory } from '@douyinfe/semi-icons';
 import type { Granularity } from '@/types';
 import { TOTAL_NAME } from '@/hooks/useChartData';
 import { useStore } from '@/store/useStore';
 
 const RANGES = [
+  { label: '过去 3 月 ~ 今后 1 年', value: 'P3M-F12M' },
+  { label: '过去 1 年 ~ 今后 1 年', value: 'P12M-F12M' },
   { label: '今后 1 年', value: 'P0M-F12M' },
   { label: '今后 2 年', value: 'P0M-F24M' },
   { label: '今后 5 年', value: 'P0M-F60M' },
   { label: '今后 10 年', value: 'P0M-F120M' },
   { label: '今后 20 年', value: 'P0M-F240M' },
-  { label: '过去 1 年 ~ 今后 1 年', value: 'P12M-F12M' },
   { label: '过去 5 年 ~ 今后 5 年', value: 'P60M-F60M' },
   { label: '自定义范围', value: 'custom' },
 ];
@@ -55,7 +57,7 @@ export default function ChartToolbar({ accountId }: { accountId?: string | null 
         <Select
           value={rangePreset}
           onChange={(v) => setRangePreset(v as string)}
-          style={{ width: 200 }}
+          style={{ width: 210 }}
         >
           {RANGES.map((r) => (
             <Select.Option key={r.value} value={r.value}>
@@ -63,6 +65,15 @@ export default function ChartToolbar({ accountId }: { accountId?: string | null 
             </Select.Option>
           ))}
         </Select>
+        <Button
+          size="small"
+          theme="borderless"
+          type={rangePreset === 'P12M-F12M' ? 'primary' : 'tertiary'}
+          icon={<IconHistory />}
+          onClick={() => setRangePreset('P12M-F12M')}
+        >
+          前后一年
+        </Button>
         {rangePreset === 'custom' && (
           <DatePicker
             type="dateRange"

@@ -17,8 +17,10 @@ export interface ChartSeries {
 
 export interface ChartValue {
   time: string;
+  date: string;
   value: number;
   type: string;
+  phase: 'history' | 'forecast';
 }
 
 export interface ChartDataResult {
@@ -28,6 +30,7 @@ export interface ChartDataResult {
   labelToDate: Record<string, string>;
   from: string;
   to: string;
+  todayLabel?: string;
 }
 
 export const TOTAL_NAME = '总资产';
@@ -66,6 +69,7 @@ export function useChartData(focusedAccountId?: string | null): ChartDataResult 
 
   return useMemo(() => {
     const { from, to } = parseRange(rangePreset, customFrom, customTo);
+    const currentDate = today();
     const activeAccounts = accounts.filter((a) => !a.archived);
     const focused = focusedAccountId
       ? activeAccounts.find((a) => a.id === focusedAccountId) ?? null
@@ -97,7 +101,13 @@ export function useChartData(focusedAccountId?: string | null): ChartDataResult 
         to,
       );
       for (const point of aggregate(totalDaily, granularity)) {
-        values.push({ time: point.label, value: centsToYuan(point.value), type: TOTAL_NAME });
+        values.push({
+          time: point.label,
+          date: point.date,
+          value: centsToYuan(point.value),
+          type: TOTAL_NAME,
+          phase: point.date > currentDate ? 'forecast' : 'history',
+        });
         labelToDate[point.label] = point.date;
       }
     }
@@ -106,11 +116,21 @@ export function useChartData(focusedAccountId?: string | null): ChartDataResult 
       series.push({ name: account.name, color: account.color });
       const daily = dailyByAccount.get(account.id) ?? [];
       for (const point of aggregate(daily, granularity)) {
-        values.push({ time: point.label, value: centsToYuan(point.value), type: account.name });
+        values.push({
+          time: point.label,
+          date: point.date,
+          value: centsToYuan(point.value),
+          type: account.name,
+          phase: point.date > currentDate ? 'forecast' : 'history',
+        });
         labelToDate[point.label] = point.date;
       }
     }
 
-    return { values, series, labelToDate, from, to };
+    const todayLabel = Object.entries(labelToDate)
+      .sort((a, b) => (a[1] < b[1] ? -1 : 1))
+      .find(([, date]) => date >= currentDate)?.[0];
+
+    return { values, series, labelToDate, from, to, todayLabel };
   }, [accounts, transactions, granularity, rangePreset, customFrom, customTo, visibleAccountIds, showTotal, focusedAccountId]);
 }

@@ -64,11 +64,9 @@ describe('dailyBalances', () => {
     ]);
   });
 
-  it('起始日之前按 0 计', () => {
+  it('起始日之前不输出伪 0 数据点', () => {
     const account = makeAccount();
     expect(dailyBalances(account, [], '2026-05-30', '2026-06-01')).toEqual([
-      { date: '2026-05-30', value: 0 },
-      { date: '2026-05-31', value: 0 },
       { date: '2026-06-01', value: 200000 },
     ]);
   });
@@ -81,6 +79,13 @@ describe('totalDailyBalances', () => {
     const txs = [makeTx({ accountId: 'a2', date: '2026-06-01', amount: 50000 })];
     expect(totalDailyBalances([a1, a2], txs, '2026-06-01', '2026-06-01')).toEqual([
       { date: '2026-06-01', value: 450000 },
+    ]);
+  });
+
+  it('总资产在所有账户起始日前不输出数据点', () => {
+    const account = makeAccount({ openingDate: '2026-06-03' });
+    expect(totalDailyBalances([account], [], '2026-06-01', '2026-06-03')).toEqual([
+      { date: '2026-06-03', value: 200000 },
     ]);
   });
 });

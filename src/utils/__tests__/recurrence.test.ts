@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   MAX_OCCURRENCES,
   expandRecurrence,
+  extendRecurrence,
+  formatRecurrenceRule,
   recurrenceDates,
   type RecurrenceInput,
 } from '@/utils/recurrence';
@@ -108,6 +110,14 @@ describe('recurrenceDates', () => {
   });
 });
 
+describe('formatRecurrenceRule', () => {
+  it('用“每 N 个周期一次”消除间隔歧义', () => {
+    expect(formatRecurrenceRule('monthly', 1)).toBe('每 1 个月一次');
+    expect(formatRecurrenceRule('monthly', 2)).toBe('每 2 个月一次');
+    expect(formatRecurrenceRule('quarterly', 2)).toBe('每 2 个季度一次');
+  });
+});
+
 describe('expandRecurrence', () => {
   it('生成 series 元数据与对应数量的真实记录', () => {
     const { series, transactions } = expandRecurrence({
@@ -123,5 +133,56 @@ describe('expandRecurrence', () => {
     expect(transactions.every((t) => t.seriesId === series.id)).toBe(true);
     expect(transactions.every((t) => t.amount === 100000)).toBe(true);
     expect(transactions[0].note).toBe('工资');
+  });
+});
+
+describe('extendRecurrence', () => {
+  it('月末周期从原序列下一期继续并更新次数', () => {
+    const { series } = expandRecurrence({
+      ...base,
+      frequency: 'monthly',
+      interval: 1,
+      startDate: '2026-01-31',
+      end: { kind: 'count', count: 2 },
+    });
+    const result = extendRecurrence(series, '2026-02-28', 2);
+    expect(result.dates).toEqual(['2026-03-31', '2026-04-30']);
+    expect(result.end).toEqual({ kind: 'count', count: 4 });
+  });
+
+  it('不回填原结束范围内被删除的尾部记录', () => {
+    const { series } = expandRecurrence({
+      ...base,
+      frequency: 'monthly',
+      interval: 1,
+      startDate: '2026-01-10',
+      end: { kind: 'count', count: 3 },
+    });
+    const result = extendRecurrence(series, '2026-02-10', 2);
+    expect(result.dates).toEqual(['2026-04-10', '2026-05-10']);
+  });
+
+  it('until 周期延长后保持截止日期结束条件', () => {
+    const { series } = expandRecurrence({
+      ...base,
+      frequency: 'quarterly',
+      interval: 1,
+      startDate: '2026-01-15',
+      end: { kind: 'until', date: '2026-07-15' },
+    });
+    const result = extendRecurrence(series, '2026-07-15', 2);
+    expect(result.dates).toEqual(['2026-10-15', '2027-01-15']);
+    expect(result.end).toEqual({ kind: 'until', date: '2027-01-15' });
+  });
+
+  it('一次性记录不允许续期', () => {
+    const { series } = expandRecurrence({
+      ...base,
+      frequency: 'once',
+      interval: 1,
+      startDate: '2026-01-15',
+      end: { kind: 'count', count: 1 },
+    });
+    expect(extendRecurrence(series, '2026-01-15', 12).dates).toEqual([]);
   });
 });

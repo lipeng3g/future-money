@@ -3,7 +3,8 @@ import type { SliceCreator } from '../types';
 
 export const initialSettings: AppSettings = {
   theme: 'light',
-  rangePreset: 'P0M-F12M',
+  chartRangeVersion: 1,
+  rangePreset: 'P3M-F12M',
   granularity: 'day',
   visibleAccountIds: [],
   showTotal: true,

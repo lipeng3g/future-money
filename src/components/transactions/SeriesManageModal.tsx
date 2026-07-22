@@ -16,7 +16,8 @@ import type { ColumnProps } from '@douyinfe/semi-ui/lib/es/table';
 import { useStore } from '@/store/useStore';
 import { today } from '@/utils/date';
 import { formatMoney, yuanToCents } from '@/utils/money';
-import { FREQUENCY_LABELS } from '@/utils/recurrence';
+import { extendRecurrence, formatRecurrenceRule } from '@/utils/recurrence';
+import RecurrencePreviewList from './RecurrencePreviewList';
 
 interface Props {
   visible: boolean;
@@ -39,6 +40,7 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
   const accounts = useStore((s) => s.accounts);
   const batchUpdate = useStore((s) => s.batchUpdateTransactions);
   const batchDelete = useStore((s) => s.batchDeleteTransactions);
+  const extendRecurring = useStore((s) => s.extendRecurring);
 
   const target = series.find((s) => s.id === seriesId);
 
@@ -62,6 +64,8 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
   const [amount, setAmount] = useState(0);
   const [editCategory, setEditCategory] = useState(false);
   const [newCategoryId, setNewCategoryId] = useState<string | undefined>();
+  const [extendCount, setExtendCount] = useState(12);
+  const [extendConfirmVisible, setExtendConfirmVisible] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -71,6 +75,8 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
     setAmount(0);
     setNewCategoryId(undefined);
     setDirection('in');
+    setExtendCount(12);
+    setExtendConfirmVisible(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, seriesId]);
 
@@ -84,6 +90,11 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
   const onlyPast = () => setSelected(rows.filter((r) => r.date < t0).map((r) => r.id));
 
   const accName = accounts.find((a) => a.id === target?.accountId)?.name ?? '—';
+  const latestDate = rows[rows.length - 1]?.date;
+  const extensionPreview = useMemo(
+    () => (target ? extendRecurrence(target, latestDate, extendCount) : null),
+    [target, latestDate, extendCount],
+  );
 
   const handleUpdate = () => {
     if (selected.length === 0) {
@@ -114,6 +125,18 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
     onClose();
   };
 
+  const handleExtend = () => {
+    if (!target) return;
+    const result = extendRecurring(target.id, extendCount);
+    if (!result.added) {
+      Toast.warning('没有生成新的周期记录');
+      return;
+    }
+    Toast.success(`已新增 ${result.added} 笔，生成至 ${result.last}`);
+    setExtendConfirmVisible(false);
+    onClose();
+  };
+
   const columns: ColumnProps<Row>[] = [
     { title: '日期', dataIndex: 'date', width: 120 },
     {
@@ -131,6 +154,7 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
   ];
 
   return (
+    <>
     <Modal title="管理周期组" visible={visible} onCancel={onClose} footer={null} width={640}>
       {target && (
         <div className="series-manage">
@@ -138,7 +162,7 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
             type="info"
             closeIcon={null}
             description={
-              `${accName} · ${FREQUENCY_LABELS[target.frequency]}（每 ${target.interval} 次）` +
+              `${accName} · ${formatRecurrenceRule(target.frequency, target.interval)}` +
               ` · 基准 ${formatMoney(target.baseAmount, { withSign: true })} · 共 ${rows.length} 笔`
             }
           />
@@ -164,6 +188,28 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
               onChange: (keys) => setSelected((keys ?? []) as string[]),
             }}
           />
+
+          <div className="series-manage__extend">
+            <div className="series-manage__extend-copy">
+              <div className="series-manage__extend-title">继续生成</div>
+              <div className="series-manage__extend-desc">
+                当前至 {latestDate ?? '—'}；预计新增 {extensionPreview?.dates.length ?? 0} 笔：
+                {extensionPreview?.dates[0] ?? '—'} ～ {extensionPreview?.dates.at(-1) ?? '—'}
+              </div>
+            </div>
+            <InputNumber
+              value={extendCount}
+              onNumberChange={(value) => setExtendCount(Math.min(5000, Math.max(1, value)))}
+              min={1}
+              max={5000}
+              prefix="新增"
+              suffix="期"
+              style={{ width: 130 }}
+            />
+            <Button theme="solid" onClick={() => setExtendConfirmVisible(true)}>
+              查看并确认
+            </Button>
+          </div>
 
           <div className="series-manage__edit">
             <div className="series-manage__edit-title">批量修改（仅作用于勾选记录）</div>
@@ -237,5 +283,34 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
         </div>
       )}
     </Modal>
+    <Modal
+      title="确认继续生成"
+      visible={visible && extendConfirmVisible}
+      onOk={handleExtend}
+      onCancel={() => setExtendConfirmVisible(false)}
+      okText={`生成 ${extensionPreview?.dates.length ?? 0} 笔`}
+      cancelText="返回修改"
+      width={500}
+      bodyStyle={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto', paddingRight: 4 }}
+    >
+      {target && extensionPreview && (
+        <div className="series-extend-confirm">
+          <Banner
+            type="warning"
+            closeIcon={null}
+            description={
+              `${accName} · ${formatRecurrenceRule(target.frequency, target.interval)}` +
+              ` · ${formatMoney(target.baseAmount, { withSign: true })}`
+            }
+          />
+          <RecurrencePreviewList
+            dates={extensionPreview.dates}
+            amount={target.baseAmount}
+            title="待新增数据"
+          />
+        </div>
+      )}
+    </Modal>
+    </>
   );
 }

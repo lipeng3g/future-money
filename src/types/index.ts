@@ -31,6 +31,8 @@ export interface AppData {
 /** 持久化的界面设置 */
 export interface AppSettings {
   theme: Theme;
+  /** 图表范围设置版本，用于一次性迁移旧版默认值 */
+  chartRangeVersion: number;
   /** 时间范围预设，如 'P1M-F12M'（过去1月~未来12月）；'custom' 时使用 customFrom/customTo */
   rangePreset: string;
   /** 自定义范围起始日 YYYY-MM-DD（rangePreset 为 'custom' 时生效） */

@@ -4,7 +4,7 @@ import type { ISpec } from '@visactor/react-vchart';
 import { Button } from '@douyinfe/semi-ui';
 import { IconEyeClosed, IconEyeOpened, IconRefresh } from '@douyinfe/semi-icons';
 import EmptyState from '@/components/common/EmptyState';
-import { useChartData } from '@/hooks/useChartData';
+import { TOTAL_NAME, useChartData } from '@/hooks/useChartData';
 import { useStore } from '@/store/useStore';
 
 const PALETTE = {
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export default function BalanceChart({ onDayClick, accountId }: Props) {
-  const { values, series, labelToDate, from, to } = useChartData(accountId);
+  const { values, series, labelToDate, from, to, todayLabel } = useChartData(accountId);
   const theme = useStore((s) => s.theme);
   const showLabels = useStore((s) => s.showChartLabels);
   const toggleChartLabels = useStore((s) => s.toggleChartLabels);
@@ -33,7 +33,11 @@ export default function BalanceChart({ onDayClick, accountId }: Props) {
 
   const spec = useMemo<ISpec>(() => {
     const c = PALETTE[theme];
-    const pointSize = values.length > 1500 ? 2 : values.length > 600 ? 3 : 4;
+    const futureEnd = values.reduce<{ date: string; time: string } | null>(
+      (latest, value) => (!latest || value.date > latest.date ? { date: value.date, time: value.time } : latest),
+      null,
+    );
+    const hasForecast = values.some((value) => value.phase === 'forecast');
     return {
       type: 'line',
       autoFit: true,
@@ -43,10 +47,16 @@ export default function BalanceChart({ onDayClick, accountId }: Props) {
       yField: 'value',
       seriesField: 'type',
       color: series.map((s) => s.color),
-      line: { style: { lineWidth: 2, curveType: 'monotone' } },
+      line: {
+        style: {
+          lineWidth: (datum: Record<string, unknown>) => datum?.type === TOTAL_NAME ? 3 : 1.8,
+          curveType: 'monotone',
+          lineDash: (datum: Record<string, unknown>) => datum?.phase === 'forecast' ? [7, 5] : [],
+          strokeOpacity: (datum: Record<string, unknown>) => datum?.type === TOTAL_NAME ? 1 : 0.78,
+        },
+      },
       point: {
-        visible: true,
-        style: { size: pointSize },
+        visible: false,
         state: { hover: { size: 8 } },
       },
       ...(showLabels && {
@@ -62,7 +72,7 @@ export default function BalanceChart({ onDayClick, accountId }: Props) {
       crosshair: { xField: { visible: true, line: { type: 'line' } } },
       tooltip: {
         dimension: {
-          title: { value: (d) => d?.time },
+          title: { value: (d) => `${d?.time} · ${d?.phase === 'forecast' ? '预测' : '历史'}` },
           content: [
             {
               key: (d) => d?.type,
@@ -71,7 +81,7 @@ export default function BalanceChart({ onDayClick, accountId }: Props) {
           ],
         },
         mark: {
-          title: { value: (d) => d?.time },
+          title: { value: (d) => `${d?.time} · ${d?.phase === 'forecast' ? '预测' : '历史'}` },
           content: [
             {
               key: (d) => d?.type,
@@ -80,6 +90,33 @@ export default function BalanceChart({ onDayClick, accountId }: Props) {
           ],
         },
       },
+      ...(todayLabel && {
+        markLine: [
+          {
+            x: todayLabel,
+            interactive: false,
+            line: { style: { stroke: c.axis, lineDash: [4, 4], strokeOpacity: 0.7 } },
+            label: {
+              visible: true,
+              text: '今天',
+              position: 'end',
+              style: { fill: c.axis, fontSize: 11, fontWeight: 600 },
+              labelBackground: { visible: false },
+            },
+          },
+        ],
+      }),
+      ...(todayLabel && hasForecast && futureEnd && {
+        markArea: [
+          {
+            x: todayLabel,
+            x1: futureEnd.time,
+            interactive: false,
+            area: { style: { fill: c.axis, fillOpacity: theme === 'dark' ? 0.07 : 0.04 } },
+            label: { visible: false },
+          },
+        ],
+      }),
       dataZoom: [
         {
           orient: 'bottom',
@@ -120,6 +157,10 @@ export default function BalanceChart({ onDayClick, accountId }: Props) {
   return (
     <div className="chart-host">
       <div className="chart-host__hint">
+        <div className="chart-phase-legend" aria-label="曲线阶段说明">
+          <span><i className="chart-phase-line" />历史</span>
+          <span><i className="chart-phase-line chart-phase-line--forecast" />预测</span>
+        </div>
         <div className="chart-host__hint-actions">
           <Button
             size="small"

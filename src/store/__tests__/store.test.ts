@@ -58,6 +58,34 @@ describe('transactions slice', () => {
     expect(store().transactions).toHaveLength(3);
   });
 
+  it('extendRecurring 在原周期组后追加记录且不创建新组', () => {
+    const id = store().addRecurring({
+      accountId: 'a1',
+      frequency: 'monthly',
+      interval: 1,
+      baseAmount: 100,
+      startDate: '2026-01-31',
+      end: { kind: 'count', count: 2 },
+      note: '工资',
+    });
+    const result = store().extendRecurring(id, 2);
+    expect(result).toMatchObject({ added: 2, first: '2026-03-31', last: '2026-04-30' });
+    expect(store().series).toHaveLength(1);
+    expect(store().transactions.map((t) => t.date)).toEqual([
+      '2026-01-31',
+      '2026-02-28',
+      '2026-03-31',
+      '2026-04-30',
+    ]);
+    expect(store().transactions.every((t) => t.seriesId === id)).toBe(true);
+    expect(store().series[0].end).toEqual({ kind: 'count', count: 4 });
+
+    const second = store().extendRecurring(id, 2);
+    expect(second).toMatchObject({ added: 2, first: '2026-05-31', last: '2026-06-30' });
+    expect(new Set(store().transactions.map((t) => `${t.seriesId}:${t.date}`)).size).toBe(6);
+    expect(store().series[0].end).toEqual({ kind: 'count', count: 6 });
+  });
+
   it('批量修改与批量删除', () => {
     store().addRecurring({
       accountId: 'a1',
@@ -119,6 +147,7 @@ describe('settings slice', () => {
     expect(store().granularity).toBe('week');
     expect(store().showTotal).toBe(false);
     expect(store().visibleAccountIds).toEqual(['a1']);
+    expect(store().rangePreset).toBe('P3M-F12M');
   });
 });
 
