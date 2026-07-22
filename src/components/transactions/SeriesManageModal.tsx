@@ -131,7 +131,7 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
   ];
 
   return (
-    <Modal title="管理周期组" visible={visible} onCancel={onClose} footer={null} width={560}>
+    <Modal title="管理周期组" visible={visible} onCancel={onClose} footer={null} width={640}>
       {target && (
         <div className="series-manage">
           <Banner
@@ -158,7 +158,7 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
             rowKey="id"
             size="small"
             pagination={false}
-            scroll={{ y: 240 }}
+            scroll={{ y: 260 }}
             rowSelection={{
               selectedRowKeys: selected,
               onChange: (keys) => setSelected((keys ?? []) as string[]),
@@ -166,6 +166,7 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
           />
 
           <div className="series-manage__edit">
+            <div className="series-manage__edit-title">批量修改（仅作用于勾选记录）</div>
             <div className="series-manage__edit-row">
               <Checkbox checked={editAmount} onChange={(e) => setEditAmount(Boolean(e.target.checked))}>
                 修改金额
@@ -222,7 +223,7 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
               disabled={selected.length === 0}
               onConfirm={handleDelete}
             >
-              <Button type="danger" disabled={selected.length === 0}>
+              <Button theme="borderless" type="danger" disabled={selected.length === 0}>
                 删除选中
               </Button>
             </Popconfirm>

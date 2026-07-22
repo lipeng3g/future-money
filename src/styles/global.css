@@ -587,6 +587,25 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
+}
+
+.ledger-date {
+  white-space: nowrap;
+}
+
+.ledger-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.ledger-note__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 收入/净流为正：红；支出/净流为负：绿（国内红涨绿跌惯例） */
@@ -814,16 +833,27 @@ body {
   background: var(--semi-color-fill-0);
 }
 
+.series-manage__edit-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--semi-color-text-2);
+  margin-bottom: -2px;
+}
+
 .series-manage__edit-row {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .series-manage__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  padding: 12px 0 24px;
+  border-top: 1px solid var(--semi-color-border);
 }
 
 .series-manage__footer-right {

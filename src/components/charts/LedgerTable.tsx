@@ -111,10 +111,11 @@ export default function LedgerTable({ accountId: focusedAccountId }: { accountId
   }, [transactions, accounts, categories, accountId, categoryId, scopeMonths, currentYm]);
 
   const columns: ColumnProps<LedgerRow>[] = useMemo(() => [
-    { title: '日期', dataIndex: 'date', width: 120 },
+    { title: '日期', dataIndex: 'date', width: 120, className: 'ledger-date' },
     {
       title: '账户',
       dataIndex: 'accountName',
+      width: 150,
       render: (name: string, row) => (
         <span className="ledger-account">
           <span className="account-dot" style={{ background: row.accountColor }} />
@@ -125,11 +126,13 @@ export default function LedgerTable({ accountId: focusedAccountId }: { accountId
     {
       title: '分类',
       dataIndex: 'categoryName',
+      width: 110,
       render: (name?: string) => (name ? <Tag size="small" color="grey">{name}</Tag> : '—'),
     },
     {
       title: '金额',
       dataIndex: 'amount',
+      width: 140,
       align: 'right',
       render: (amount: number) => (
         <span className={`mono-num ${amount >= 0 ? 'amount-pos' : 'amount-neg'}`}>
@@ -141,12 +144,12 @@ export default function LedgerTable({ accountId: focusedAccountId }: { accountId
       title: '备注',
       dataIndex: 'note',
       render: (note: string | undefined, row) => (
-        <span>
-          {note ?? ''}
+        <span className="ledger-note">
+          <span className="ledger-note__text">{note ?? ''}</span>
           {row.seriesId && (
             <Tag
               size="small"
-              style={{ marginLeft: 6, cursor: 'pointer' }}
+              style={{ cursor: 'pointer', flexShrink: 0 }}
               onClick={() => setManageSeriesId(row.seriesId ?? null)}
             >
               周期
@@ -158,7 +161,7 @@ export default function LedgerTable({ accountId: focusedAccountId }: { accountId
     {
       title: '',
       dataIndex: 'id',
-      width: 120,
+      width: 110,
       align: 'right',
       render: (id: string, row) => (
         <span className="ledger-row-actions">
@@ -282,7 +285,7 @@ export default function LedgerTable({ accountId: focusedAccountId }: { accountId
                   rowKey="id"
                   pagination={false}
                   size="small"
-                  scroll={{ x: 620 }}
+                  scroll={{ x: '100%' }}
                 />
               )}
             </div>
