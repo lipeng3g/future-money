@@ -14,10 +14,12 @@ const PALETTE = {
 
 interface Props {
   onDayClick?: (date: string) => void;
+  /** 聚焦查看的单个账户；为空展示总资产 + 各账户 */
+  accountId?: string | null;
 }
 
-export default function BalanceChart({ onDayClick }: Props) {
-  const { values, series, labelToDate, from, to } = useChartData();
+export default function BalanceChart({ onDayClick, accountId }: Props) {
+  const { values, series, labelToDate, from, to } = useChartData(accountId);
   const theme = useStore((s) => s.theme);
   const showLabels = useStore((s) => s.showChartLabels);
   const toggleChartLabels = useStore((s) => s.toggleChartLabels);

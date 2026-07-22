@@ -15,7 +15,7 @@ const RANGES = [
 ];
 const TOTAL_COLOR = '#64748b';
 
-export default function ChartToolbar() {
+export default function ChartToolbar({ accountId }: { accountId?: string | null }) {
   const granularity = useStore((s) => s.granularity);
   const setGranularity = useStore((s) => s.setGranularity);
   const rangePreset = useStore((s) => s.rangePreset);
@@ -77,7 +77,7 @@ export default function ChartToolbar() {
         )}
       </div>
 
-      {active.length > 0 && (
+      {!accountId && active.length > 0 && (
         <div className="chart-toolbar__chips">
           <button
             type="button"

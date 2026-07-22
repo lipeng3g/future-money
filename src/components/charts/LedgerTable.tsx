@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Popconfirm, Select, Table, Tag } from '@douyinfe/semi-ui';
 import { IconChevronDown, IconChevronRight, IconDelete, IconEdit, IconList, IconPlus } from '@douyinfe/semi-icons';
 import type { ColumnProps } from '@douyinfe/semi-ui/lib/es/table';
@@ -40,7 +40,7 @@ interface MonthGroup {
   rows: LedgerRow[];
 }
 
-export default function LedgerTable() {
+export default function LedgerTable({ accountId: focusedAccountId }: { accountId?: string | null }) {
   const transactions = useStore((s) => s.transactions);
   const accounts = useStore((s) => s.accounts);
   const categories = useStore((s) => s.categories);
@@ -54,18 +54,27 @@ export default function LedgerTable() {
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [manageSeriesId, setManageSeriesId] = useState<string | null>(null);
 
+  // 聚焦账户变化时同步账本筛选
+  useEffect(() => {
+    setAccountId(focusedAccountId ?? undefined);
+  }, [focusedAccountId]);
+
   const toggleExpand = (month: string) =>
     setExpanded((prev) => {
       const next = new Set(prev);
-      next.has(month) ? next.delete(month) : next.add(month);
+      if (next.has(month)) next.delete(month);
+      else next.add(month);
       return next;
     });
 
   const txMap = useMemo(() => new Map(transactions.map((t) => [t.id, t])), [transactions]);
-  const openEdit = (id: string) => {
-    setEditing(txMap.get(id) ?? null);
-    setFormVisible(true);
-  };
+  const openEdit = useCallback(
+    (id: string) => {
+      setEditing(txMap.get(id) ?? null);
+      setFormVisible(true);
+    },
+    [txMap],
+  );
   const openCreate = () => {
     setEditing(null);
     setFormVisible(true);
@@ -101,7 +110,7 @@ export default function LedgerTable() {
     return [...map.values()];
   }, [transactions, accounts, categories, accountId, categoryId, scopeMonths, currentYm]);
 
-  const columns: ColumnProps<LedgerRow>[] = [
+  const columns: ColumnProps<LedgerRow>[] = useMemo(() => [
     { title: '日期', dataIndex: 'date', width: 120 },
     {
       title: '账户',
@@ -189,25 +198,27 @@ export default function LedgerTable() {
         </span>
       ),
     },
-  ];
+  ], [openEdit, removeTransaction]);
 
   return (
-    <div className="ledger-area">
+    <div className="ledger-area fm-card">
       <div className="ledger-toolbar">
         <span className="zone-title">账本明细</span>
-        <Select
-          placeholder="全部账户"
-          value={accountId}
-          onChange={(v) => setAccountId(v as string | undefined)}
-          style={{ width: 140 }}
-          showClear
-        >
-          {accounts.map((a) => (
-            <Select.Option key={a.id} value={a.id}>
-              {a.name}
-            </Select.Option>
-          ))}
-        </Select>
+        {!focusedAccountId && (
+          <Select
+            placeholder="全部账户"
+            value={accountId}
+            onChange={(v) => setAccountId(v as string | undefined)}
+            style={{ width: 140 }}
+            showClear
+          >
+            {accounts.map((a) => (
+              <Select.Option key={a.id} value={a.id}>
+                {a.name}
+              </Select.Option>
+            ))}
+          </Select>
+        )}
         <Select
           placeholder="全部分类"
           value={categoryId}
@@ -271,6 +282,7 @@ export default function LedgerTable() {
                   rowKey="id"
                   pagination={false}
                   size="small"
+                  scroll={{ x: 620 }}
                 />
               )}
             </div>

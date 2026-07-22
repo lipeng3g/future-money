@@ -1,7 +1,12 @@
 import { useMemo } from 'react';
 import { useStore } from '@/store/useStore';
 import { aggregate } from '@/utils/aggregate';
-import { dailyBalances, totalDailyBalances } from '@/utils/balance';
+import {
+  dailyBalancesSorted,
+  groupTxsByAccount,
+  totalDailyBalancesFromDaily,
+  type BalancePoint,
+} from '@/utils/balance';
 import { addMonths, today } from '@/utils/date';
 import { centsToYuan } from '@/utils/money';
 
@@ -47,8 +52,9 @@ export function parseRange(
   return { from: addMonths(base, -past), to: addMonths(base, future) };
 }
 
-/** 由 store 派生图表所需的多系列折线数据（总资产线 + 各账户线） */
-export function useChartData(): ChartDataResult {
+/** 由 store 派生图表所需的多系列折线数据（总资产线 + 各账户线）。
+ *  传入 focusedAccountId 时仅展示该账户，忽略可见账户白名单与总资产线。 */
+export function useChartData(focusedAccountId?: string | null): ChartDataResult {
   const accounts = useStore((s) => s.accounts);
   const transactions = useStore((s) => s.transactions);
   const granularity = useStore((s) => s.granularity);
@@ -61,20 +67,36 @@ export function useChartData(): ChartDataResult {
   return useMemo(() => {
     const { from, to } = parseRange(rangePreset, customFrom, customTo);
     const activeAccounts = accounts.filter((a) => !a.archived);
-    const shown = visibleAccountIds.length
-      ? activeAccounts.filter((a) => visibleAccountIds.includes(a.id))
-      : activeAccounts;
+    const focused = focusedAccountId
+      ? activeAccounts.find((a) => a.id === focusedAccountId) ?? null
+      : null;
+    const shown = focused
+      ? [focused]
+      : visibleAccountIds.length
+        ? activeAccounts.filter((a) => visibleAccountIds.includes(a.id))
+        : activeAccounts;
+
+    // 每个活跃账户的逐日余额只算一次：总资产线与账户线共用同一份结果
+    const byAccount = groupTxsByAccount(transactions);
+    const dailyByAccount = new Map<string, BalancePoint[]>(
+      activeAccounts.map((a) => [
+        a.id,
+        dailyBalancesSorted(a, byAccount.get(a.id) ?? [], from, to),
+      ]),
+    );
 
     const values: ChartValue[] = [];
     const series: ChartSeries[] = [];
     const labelToDate: Record<string, string> = {};
 
-    if (showTotal && activeAccounts.length) {
+    if (!focused && showTotal && activeAccounts.length) {
       series.push({ name: TOTAL_NAME, color: TOTAL_COLOR });
-      for (const point of aggregate(
-        totalDailyBalances(activeAccounts, transactions, from, to),
-        granularity,
-      )) {
+      const totalDaily = totalDailyBalancesFromDaily(
+        activeAccounts.map((a) => dailyByAccount.get(a.id) ?? []),
+        from,
+        to,
+      );
+      for (const point of aggregate(totalDaily, granularity)) {
         values.push({ time: point.label, value: centsToYuan(point.value), type: TOTAL_NAME });
         labelToDate[point.label] = point.date;
       }
@@ -82,15 +104,13 @@ export function useChartData(): ChartDataResult {
 
     for (const account of shown) {
       series.push({ name: account.name, color: account.color });
-      for (const point of aggregate(
-        dailyBalances(account, transactions, from, to),
-        granularity,
-      )) {
+      const daily = dailyByAccount.get(account.id) ?? [];
+      for (const point of aggregate(daily, granularity)) {
         values.push({ time: point.label, value: centsToYuan(point.value), type: account.name });
         labelToDate[point.label] = point.date;
       }
     }
 
     return { values, series, labelToDate, from, to };
-  }, [accounts, transactions, granularity, rangePreset, customFrom, customTo, visibleAccountIds, showTotal]);
+  }, [accounts, transactions, granularity, rangePreset, customFrom, customTo, visibleAccountIds, showTotal, focusedAccountId]);
 }

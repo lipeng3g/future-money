@@ -4,11 +4,20 @@ import { IconPlus } from '@douyinfe/semi-icons';
 import type { Account } from '@/types';
 import EmptyState from '@/components/common/EmptyState';
 import { useStore } from '@/store/useStore';
+import { balancesAt } from '@/utils/balance';
+import { today } from '@/utils/date';
 import AccountCard from './AccountCard';
 import AccountFormModal from './AccountFormModal';
 
-export default function AccountPanel() {
+interface Props {
+  /** 当前聚焦的账户 id；null 表示查看全部 */
+  focusedAccountId?: string | null;
+  onFocusAccount?: (id: string | null) => void;
+}
+
+export default function AccountPanel({ focusedAccountId, onFocusAccount }: Props) {
   const accounts = useStore((s) => s.accounts);
+  const transactions = useStore((s) => s.transactions);
   const [formVisible, setFormVisible] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
 
@@ -20,6 +29,12 @@ export default function AccountPanel() {
     [accounts],
   );
 
+  // 一次分组遍历算出所有账户余额，避免每张卡片各自全量扫描
+  const balances = useMemo(
+    () => balancesAt(accounts, transactions, today()),
+    [accounts, transactions],
+  );
+
   const openCreate = () => {
     setEditing(null);
     setFormVisible(true);
@@ -29,8 +44,21 @@ export default function AccountPanel() {
     setFormVisible(true);
   };
 
+  const focus = (id: string) => onFocusAccount?.(focusedAccountId === id ? null : id);
+
   return (
-    <div className="account-strip">
+    <div className="account-panel">
+      <div className="account-panel__head">
+        <button
+          type="button"
+          className={`account-panel__all${!focusedAccountId ? ' is-on' : ''}`}
+          onClick={() => onFocusAccount?.(null)}
+        >
+          全部账户
+        </button>
+        <span className="account-panel__count">{accounts.length}</span>
+      </div>
+
       {accounts.length === 0 ? (
         <EmptyState
           title="还没有账户"
@@ -42,18 +70,32 @@ export default function AccountPanel() {
           }
         />
       ) : (
-        <>
+        <div className="account-strip">
           {active.map((a) => (
-            <AccountCard key={a.id} account={a} onEdit={openEdit} />
+            <AccountCard
+              key={a.id}
+              account={a}
+              balance={balances.get(a.id) ?? 0}
+              onEdit={openEdit}
+              focused={focusedAccountId === a.id}
+              onFocus={onFocusAccount ? () => focus(a.id) : undefined}
+            />
           ))}
           {archived.map((a) => (
-            <AccountCard key={a.id} account={a} onEdit={openEdit} />
+            <AccountCard
+              key={a.id}
+              account={a}
+              balance={balances.get(a.id) ?? 0}
+              onEdit={openEdit}
+              focused={focusedAccountId === a.id}
+              onFocus={onFocusAccount ? () => focus(a.id) : undefined}
+            />
           ))}
           <button type="button" className="account-add" onClick={openCreate}>
             <IconPlus />
             <span>新建账户</span>
           </button>
-        </>
+        </div>
       )}
 
       <AccountFormModal
