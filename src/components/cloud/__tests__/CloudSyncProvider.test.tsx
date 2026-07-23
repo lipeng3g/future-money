@@ -109,5 +109,12 @@ describe('CloudSyncProvider', () => {
     expect(screen.getByRole('button', { name: '暂时仅保存在本机' })).toBeInTheDocument();
     expect(mocks.saveCloudVault).not.toHaveBeenCalled();
     expect(useStore.getState().accounts[0].id).toBe('local-account');
+
+    const footer = screen.getByText('分别导出备份').closest('.cloud-decision__footer');
+    expect(footer).not.toBeNull();
+    expect(footer).toHaveClass('has-remote');
+    expect(footer?.querySelector('.cloud-decision__footer-tools')).not.toBeNull();
+    expect(footer?.querySelector('.cloud-decision__footer-actions')).not.toBeNull();
+    expect(footer?.querySelectorAll('.cloud-decision__footer-actions .semi-button')).toHaveLength(3);
   });
 });

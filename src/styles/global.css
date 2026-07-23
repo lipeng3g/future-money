@@ -1398,15 +1398,35 @@ body {
   width: 100%;
 }
 
-.modal-footer__spacer {
-  flex: 1;
-}
-
 /* 自定义操作区必须通过 Modal footer 渲染，统一保留底部安全间距。 */
 .cloud-decision-modal .semi-modal-footer {
   margin-top: 20px;
   padding: 16px 24px 20px;
   border-top: 1px solid var(--semi-color-border);
+}
+
+.cloud-decision__footer {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cloud-decision__footer-tools,
+.cloud-decision__footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cloud-decision__footer-tools > span {
+  color: var(--semi-color-text-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.cloud-decision__footer-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .cloud-status-card {
@@ -1991,16 +2011,17 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .cloud-decision__actions {
+  .cloud-decision__footer-tools,
+  .cloud-decision__footer-actions {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .modal-footer__spacer {
-    display: none;
+  .cloud-decision__footer-tools > span {
+    order: -1;
   }
 
-  .cloud-decision__actions .semi-button {
+  .cloud-decision__footer .semi-button {
     width: 100%;
   }
 
