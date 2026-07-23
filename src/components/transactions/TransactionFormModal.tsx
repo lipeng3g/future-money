@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Banner,
+  Button,
   DatePicker,
   Input,
   InputNumber,
-  Modal,
   Radio,
   RadioGroup,
   Select,
+  SideSheet,
   Switch,
   Toast,
 } from '@douyinfe/semi-ui';
@@ -154,15 +155,24 @@ export default function TransactionFormModal({
   };
 
   return (
-    <Modal
+    <SideSheet
       title={isEdit ? '编辑变动' : '记一笔'}
       visible={visible}
-      onOk={handleOk}
       onCancel={onClose}
-      okText={recurring && preview ? `生成 ${preview.count} 笔` : '保存'}
-      cancelText="取消"
-      width={460}
-      bodyStyle={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto', paddingRight: 4 }}
+      width="min(520px, 100vw)"
+      className="product-sheet transaction-sheet"
+      footer={
+        <div className="sheet-footer">
+          <Button onClick={onClose}>取消</Button>
+          <Button
+            theme="solid"
+            onClick={handleOk}
+            disabled={activeAccounts.length === 0}
+          >
+            {recurring && preview ? `生成 ${preview.count} 笔` : '保存'}
+          </Button>
+        </div>
+      }
     >
       {activeAccounts.length === 0 ? (
         <Banner type="warning" description="请先创建一个账户再记录变动" />
@@ -331,6 +341,6 @@ export default function TransactionFormModal({
           )}
         </>
       )}
-    </Modal>
+    </SideSheet>
   );
 }

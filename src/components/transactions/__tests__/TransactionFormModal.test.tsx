@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { ButtonHTMLAttributes, PropsWithChildren, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TransactionFormModal from '@/components/transactions/TransactionFormModal';
 import { useStore } from '@/store/useStore';
@@ -10,14 +10,17 @@ vi.mock('@douyinfe/semi-ui', () => {
 
   return {
     Banner: ({ description }: { description?: ReactNode }) => <div>{description}</div>,
+    Button: ({ children, onClick, disabled }: PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement>>) => (
+      <button type="button" onClick={onClick} disabled={disabled}>{children}</button>
+    ),
     DatePicker: () => <div />,
     Input: () => <input />,
     InputNumber: () => <input type="number" />,
-    Modal: ({ children, visible, okText }: {
+    SideSheet: ({ children, visible, footer }: {
       children?: ReactNode;
       visible?: boolean;
-      okText?: ReactNode;
-    }) => visible ? <div>{children}<button type="button">{okText}</button></div> : null,
+      footer?: ReactNode;
+    }) => visible ? <div>{children}{footer}</div> : null,
     Radio: ({ children }: { children?: ReactNode }) => <span>{children}</span>,
     RadioGroup: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
     Select,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Modal, Popconfirm, Toast } from '@douyinfe/semi-ui';
+import { Button, Popconfirm, SideSheet, Toast } from '@douyinfe/semi-ui';
 import { IconDelete, IconEdit, IconImport, IconPlus } from '@douyinfe/semi-icons';
 import type { Category } from '@/types';
 import EmptyState from '@/components/common/EmptyState';
@@ -37,12 +37,14 @@ export default function CategoryManager({ visible, onClose }: Props) {
   };
 
   return (
-    <Modal
+    <SideSheet
       title="分类管理"
       visible={visible}
       onCancel={onClose}
+      width="min(440px, 100vw)"
+      className="product-sheet"
       footer={
-        <div className="category-footer">
+        <div className="sheet-footer category-footer">
           <Button theme="borderless" icon={<IconImport />} onClick={loadPresets}>
             载入常用分类
           </Button>
@@ -101,6 +103,6 @@ export default function CategoryManager({ visible, onClose }: Props) {
         category={editing}
         onClose={() => setFormVisible(false)}
       />
-    </Modal>
+    </SideSheet>
   );
 }

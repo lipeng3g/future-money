@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { formatMoney } from '@/utils/money';
 
 const MAX_VISIBLE_ROWS = 100;
@@ -16,6 +17,12 @@ interface PreviewRow {
 }
 
 export default function RecurrencePreviewList({ dates, amount, title = '生成数据预览' }: Props) {
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    setExpanded(false);
+  }, [dates]);
+
   const rows: Array<PreviewRow | null> =
     dates.length <= MAX_VISIBLE_ROWS
       ? dates.map((date, index) => ({ date, index }))
@@ -30,9 +37,14 @@ export default function RecurrencePreviewList({ dates, amount, title = '生成�
   const omitted = Math.max(0, dates.length - MAX_VISIBLE_ROWS);
 
   return (
-    <div className="recurrence-preview">
+    <div className={`recurrence-preview${expanded ? ' is-expanded' : ''}`}>
       <div className="recurrence-preview__head">
-        <span>{title}</span>
+        <span className="recurrence-preview__heading">
+          <strong>{title}</strong>
+          {dates.length > 0 && (
+            <span>{dates[0]} ～ {dates.at(-1)}</span>
+          )}
+        </span>
         <span>共 {dates.length} 笔</span>
       </div>
       <div className="recurrence-preview__list" role="table" aria-label={title}>
@@ -60,11 +72,21 @@ export default function RecurrencePreviewList({ dates, amount, title = '生成�
           ),
         )}
       </div>
-      {omitted > 0 && (
-        <div className="recurrence-preview__foot">
-          列表较长，显示前 {HEAD_ROWS} 笔和后 {TAIL_ROWS} 笔；确认后实际生成 {dates.length} 笔。
-        </div>
-      )}
+      <div className="recurrence-preview__foot">
+        <span>
+          {omitted > 0
+            ? `显示前 ${HEAD_ROWS} 笔和后 ${TAIL_ROWS} 笔，中间省略 ${omitted} 笔`
+            : '可滚动核对每一笔日期与金额'}
+        </span>
+        <button
+          type="button"
+          className="recurrence-preview__toggle"
+          onClick={() => setExpanded((value) => !value)}
+          aria-expanded={expanded}
+        >
+          {expanded ? '收起预览' : '展开预览'}
+        </button>
+      </div>
     </div>
   );
 }

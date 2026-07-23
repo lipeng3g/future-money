@@ -1,7 +1,15 @@
-import { Suspense, lazy, useState } from 'react';
-import { Button, Spin, Toast } from '@douyinfe/semi-ui';
-import { IconBulb, IconClose } from '@douyinfe/semi-icons';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import { Button, Spin, Toast, Tooltip } from '@douyinfe/semi-ui';
+import {
+  IconBulb,
+  IconChevronLeft,
+  IconChevronRight,
+  IconGithubLogo,
+  IconLock,
+} from '@douyinfe/semi-icons';
 import AppHeader from '@/components/layout/AppHeader';
+import ProductGuideSideSheet from '@/components/layout/ProductGuideSideSheet';
+import AccountFormModal from '@/components/accounts/AccountFormModal';
 import AccountPanel from '@/components/accounts/AccountPanel';
 import CategoryManager from '@/components/categories/CategoryManager';
 import ChartToolbar from '@/components/charts/ChartToolbar';
@@ -9,6 +17,15 @@ import LedgerTable from '@/components/charts/LedgerTable';
 import OverviewStats from '@/components/charts/OverviewStats';
 import EmptyState from '@/components/common/EmptyState';
 import DayDetailModal from '@/components/transactions/DayDetailModal';
+import TransactionFormModal from '@/components/transactions/TransactionFormModal';
+import {
+  COPYRIGHT_YEAR,
+  GITHUB_URL,
+  GUIDE_PREFERENCE_KEY,
+  PRODUCT_NAME,
+  PRODUCT_VERSION,
+  SIDEBAR_PREFERENCE_KEY,
+} from '@/config/product';
 import { useStore } from '@/store/useStore';
 
 // VChart 体积较大，按需加载以加快首屏
@@ -18,6 +35,12 @@ export default function App() {
   const [categoryVisible, setCategoryVisible] = useState(false);
   const [dayDate, setDayDate] = useState<string | null>(null);
   const [focusedAccountId, setFocusedAccountId] = useState<string | null>(null);
+  const [guideVisible, setGuideVisible] = useState(false);
+  const [headerTransactionVisible, setHeaderTransactionVisible] = useState(false);
+  const [headerAccountVisible, setHeaderAccountVisible] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => window.localStorage.getItem(SIDEBAR_PREFERENCE_KEY) === '1',
+  );
   const hasAccounts = useStore((s) => s.accounts.length > 0);
   const loadSeed = useStore((s) => s.loadSeed);
   const accounts = useStore((s) => s.accounts);
@@ -25,37 +48,91 @@ export default function App() {
     ? accounts.find((a) => a.id === focusedAccountId) ?? null
     : null;
 
+  useEffect(() => {
+    if (window.localStorage.getItem(GUIDE_PREFERENCE_KEY) !== '1') {
+      setGuideVisible(true);
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((collapsed) => {
+      const next = !collapsed;
+      window.localStorage.setItem(SIDEBAR_PREFERENCE_KEY, next ? '1' : '0');
+      return next;
+    });
+  };
+
+  const closeGuide = () => {
+    window.localStorage.setItem(GUIDE_PREFERENCE_KEY, '1');
+    setGuideVisible(false);
+  };
+
   return (
     <div className="app">
-      <AppHeader onManageCategories={() => setCategoryVisible(true)} />
+      <div className={`app-shell${sidebarCollapsed ? ' is-sidebar-collapsed' : ''}`}>
+        <AppHeader
+          onManageCategories={() => setCategoryVisible(true)}
+          onOpenGuide={() => setGuideVisible(true)}
+          accountCount={accounts.length}
+          focusedAccount={focusedAccount}
+          onClearAccountFocus={() => setFocusedAccountId(null)}
+          onPrimaryAction={() => {
+            if (hasAccounts) setHeaderTransactionVisible(true);
+            else setHeaderAccountVisible(true);
+          }}
+        />
 
-      {hasAccounts ? (
-        <div className="app-body">
-          <aside className="app-sidebar">
+        <aside className={`app-sidebar${sidebarCollapsed ? ' is-collapsed' : ''}`}>
+          <div className="sidebar-brand">
+            <div className="brand" aria-label="FutureMoney 资金未来推演">
+              <span className="brand__logo">FM</span>
+              <span className="brand__copy">
+                <span className="brand__name">FutureMoney</span>
+                <span className="brand__tagline">个人资金未来推演</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="app-sidebar__content">
             <AccountPanel
               focusedAccountId={focusedAccountId}
               onFocusAccount={setFocusedAccountId}
             />
-          </aside>
+          </div>
 
+          <div className="app-sidebar__bottom">
+            <div className="app-sidebar__footer">
+              <div className="app-sidebar__privacy"><IconLock /> 数据仅保存在本机</div>
+              <div>© {COPYRIGHT_YEAR} {PRODUCT_NAME} · v{PRODUCT_VERSION}</div>
+              <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub 开源地址</a>
+            </div>
+            <Tooltip content="在 GitHub 查看项目" position="right">
+              <a
+                className="app-sidebar__footer-compact"
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="在 GitHub 查看项目"
+              >
+                <IconGithubLogo />
+              </a>
+            </Tooltip>
+            <Tooltip content={sidebarCollapsed ? '展开账户栏' : '收起账户栏'} position="right">
+              <button
+                type="button"
+                className="sidebar-collapse-control"
+                onClick={toggleSidebar}
+                aria-label={sidebarCollapsed ? '展开账户栏' : '收起账户栏'}
+              >
+                {sidebarCollapsed ? <IconChevronRight /> : <IconChevronLeft />}
+                <span className="sidebar-collapse-control__label">收起账户栏</span>
+              </button>
+            </Tooltip>
+          </div>
+        </aside>
+
+        {hasAccounts ? (
           <main className="app-main">
-            {focusedAccount && (
-              <div className="focus-bar fm-card">
-                <span className="account-dot" style={{ background: focusedAccount.color }} />
-                <span className="focus-bar__text">
-                  聚焦查看：<strong>{focusedAccount.name}</strong>
-                </span>
-                <Button
-                  size="small"
-                  theme="borderless"
-                  type="tertiary"
-                  icon={<IconClose />}
-                  onClick={() => setFocusedAccountId(null)}
-                >
-                  查看全部
-                </Button>
-              </div>
-            )}
             <OverviewStats accountId={focusedAccountId} />
             <div className="chart-card fm-card">
               <div className="fm-card__head">
@@ -75,35 +152,46 @@ export default function App() {
             </div>
             <LedgerTable accountId={focusedAccountId} />
           </main>
-        </div>
-      ) : (
-        <main className="app-main app-main--onboarding">
-          <div className="onboarding">
-            <EmptyState
-              title="开始你的资金未来推演"
-              description="先创建第一个账户，再记录收支或周期性变动，即可看到资金走势曲线与未来预测。也可一键载入示例数据快速体验。"
-              action={
-                <Button
-                  theme="solid"
-                  icon={<IconBulb />}
-                  onClick={() => {
-                    loadSeed();
-                    Toast.success('已载入示例数据');
-                  }}
-                >
-                  载入示例数据
-                </Button>
-              }
-            />
-          </div>
-        </main>
-      )}
+        ) : (
+          <main className="app-main app-main--onboarding">
+            <div className="onboarding">
+              <EmptyState
+                title="开始你的资金未来推演"
+                description="先在左侧创建第一个账户，再记录收支或周期性变动，即可看到资金走势曲线与未来预测。也可一键载入示例数据快速体验。"
+                action={
+                  <Button
+                    theme="solid"
+                    icon={<IconBulb />}
+                    onClick={() => {
+                      loadSeed();
+                      Toast.success('已载入示例数据');
+                    }}
+                  >
+                    载入示例数据
+                  </Button>
+                }
+              />
+            </div>
+          </main>
+        )}
+      </div>
 
       <CategoryManager visible={categoryVisible} onClose={() => setCategoryVisible(false)} />
       <DayDetailModal
         visible={dayDate !== null}
         date={dayDate ?? ''}
         onClose={() => setDayDate(null)}
+      />
+      <ProductGuideSideSheet visible={guideVisible} onClose={closeGuide} />
+      <AccountFormModal
+        visible={headerAccountVisible}
+        account={null}
+        onClose={() => setHeaderAccountVisible(false)}
+      />
+      <TransactionFormModal
+        visible={headerTransactionVisible}
+        defaultAccountId={focusedAccountId ?? undefined}
+        onClose={() => setHeaderTransactionVisible(false)}
       />
     </div>
   );

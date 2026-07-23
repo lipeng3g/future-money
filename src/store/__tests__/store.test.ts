@@ -86,6 +86,40 @@ describe('transactions slice', () => {
     expect(store().series[0].end).toEqual({ kind: 'count', count: 6 });
   });
 
+  it('extendRecurring 仅对新增批次应用新参数并更新周期元数据', () => {
+    const id = store().addRecurring({
+      accountId: 'a1',
+      frequency: 'monthly',
+      interval: 1,
+      baseAmount: 100,
+      startDate: '2026-01-10',
+      end: { kind: 'count', count: 2 },
+      categoryId: 'old-category',
+      note: '旧工资',
+    });
+
+    store().extendRecurring(id, 2, {
+      baseAmount: 200,
+      categoryId: 'new-category',
+      note: '新工资',
+    });
+
+    expect(store().transactions.slice(0, 2).map((t) => [t.amount, t.categoryId, t.note])).toEqual([
+      [100, 'old-category', '旧工资'],
+      [100, 'old-category', '旧工资'],
+    ]);
+    expect(store().transactions.slice(2).map((t) => [t.amount, t.categoryId, t.note])).toEqual([
+      [200, 'new-category', '新工资'],
+      [200, 'new-category', '新工资'],
+    ]);
+    expect(store().series[0]).toMatchObject({
+      baseAmount: 200,
+      categoryId: 'new-category',
+      note: '新工资',
+      end: { kind: 'count', count: 4 },
+    });
+  });
+
   it('批量修改与批量删除', () => {
     store().addRecurring({
       accountId: 'a1',

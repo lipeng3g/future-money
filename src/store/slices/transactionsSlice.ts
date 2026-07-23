@@ -19,12 +19,22 @@ export interface ExtendRecurringResult {
   last?: string;
 }
 
+export interface ExtendRecurringPatch {
+  baseAmount: Money;
+  categoryId?: string;
+  note?: string;
+}
+
 export interface TransactionsSlice {
   transactions: Transaction[];
   series: Series[];
   addTransaction: (input: TransactionInput) => string;
   addRecurring: (input: RecurrenceInput) => string;
-  extendRecurring: (seriesId: string, count: number) => ExtendRecurringResult;
+  extendRecurring: (
+    seriesId: string,
+    count: number,
+    patch?: ExtendRecurringPatch,
+  ) => ExtendRecurringResult;
   updateTransaction: (id: string, patch: TransactionPatch) => void;
   removeTransaction: (id: string) => void;
   batchUpdateTransactions: (ids: string[], patch: TransactionPatch) => void;
@@ -66,7 +76,7 @@ export const createTransactionsSlice: SliceCreator<TransactionsSlice> = (set) =>
     return series.id;
   },
 
-  extendRecurring: (seriesId, count) => {
+  extendRecurring: (seriesId, count, patch) => {
     let result: ExtendRecurringResult = { added: 0 };
     set((s) => {
       const target = s.series.find((item) => item.id === seriesId);
@@ -83,13 +93,16 @@ export const createTransactionsSlice: SliceCreator<TransactionsSlice> = (set) =>
       if (!dates.length) return s;
 
       const now = Date.now();
+      const baseAmount = patch?.baseAmount ?? target.baseAmount;
+      const categoryId = patch ? patch.categoryId : target.categoryId;
+      const note = patch ? patch.note : target.note;
       const transactions: Transaction[] = dates.map((date) => ({
         id: uid(),
         accountId: target.accountId,
         date,
-        amount: target.baseAmount,
-        categoryId: target.categoryId,
-        note: target.note,
+        amount: baseAmount,
+        categoryId,
+        note,
         seriesId: target.id,
         createdAt: now,
         updatedAt: now,
@@ -99,7 +112,9 @@ export const createTransactionsSlice: SliceCreator<TransactionsSlice> = (set) =>
       return {
         transactions: [...s.transactions, ...transactions],
         series: s.series.map((item) =>
-          item.id === seriesId ? { ...item, end: extension.end } : item,
+          item.id === seriesId
+            ? { ...item, end: extension.end, baseAmount, categoryId, note }
+            : item,
         ),
       };
     });

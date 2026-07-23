@@ -14,13 +14,30 @@ vi.mock('@douyinfe/semi-ui', () => {
       <button type="button" onClick={onClick} disabled={disabled}>{children}</button>
     ),
     Checkbox: ({ children }: { children?: ReactNode }) => <label><input type="checkbox" />{children}</label>,
-    InputNumber: () => <input type="number" />,
-    Modal: ({ children, visible, onOk, okText }: {
+    Input: ({ value, onChange }: { value?: string; onChange?: (value: string) => void }) => (
+      <input
+        aria-label="续期备注"
+        value={value ?? ''}
+        onChange={(event) => onChange?.(event.target.value)}
+      />
+    ),
+    InputNumber: ({ value, onNumberChange, prefix }: {
+      value?: number;
+      onNumberChange?: (value: number) => void;
+      prefix?: ReactNode;
+    }) => (
+      <input
+        type="number"
+        aria-label={prefix === '¥' ? '续期金额' : '新增期数'}
+        value={value ?? 0}
+        onChange={(event) => onNumberChange?.(Number(event.target.value))}
+      />
+    ),
+    SideSheet: ({ children, visible, footer }: {
       children?: ReactNode;
       visible?: boolean;
-      onOk?: () => void;
-      okText?: ReactNode;
-    }) => visible ? <div>{children}{onOk && <button type="button" onClick={onOk}>{okText}</button>}</div> : null,
+      footer?: ReactNode;
+    }) => visible ? <div>{children}{footer}</div> : null,
     Popconfirm: ({ children }: { children?: ReactNode }) => <>{children}</>,
     Radio: ({ children }: { children?: ReactNode }) => <span>{children}</span>,
     RadioGroup: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
@@ -57,10 +74,16 @@ describe('SeriesManageModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '查看并确认' }));
     expect(await screen.findByRole('table', { name: '待新增数据' })).toBeInTheDocument();
+    expect(screen.getAllByText('+¥100.00')).toHaveLength(12);
+    fireEvent.change(screen.getByRole('spinbutton', { name: '续期金额' }), {
+      target: { value: '300' },
+    });
+    expect(screen.getAllByText('+¥300.00')).toHaveLength(12);
     fireEvent.click(screen.getByRole('button', { name: '生成 12 笔' }));
 
     expect(useStore.getState().transactions).toHaveLength(14);
     expect(useStore.getState().series).toHaveLength(1);
+    expect(useStore.getState().transactions.slice(-12).every((t) => t.amount === 30000)).toBe(true);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@douyinfe/semi-ui';
-import { IconPlus } from '@douyinfe/semi-icons';
+import { IconHome, IconPlus } from '@douyinfe/semi-icons';
 import type { Account } from '@/types';
 import EmptyState from '@/components/common/EmptyState';
 import { useStore } from '@/store/useStore';
@@ -49,15 +49,20 @@ export default function AccountPanel({ focusedAccountId, onFocusAccount }: Props
   return (
     <div className="account-panel">
       <div className="account-panel__head">
-        <button
-          type="button"
-          className={`account-panel__all${!focusedAccountId ? ' is-on' : ''}`}
-          onClick={() => onFocusAccount?.(null)}
-        >
-          全部账户
-        </button>
+        <span className="account-panel__title">账户</span>
         <span className="account-panel__count">{accounts.length}</span>
       </div>
+
+      <button
+        type="button"
+        className={`account-panel__all${!focusedAccountId ? ' is-on' : ''}`}
+        onClick={() => onFocusAccount?.(null)}
+        aria-label="查看全部账户"
+        title="查看全部账户"
+      >
+        <span className="account-panel__all-icon"><IconHome /></span>
+        <span className="account-panel__all-label">全部账户</span>
+      </button>
 
       {accounts.length === 0 ? (
         <EmptyState
@@ -93,7 +98,7 @@ export default function AccountPanel({ focusedAccountId, onFocusAccount }: Props
           ))}
           <button type="button" className="account-add" onClick={openCreate}>
             <IconPlus />
-            <span>新建账户</span>
+            <span className="account-add__label">新建账户</span>
           </button>
         </div>
       )}

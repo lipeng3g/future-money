@@ -247,7 +247,7 @@ export default function LedgerTable({ accountId: focusedAccountId }: { accountId
           ))}
         </Select>
         <Button
-          theme="solid"
+          theme="light"
           icon={<IconPlus />}
           onClick={openCreate}
           style={{ marginLeft: 'auto' }}

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import RecurrencePreviewList from '@/components/transactions/RecurrencePreviewList';
 
@@ -10,6 +10,10 @@ describe('RecurrencePreviewList', () => {
     expect(screen.getByText('共 3 笔')).toBeInTheDocument();
     dates.forEach((date) => expect(screen.getByText(date)).toBeInTheDocument());
     expect(screen.getAllByText('-¥4,000.00')).toHaveLength(3);
+    const toggle = screen.getByRole('button', { name: '展开预览' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(toggle);
+    expect(screen.getByRole('button', { name: '收起预览' })).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('长列表显示首尾并明确中间省略数量', () => {

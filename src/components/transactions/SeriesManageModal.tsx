@@ -3,12 +3,13 @@ import {
   Banner,
   Button,
   Checkbox,
+  Input,
   InputNumber,
-  Modal,
   Popconfirm,
   Radio,
   RadioGroup,
   Select,
+  SideSheet,
   Table,
   Toast,
 } from '@douyinfe/semi-ui';
@@ -66,6 +67,10 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
   const [newCategoryId, setNewCategoryId] = useState<string | undefined>();
   const [extendCount, setExtendCount] = useState(12);
   const [extendConfirmVisible, setExtendConfirmVisible] = useState(false);
+  const [extendDirection, setExtendDirection] = useState<'in' | 'out'>('in');
+  const [extendAmount, setExtendAmount] = useState(0);
+  const [extendCategoryId, setExtendCategoryId] = useState<string | undefined>();
+  const [extendNote, setExtendNote] = useState('');
 
   useEffect(() => {
     if (!visible) return;
@@ -77,6 +82,10 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
     setDirection('in');
     setExtendCount(12);
     setExtendConfirmVisible(false);
+    setExtendDirection((target?.baseAmount ?? 0) < 0 ? 'out' : 'in');
+    setExtendAmount(Math.abs((target?.baseAmount ?? 0) / 100));
+    setExtendCategoryId(target?.categoryId);
+    setExtendNote(target?.note ?? '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, seriesId]);
 
@@ -95,6 +104,8 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
     () => (target ? extendRecurrence(target, latestDate, extendCount) : null),
     [target, latestDate, extendCount],
   );
+  const extendSignedAmount =
+    yuanToCents(extendAmount || 0) * (extendDirection === 'out' ? -1 : 1);
 
   const handleUpdate = () => {
     if (selected.length === 0) {
@@ -127,7 +138,15 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
 
   const handleExtend = () => {
     if (!target) return;
-    const result = extendRecurring(target.id, extendCount);
+    if (!extendAmount || extendAmount <= 0) {
+      Toast.warning('请输入大于 0 的续期金额');
+      return;
+    }
+    const result = extendRecurring(target.id, extendCount, {
+      baseAmount: extendSignedAmount,
+      categoryId: extendCategoryId,
+      note: extendNote.trim() || undefined,
+    });
     if (!result.added) {
       Toast.warning('没有生成新的周期记录');
       return;
@@ -153,10 +172,46 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
     { title: '备注', dataIndex: 'note', render: (n: string) => n || '—' },
   ];
 
+  const footer = extendConfirmVisible ? (
+    <div className="sheet-footer">
+      <Button onClick={() => setExtendConfirmVisible(false)}>返回修改</Button>
+      <Button theme="solid" onClick={handleExtend}>
+        生成 {extensionPreview?.dates.length ?? 0} 笔
+      </Button>
+    </div>
+  ) : (
+    <div className="sheet-footer sheet-footer--split">
+      <Popconfirm
+        title={`删除选中的 ${selected.length} 笔记录`}
+        okType="danger"
+        okText="删除"
+        cancelText="取消"
+        disabled={selected.length === 0}
+        onConfirm={handleDelete}
+      >
+        <Button theme="borderless" type="danger" disabled={selected.length === 0}>
+          删除选中
+        </Button>
+      </Popconfirm>
+      <div className="sheet-footer__actions">
+        <Button onClick={onClose}>取消</Button>
+        <Button theme="solid" onClick={handleUpdate} disabled={selected.length === 0}>
+          应用修改
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
-    <>
-    <Modal title="管理周期组" visible={visible} onCancel={onClose} footer={null} width={640}>
-      {target && (
+    <SideSheet
+      title={extendConfirmVisible ? '确认继续生成' : '管理周期组'}
+      visible={visible}
+      onCancel={extendConfirmVisible ? () => setExtendConfirmVisible(false) : onClose}
+      width="min(720px, 100vw)"
+      className="product-sheet series-sheet"
+      footer={footer}
+    >
+      {target && !extendConfirmVisible && (
         <div className="series-manage">
           <Banner
             type="info"
@@ -260,57 +315,75 @@ export default function SeriesManageModal({ visible, seriesId, onClose }: Props)
             </div>
           </div>
 
-          <div className="series-manage__footer">
-            <Popconfirm
-              title={`删除选中的 ${selected.length} 笔记录`}
-              okType="danger"
-              okText="删除"
-              cancelText="取消"
-              disabled={selected.length === 0}
-              onConfirm={handleDelete}
-            >
-              <Button theme="borderless" type="danger" disabled={selected.length === 0}>
-                删除选中
-              </Button>
-            </Popconfirm>
-            <div className="series-manage__footer-right">
-              <Button onClick={onClose}>取消</Button>
-              <Button theme="solid" onClick={handleUpdate} disabled={selected.length === 0}>
-                应用修改
-              </Button>
-            </div>
-          </div>
         </div>
       )}
-    </Modal>
-    <Modal
-      title="确认继续生成"
-      visible={visible && extendConfirmVisible}
-      onOk={handleExtend}
-      onCancel={() => setExtendConfirmVisible(false)}
-      okText={`生成 ${extensionPreview?.dates.length ?? 0} 笔`}
-      cancelText="返回修改"
-      width={500}
-      bodyStyle={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto', paddingRight: 4 }}
-    >
-      {target && extensionPreview && (
+      {target && extensionPreview && extendConfirmVisible && (
         <div className="series-extend-confirm">
           <Banner
-            type="warning"
+            type="info"
             closeIcon={null}
             description={
               `${accName} · ${formatRecurrenceRule(target.frequency, target.interval)}` +
-              ` · ${formatMoney(target.baseAmount, { withSign: true })}`
+              ' · 仅新增记录使用以下参数，已有记录保持不变'
             }
           />
+          <div className="form-row">
+            <div className="form-field form-field--grow">
+              <label className="form-label">方向</label>
+              <RadioGroup
+                type="button"
+                value={extendDirection}
+                onChange={(e) => setExtendDirection(e.target.value as 'in' | 'out')}
+              >
+                <Radio value="in">存入</Radio>
+                <Radio value="out">取出</Radio>
+              </RadioGroup>
+            </div>
+            <div className="form-field form-field--grow">
+              <label className="form-label">新批次金额（元）</label>
+              <InputNumber
+                value={extendAmount}
+                onNumberChange={setExtendAmount}
+                min={0}
+                precision={2}
+                prefix="¥"
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+          <div className="form-field">
+            <label className="form-label">新批次分类（可选）</label>
+            <Select
+              value={extendCategoryId}
+              onChange={(value) => setExtendCategoryId(value as string | undefined)}
+              placeholder="不分类"
+              style={{ width: '100%' }}
+              showClear
+            >
+              {categories.map((category) => (
+                <Select.Option key={category.id} value={category.id}>
+                  {category.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">新批次备注（可选）</label>
+            <Input
+              value={extendNote}
+              onChange={setExtendNote}
+              placeholder="如 调薪后工资"
+              maxLength={50}
+              showClear
+            />
+          </div>
           <RecurrencePreviewList
             dates={extensionPreview.dates}
-            amount={target.baseAmount}
+            amount={extendSignedAmount}
             title="待新增数据"
           />
         </div>
       )}
-    </Modal>
-    </>
+    </SideSheet>
   );
 }
