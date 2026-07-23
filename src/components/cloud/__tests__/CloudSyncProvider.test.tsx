@@ -76,7 +76,11 @@ describe('CloudSyncProvider', () => {
     expect(screen.getByText('1 个账户')).toBeInTheDocument();
     expect(mocks.saveCloudVault).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: '上传本机数据' }));
+    const uploadButton = screen.getByRole('button', { name: '上传本机数据' });
+    expect(uploadButton.closest('.semi-modal-footer')).not.toBeNull();
+    expect(uploadButton.closest('.semi-modal-body')).toBeNull();
+
+    fireEvent.click(uploadButton);
     await waitFor(() => expect(mocks.saveCloudVault).toHaveBeenCalledWith(localData, 0));
     expect(await screen.findByRole('button', { name: '云端已同步' })).toBeInTheDocument();
     expect(window.localStorage.getItem(userPersistKey('user-1'))).toContain('local-account');

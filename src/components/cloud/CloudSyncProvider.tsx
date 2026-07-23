@@ -443,7 +443,17 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         closable={false}
         maskClosable={false}
         width={620}
-        footer={null}
+        footer={decision ? (
+          <div className="modal-footer cloud-decision__actions">
+            <Button icon={<IconDownload />} onClick={exportDecisionData}>分别导出备份</Button>
+            <span className="modal-footer__spacer" />
+            <Button onClick={() => void keepLocalOnly()}>暂时仅保存在本机</Button>
+            {decision.remote && <Button onClick={chooseCloud}>使用云端数据</Button>}
+            <Button theme="solid" onClick={() => void chooseLocal()}>
+              {decision.remote ? '用本机数据覆盖云端' : '上传本机数据'}
+            </Button>
+          </div>
+        ) : null}
         className="cloud-decision-modal"
       >
         {decision && (
@@ -459,15 +469,6 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
                 data={decision.remote?.data ?? null}
                 updatedAt={decision.remote?.updatedAt}
               />
-            </div>
-            <div className="cloud-decision__actions">
-              <Button icon={<IconDownload />} onClick={exportDecisionData}>分别导出备份</Button>
-              <span className="cloud-decision__spacer" />
-              <Button onClick={() => void keepLocalOnly()}>暂时仅保存在本机</Button>
-              {decision.remote && <Button onClick={chooseCloud}>使用云端数据</Button>}
-              <Button theme="solid" onClick={() => void chooseLocal()}>
-                {decision.remote ? '用本机数据覆盖云端' : '上传本机数据'}
-              </Button>
             </div>
           </div>
         )}

@@ -1391,16 +1391,22 @@ body {
   color: var(--semi-color-text-2) !important;
 }
 
-.cloud-decision__actions {
+.modal-footer {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-top: 16px;
-  border-top: 1px solid var(--semi-color-border);
+  width: 100%;
 }
 
-.cloud-decision__spacer {
+.modal-footer__spacer {
   flex: 1;
+}
+
+/* 自定义操作区必须通过 Modal footer 渲染，统一保留底部安全间距。 */
+.cloud-decision-modal .semi-modal-footer {
+  margin-top: 20px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--semi-color-border);
 }
 
 .cloud-status-card {
@@ -1990,7 +1996,7 @@ body {
     flex-direction: column;
   }
 
-  .cloud-decision__spacer {
+  .modal-footer__spacer {
     display: none;
   }
 
