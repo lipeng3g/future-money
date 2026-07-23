@@ -17,6 +17,7 @@
 | 09 | [产品外壳与首次使用体验](./09-产品外壳与首次使用体验.md) | 可收缩侧栏、顶栏分级、工作抽屉、首次说明与产品信息 |
 | 10 | [用户注册与 Cloudflare 云端存储](./10-用户注册与Cloudflare云端存储.md) | Pages、Functions、D1、Better Auth、加密快照与本地优先同步 |
 | 11 | [Cloudflare Pages 工程骨架实施](./11-Cloudflare工程骨架实施.md) | 阶段 A 的 Pages Functions 改造、部署步骤与验收标准 |
+| 12 | [用户认证与邮件验证实施](./12-用户认证与邮件验证实施.md) | 阶段 B 的 Better Auth、会话、Turnstile、事务邮件与认证界面 |
 
 ## 一句话概括
 

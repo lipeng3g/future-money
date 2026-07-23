@@ -157,7 +157,7 @@ curl -I http://127.0.0.1:8788/ledger/history
 - [x] 推送 GitHub main；
 - [x] 等待 Pages 自动部署；
 - [x] 原地址线上验收；
-- [ ] 用户确认后清理临时 Worker。
+- [x] 用户确认后清理临时 Worker。
 
 ### 本地验收结果
 
@@ -181,3 +181,4 @@ curl -I http://127.0.0.1:8788/ledger/history
 - 浏览器实页确认 React 正常挂载，顶栏、侧栏、资金区和账本均已渲染；
 - 浏览器控制台无错误；
 - 没有创建第二个 GitHub 部署 workflow，Cloudflare Pages Git 集成仍是唯一生产发布链路。
+- 临时 `future-money.lipeng-3g.workers.dev` Worker 已删除并返回 `404`；Pages 项目和 D1 均未受影响。
