@@ -24,7 +24,7 @@ React + TypeScript + Vite · Semi Design · VChart · Zustand · Hono · Cloudfl
 
 <https://future-money.pages.dev>
 
-当前部署使用 Cloudflare Pages，GitHub `main` 推送后自动构建；Pages Functions 将复用已创建的 APAC D1。资金数据仍只保存在当前浏览器，用户登录和云同步将在后续阶段接入。
+当前部署使用 Cloudflare Pages，GitHub `main` 推送后自动构建；Pages Functions 复用已创建的 APAC D1。资金数据仍只保存在当前浏览器，用户登录和云同步将在后续阶段接入。
 
 ## 开发
 

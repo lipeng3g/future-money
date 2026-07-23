@@ -154,9 +154,9 @@ curl -I http://127.0.0.1:8788/ledger/history
 - [x] 确认保留 `future-money.pages.dev`；
 - [x] 将本地未推送实现改为 Pages Functions；
 - [x] 本地 Pages 全链路验收；
-- [ ] 推送 GitHub main；
-- [ ] 等待 Pages 自动部署；
-- [ ] 原地址线上验收；
+- [x] 推送 GitHub main；
+- [x] 等待 Pages 自动部署；
+- [x] 原地址线上验收；
 - [ ] 用户确认后清理临时 Worker。
 
 ### 本地验收结果
@@ -169,3 +169,15 @@ curl -I http://127.0.0.1:8788/ledger/history
 - 本地未知 API 返回 JSON `404`；
 - 本地 `/ledger/history` 返回 SPA 页面；
 - 56 项测试通过，本地验收服务已关闭。
+
+### 线上验收结果
+
+- GitHub 提交 `fe65ae5` 已触发 Pages 生产部署；
+- GitHub Actions CI 已完成且结论为 `success`；
+- 正式地址保持为 <https://future-money.pages.dev>；
+- `/api/v1/health` 返回 `200`、`status: ok` 和 `database: ok`；
+- 未知 `/api/*` 返回 JSON `404`；
+- `/ledger/history` 返回 SPA 页面；
+- 浏览器实页确认 React 正常挂载，顶栏、侧栏、资金区和账本均已渲染；
+- 浏览器控制台无错误；
+- 没有创建第二个 GitHub 部署 workflow，Cloudflare Pages Git 集成仍是唯一生产发布链路。
