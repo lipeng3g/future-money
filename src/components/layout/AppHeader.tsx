@@ -2,6 +2,7 @@ import { useRef, useState, type ChangeEvent } from 'react';
 import { Button, Dropdown, Modal, Toast, Tooltip } from '@douyinfe/semi-ui';
 import {
   IconApps,
+  IconCloud,
   IconDelete,
   IconExport,
   IconGithubLogo,
@@ -24,6 +25,7 @@ import { today } from '@/utils/date';
 import ImportConfirmModal from './ImportConfirmModal';
 import AuthSideSheet from '@/components/auth/AuthSideSheet';
 import { authClient } from '@/services/authClient';
+import { useCloudSync } from '@/components/cloud/CloudSyncProvider';
 
 interface Props {
   onManageCategories: () => void;
@@ -51,6 +53,7 @@ export default function AppHeader({
   const [pending, setPending] = useState<AppData | null>(null);
   const [authVisible, setAuthVisible] = useState(false);
   const { data: session, isPending: sessionPending } = authClient.useSession();
+  const cloudSync = useCloudSync();
 
   const handleExport = () => {
     const data = exportData();
@@ -127,6 +130,9 @@ export default function AppHeader({
     <Dropdown.Menu>
       <Dropdown.Title>{session.user.name || session.user.email}</Dropdown.Title>
       <Dropdown.Item disabled>{session.user.email}</Dropdown.Item>
+      <Dropdown.Item icon={<IconCloud />} onClick={cloudSync.openSettings}>
+        数据存储与同步
+      </Dropdown.Item>
       <Dropdown.Divider />
       <Dropdown.Item
         onClick={async () => {
@@ -246,15 +252,28 @@ export default function AppHeader({
         </Tooltip>
 
         {session ? (
-          <Dropdown trigger="click" position="bottomRight" render={userMenu}>
-            <Button
-              className="header-action header-action--auth"
-              icon={<IconUser />}
-              aria-label="用户账号"
-            >
-              {session.user.name || session.user.email.split('@')[0]}
-            </Button>
-          </Dropdown>
+          <>
+            <Tooltip content={cloudSync.detail}>
+              <Button
+                className={`header-sync-status is-${cloudSync.status}`}
+                theme="borderless"
+                type={cloudSync.status === 'conflict' || cloudSync.status === 'error' ? 'danger' : 'tertiary'}
+                icon={<IconCloud />}
+                onClick={cloudSync.status === 'conflict' ? cloudSync.openResolution : cloudSync.openSettings}
+              >
+                {cloudSync.label}
+              </Button>
+            </Tooltip>
+            <Dropdown trigger="click" position="bottomRight" render={userMenu}>
+              <Button
+                className="header-action header-action--auth"
+                icon={<IconUser />}
+                aria-label="用户账号"
+              >
+                {session.user.name || session.user.email.split('@')[0]}
+              </Button>
+            </Dropdown>
+          </>
         ) : (
           <Button
             className="header-action header-action--auth"

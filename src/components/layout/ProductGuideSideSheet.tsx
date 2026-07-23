@@ -27,7 +27,7 @@ const STEPS = [
   },
   {
     title: '定期导出备份',
-    description: '数据只保存在当前浏览器本机，建议定期导出 JSON 文件。',
+    description: '本机始终保留数据；即使启用云同步，也建议定期导出 JSON 备份。',
   },
 ];
 
@@ -50,7 +50,7 @@ export default function ProductGuideSideSheet({ visible, onClose }: Props) {
         <div className="guide-hero__mark">FM</div>
         <div>
           <h2>把未来收支变成看得见的资金曲线</h2>
-          <p>四步熟悉核心流程，不需要注册，也不会上传你的财务数据。</p>
+          <p>四步熟悉核心流程；游客模式不会上传数据，登录后也由你决定是否启用云同步。</p>
         </div>
       </div>
 
@@ -69,8 +69,8 @@ export default function ProductGuideSideSheet({ visible, onClose }: Props) {
       <div className="guide-privacy">
         <IconLock />
         <div>
-          <strong>数据仅保存在本机</strong>
-          <span>清理浏览器数据前请先导出备份；本项目不提供云端恢复能力。</span>
+          <strong>本地优先，可选加密云同步</strong>
+          <span>登录不会自动覆盖或上传账本；首次启用时会明确询问，并在冲突时保留双方版本。</span>
         </div>
       </div>
 

@@ -27,11 +27,13 @@ import {
   SIDEBAR_PREFERENCE_KEY,
 } from '@/config/product';
 import { useStore } from '@/store/useStore';
+import { useCloudSync } from '@/components/cloud/CloudSyncProvider';
 
 // VChart 体积较大，按需加载以加快首屏
 const BalanceChart = lazy(() => import('@/components/charts/BalanceChart'));
 
 export default function App() {
+  const cloudSync = useCloudSync();
   const [categoryVisible, setCategoryVisible] = useState(false);
   const [dayDate, setDayDate] = useState<string | null>(null);
   const [focusedAccountId, setFocusedAccountId] = useState<string | null>(null);
@@ -125,7 +127,13 @@ export default function App() {
 
           <div className="app-sidebar__bottom">
             <div className="app-sidebar__footer">
-              <div className="app-sidebar__privacy"><IconLock /> 数据仅保存在本机</div>
+              <button
+                type="button"
+                className={`app-sidebar__privacy is-${cloudSync.status}`}
+                onClick={cloudSync.openSettings}
+              >
+                <IconLock /> {cloudSync.label}
+              </button>
               <div>© {COPYRIGHT_YEAR} {PRODUCT_NAME} · v{PRODUCT_VERSION}</div>
               <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub 开源地址</a>
             </div>

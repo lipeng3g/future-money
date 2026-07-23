@@ -163,6 +163,23 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.app-sidebar__privacy:hover {
+  color: var(--semi-color-primary);
+}
+
+.app-sidebar__privacy.is-conflict,
+.app-sidebar__privacy.is-error {
+  color: var(--semi-color-danger);
 }
 
 .app-sidebar__footer-compact {
@@ -345,6 +362,25 @@ body {
 
 .header-action {
   white-space: nowrap;
+}
+
+.header-sync-status {
+  max-width: 190px;
+  white-space: nowrap;
+}
+
+.header-sync-status.is-synced {
+  color: var(--semi-color-success);
+}
+
+.header-sync-status.is-syncing,
+.header-sync-status.is-loading {
+  color: var(--semi-color-primary);
+}
+
+.header-sync-status.is-choice-needed,
+.header-sync-status.is-offline {
+  color: var(--semi-color-warning);
 }
 
 .auth-sheet__intro {
@@ -1311,6 +1347,129 @@ body {
   font-size: 12px;
 }
 
+/* ===== 云端存储与冲突处理 ===== */
+.cloud-decision {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cloud-version-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cloud-version-card {
+  display: flex;
+  min-height: 132px;
+  flex-direction: column;
+  gap: 7px;
+  padding: 16px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: 12px;
+  background: var(--semi-color-bg-1);
+}
+
+.cloud-version-card > strong {
+  margin-bottom: 3px;
+  font-size: 14px;
+}
+
+.cloud-version-card > span {
+  color: var(--semi-color-text-1);
+  font-size: 13px;
+}
+
+.cloud-version-card > small {
+  margin-top: auto;
+  color: var(--semi-color-text-2);
+}
+
+.cloud-version-card__empty {
+  margin: auto 0;
+  color: var(--semi-color-text-2) !important;
+}
+
+.cloud-decision__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--semi-color-border);
+}
+
+.cloud-decision__spacer {
+  flex: 1;
+}
+
+.cloud-status-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: 14px;
+  background: var(--semi-color-fill-0);
+}
+
+.cloud-status-card__icon {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: var(--semi-color-primary-light-default);
+  color: var(--semi-color-primary);
+  font-size: 18px;
+}
+
+.cloud-status-card p {
+  margin: 4px 0 0;
+  color: var(--semi-color-text-2);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.cloud-status-card.is-synced .cloud-status-card__icon {
+  background: var(--semi-color-success-light-default);
+  color: var(--semi-color-success);
+}
+
+.cloud-status-card.is-conflict .cloud-status-card__icon,
+.cloud-status-card.is-error .cloud-status-card__icon {
+  background: var(--semi-color-danger-light-default);
+  color: var(--semi-color-danger);
+}
+
+.cloud-settings-list {
+  margin-top: 20px;
+  border-top: 1px solid var(--semi-color-border);
+}
+
+.cloud-settings-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 2px;
+  border-bottom: 1px solid var(--semi-color-border);
+  font-size: 13px;
+}
+
+.cloud-settings-list span {
+  color: var(--semi-color-text-2);
+}
+
+.cloud-settings-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 24px;
+}
+
 /* ===== 使用说明 / 关于 ===== */
 .guide-hero {
   display: flex;
@@ -1785,6 +1944,7 @@ body {
   .header-action--categories,
   .header-action--auth,
   .header-action--settings,
+  .header-sync-status,
   .header-primary-action {
     width: 32px;
     padding-inline: 6px;
@@ -1793,6 +1953,7 @@ body {
   .header-action--categories .semi-button-content-right,
   .header-action--auth .semi-button-content-right,
   .header-action--settings .semi-button-content-right,
+  .header-sync-status .semi-button-content-right,
   .header-primary-action .semi-button-content-right {
     display: none;
   }
@@ -1820,6 +1981,23 @@ body {
 }
 
 @media (max-width: 480px) {
+  .cloud-version-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cloud-decision__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cloud-decision__spacer {
+    display: none;
+  }
+
+  .cloud-decision__actions .semi-button {
+    width: 100%;
+  }
+
   .app-header {
     gap: 6px;
   }

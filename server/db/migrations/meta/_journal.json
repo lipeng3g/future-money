@@ -15,6 +15,13 @@
       "when": 1784780291536,
       "tag": "0001_chubby_prowler",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784795288656,
+      "tag": "0002_wise_ikaris",
+      "breakpoints": true
     }
   ]
 }

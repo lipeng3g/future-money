@@ -9,7 +9,15 @@ import { createTransactionsSlice } from './slices/transactionsSlice';
 import { createSeedData } from '@/utils/seed';
 import type { Store } from './types';
 
-const PERSIST_KEY = 'future-money';
+const LEGACY_PERSIST_KEY = 'future-money';
+export const GUEST_PERSIST_KEY = 'future-money:guest';
+
+if (typeof window !== 'undefined') {
+  const legacy = window.localStorage.getItem(LEGACY_PERSIST_KEY);
+  if (legacy && !window.localStorage.getItem(GUEST_PERSIST_KEY)) {
+    window.localStorage.setItem(GUEST_PERSIST_KEY, legacy);
+  }
+}
 
 export const useStore = create<Store>()(
   persist(
@@ -48,7 +56,7 @@ export const useStore = create<Store>()(
       };
     },
     {
-      name: PERSIST_KEY,
+      name: GUEST_PERSIST_KEY,
       version: DATA_VERSION,
       merge: (persistedState, currentState) => {
         const saved = persistedState as Partial<Store> & { chartRangeVersion?: number };
@@ -82,6 +90,90 @@ export const useStore = create<Store>()(
   ),
 );
 
-if (typeof window !== 'undefined' && !window.localStorage.getItem(PERSIST_KEY)) {
+if (typeof window !== 'undefined' && !window.localStorage.getItem(GUEST_PERSIST_KEY)) {
   useStore.setState(createSeedData());
+}
+
+export function userPersistKey(userId: string): string {
+  return `future-money:user:${encodeURIComponent(userId)}`;
+}
+
+export function readScopeData(userId: string | null): AppData | null {
+  if (typeof window === 'undefined') return null;
+  const persisted = readPersistedState(userId ? userPersistKey(userId) : GUEST_PERSIST_KEY);
+  if (!persisted) return null;
+  const candidate = {
+    version: DATA_VERSION,
+    accounts: persisted.accounts,
+    transactions: persisted.transactions,
+    series: persisted.series,
+    categories: persisted.categories,
+  };
+  if (
+    !Array.isArray(candidate.accounts)
+    || !Array.isArray(candidate.transactions)
+    || !Array.isArray(candidate.series)
+    || !Array.isArray(candidate.categories)
+  ) return null;
+  return candidate as AppData;
+}
+
+export function activateStoreScope(userId: string | null, fallbackData?: AppData): AppData {
+  const key = userId ? userPersistKey(userId) : GUEST_PERSIST_KEY;
+  const persisted = typeof window === 'undefined' ? null : readPersistedState(key);
+  const fallback = fallbackData ?? (userId ? emptyAppData() : createSeedData());
+  const next = {
+    ...initialSettings,
+    accounts: fallback.accounts,
+    transactions: fallback.transactions,
+    series: fallback.series,
+    categories: fallback.categories,
+    ...(persisted ?? {}),
+  };
+
+  useStore.persist.setOptions({ name: key });
+  useStore.setState(next);
+  return useStore.getState().exportData();
+}
+
+export function replaceScopeData(userId: string, data: AppData): AppData {
+  const key = userPersistKey(userId);
+  useStore.persist.setOptions({ name: key });
+  useStore.setState({
+    accounts: data.accounts,
+    transactions: data.transactions,
+    series: data.series,
+    categories: data.categories,
+  });
+  return useStore.getState().exportData();
+}
+
+export function removeUserScope(userId: string): void {
+  if (typeof window !== 'undefined') window.localStorage.removeItem(userPersistKey(userId));
+}
+
+export function hasFinancialData(data: AppData | null): boolean {
+  return Boolean(data && (
+    data.accounts.length
+    || data.transactions.length
+    || data.series.length
+    || data.categories.length
+  ));
+}
+
+function emptyAppData(): AppData {
+  return { version: DATA_VERSION, accounts: [], transactions: [], series: [], categories: [] };
+}
+
+function readPersistedState(key: string): Partial<Store> | null {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { state?: unknown };
+    return typeof parsed.state === 'object' && parsed.state !== null
+      ? parsed.state as Partial<Store>
+      : null;
+  } catch {
+    return null;
+  }
 }
