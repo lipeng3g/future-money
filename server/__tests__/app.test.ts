@@ -47,4 +47,16 @@ describe('Pages Functions API', () => {
       message: 'API endpoint not found',
     });
   });
+
+  it('fails closed when authentication secret is missing', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const response = await app.request('/api/auth/get-session', {}, { DB: createDatabase(null) });
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: 'auth_unavailable',
+      message: 'Authentication service is unavailable',
+    });
+  });
 });

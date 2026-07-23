@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:pages": "wrangler pages dev dist --d1 DB --port 8788",
+    "dev:pages": "wrangler pages dev dist --port 8788",
     "build": "tsc -b && vite build",
-    "build:functions": "wrangler pages functions build functions --outdir .wrangler/pages-functions --project-directory . --build-output-directory dist --compatibility-date 2026-07-23",
+    "build:functions": "wrangler pages functions build functions --outdir .wrangler/pages-functions --project-directory . --build-output-directory dist --compatibility-date 2026-07-23 --compatibility-flag nodejs_compat",
     "preview": "vite preview",
     "cf:types": "wrangler types",
     "db:generate": "drizzle-kit generate",
@@ -22,6 +22,7 @@
     "@douyinfe/semi-ui": "^2.100.0",
     "@visactor/react-vchart": "^2.1.1",
     "@visactor/vchart": "^2.1.1",
+    "better-auth": "^1.6.24",
     "dayjs": "^1.11.21",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.31",
@@ -30,6 +31,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@better-auth/cli": "^1.4.21",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^26.0.1",
