@@ -1,14 +1,16 @@
 import { Hono } from 'hono';
-import { AuthConfigurationError, createAuth, type AuthBindings } from './auth/createAuth';
+import {
+  AuthConfigurationError,
+  createAuth,
+  getAuthProviderAvailability,
+  type AuthBindings,
+} from './auth/createAuth';
 
 const app = new Hono<{ Bindings: AuthBindings }>();
 
 app.on(['GET', 'POST'], '/api/auth/*', async (context) => {
-  if (isDisabledEmailAction(context.req.raw, context.env)) {
-    return context.json(
-      { error: 'auth_email_unavailable', message: 'Email registration is not available yet' },
-      503,
-    );
+  if (isLegacyEmailAuthPath(new URL(context.req.url).pathname)) {
+    return context.json({ error: 'not_found', message: 'API endpoint not found' }, 404);
   }
 
   try {
@@ -26,15 +28,23 @@ app.on(['GET', 'POST'], '/api/auth/*', async (context) => {
   }
 });
 
-function isDisabledEmailAction(request: Request, bindings: AuthBindings): boolean {
-  if (request.method !== 'POST' || bindings.AUTH_EMAIL_ENABLED === '1') return false;
-  const pathname = new URL(request.url).pathname;
-  return [
+function isLegacyEmailAuthPath(pathname: string): boolean {
+  return pathname.startsWith('/api/auth/reset-password') || [
     '/api/auth/sign-up/email',
+    '/api/auth/sign-in/email',
     '/api/auth/request-password-reset',
     '/api/auth/send-verification-email',
+    '/api/auth/verify-email',
+    '/api/auth/change-email',
   ].includes(pathname);
 }
+
+app.get('/api/v1/auth/providers', (context) => {
+  const providers = getAuthProviderAvailability(context.env);
+  return context.json({ providers }, 200, {
+    'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+  });
+});
 
 app.get('/api/v1/health', async (context) => {
   const checkedAt = new Date().toISOString();

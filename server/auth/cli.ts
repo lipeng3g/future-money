@@ -11,14 +11,4 @@ export const auth = betterAuth({
   database: drizzleAdapter(drizzle({} as D1Database), {
     provider: 'sqlite',
   }),
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: true,
-    minPasswordLength: 10,
-    maxPasswordLength: 128,
-  },
-  emailVerification: {
-    sendOnSignUp: true,
-    autoSignInAfterVerification: true,
-  },
 });

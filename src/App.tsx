@@ -54,6 +54,17 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('auth') !== 'oauth-error') return;
+
+    Toast.error('授权登录未完成，本地资金数据未受影响');
+    url.searchParams.delete('auth');
+    url.searchParams.delete('error');
+    url.searchParams.delete('error_description');
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  }, []);
+
   const toggleSidebar = () => {
     setSidebarCollapsed((collapsed) => {
       const next = !collapsed;

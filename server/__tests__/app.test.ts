@@ -60,39 +60,36 @@ describe('Pages Functions API', () => {
     });
   });
 
-  it('blocks registration while the email feature is disabled', async () => {
+  it('does not expose legacy email authentication routes', async () => {
     const response = await app.request(
       '/api/auth/sign-up/email',
       { method: 'POST' },
       { DB: createDatabase(null) },
     );
 
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
-      error: 'auth_email_unavailable',
-      message: 'Email registration is not available yet',
+      error: 'not_found',
+      message: 'API endpoint not found',
     });
   });
 
-  it('requires a Turnstile response when email auth is enabled', async () => {
+  it('reports only fully configured social providers', async () => {
     const response = await app.request(
-      '/api/auth/sign-in/email',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'user@example.com', password: '1234567890' }),
-      },
+      '/api/v1/auth/providers',
+      {},
       {
         DB: createDatabase(null),
-        BETTER_AUTH_SECRET: 'local-test-secret-with-at-least-32-characters',
-        AUTH_EMAIL_ENABLED: '1',
-        TURNSTILE_SECRET_KEY: 'turnstile-test-secret',
-        RESEND_API_KEY: 'resend-test-key',
-        AUTH_FROM_EMAIL: 'FutureMoney <no-reply@example.com>',
+        GITHUB_CLIENT_ID: 'github-client-id',
+        GITHUB_CLIENT_SECRET: 'github-client-secret',
+        GOOGLE_CLIENT_ID: 'google-client-id',
       },
     );
 
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toMatchObject({ code: 'MISSING_RESPONSE' });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      providers: { github: true, google: false },
+    });
+    expect(response.headers.get('Cache-Control')).toContain('max-age=60');
   });
 });

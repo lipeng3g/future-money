@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Toast } from '@douyinfe/semi-ui';
-import type { ChangeEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AuthSideSheet from '@/components/auth/AuthSideSheet';
 
-const { signInEmail } = vi.hoisted(() => ({
-  signInEmail: vi.fn(),
+const { fetchProviders, signInSocial } = vi.hoisted(() => ({
+  fetchProviders: vi.fn(),
+  signInSocial: vi.fn(),
 }));
 
 vi.mock('@douyinfe/semi-ui', () => ({
@@ -13,29 +14,17 @@ vi.mock('@douyinfe/semi-ui', () => ({
   Button: ({
     children,
     onClick,
+    disabled,
     'aria-label': ariaLabel,
   }: {
     children?: ReactNode;
     onClick?: () => void;
+    disabled?: boolean;
     'aria-label'?: string;
-  }) => <button type="button" aria-label={ariaLabel} onClick={onClick}>{children}</button>,
-  Input: ({
-    value,
-    onChange,
-    placeholder,
-    type,
-  }: {
-    value: string;
-    onChange: (value: string) => void;
-    placeholder?: string;
-    type?: string;
   }) => (
-    <input
-      value={value}
-      placeholder={placeholder}
-      type={type}
-      onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
-    />
+    <button type="button" aria-label={ariaLabel} disabled={disabled} onClick={onClick}>
+      {children}
+    </button>
   ),
   SideSheet: ({
     visible,
@@ -54,21 +43,17 @@ vi.mock('@douyinfe/semi-ui', () => ({
       <footer>{footer}</footer>
     </section>
   ) : null,
+  Spin: () => <span>loading</span>,
   Toast: {
-    warning: vi.fn(),
     error: vi.fn(),
-    success: vi.fn(),
   },
 }));
 
 vi.mock('@/services/authClient', () => ({
   authClient: {
-    requestPasswordReset: vi.fn(),
-    signIn: { email: signInEmail },
-    signUp: { email: vi.fn() },
+    signIn: { social: signInSocial },
   },
-  authEmailActionsEnabled: false,
-  turnstileSiteKey: '',
+  fetchAuthProviders: fetchProviders,
 }));
 
 describe('AuthSideSheet', () => {
@@ -76,73 +61,54 @@ describe('AuthSideSheet', () => {
     vi.clearAllMocks();
   });
 
-  it('默认展示登录，并在邮件服务开放前隐藏注册和找回入口', () => {
+  it('只展示服务端已配置的社交登录方式', async () => {
+    fetchProviders.mockResolvedValue({ github: true, google: false });
     render(<AuthSideSheet visible onClose={vi.fn()} />);
 
     expect(screen.getByText('登录 FutureMoney')).toBeInTheDocument();
-    expect(screen.getByText('登录不会上传本地资金数据')).toBeInTheDocument();
-    expect(screen.getByText(/邮箱注册与找回密码将在发信域名验证后开放/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '创建账号' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '忘记密码' })).not.toBeInTheDocument();
+    expect(screen.getByText('授权登录不会上传本地资金数据')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: '使用 GitHub 登录' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '使用 Google 登录' })).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('name@example.com')).not.toBeInTheDocument();
   });
 
-  it('密码少于 10 位时不发起登录请求', () => {
-    const warning = vi.spyOn(Toast, 'warning').mockImplementation(() => '');
+  it('没有配置 Provider 时保留可用的游客模式提示', async () => {
+    fetchProviders.mockResolvedValue({ github: false, google: false });
     render(<AuthSideSheet visible onClose={vi.fn()} />);
 
-    fireEvent.change(screen.getByPlaceholderText('name@example.com'), {
-      target: { value: 'user@example.com' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('至少 10 位'), {
-      target: { value: '123456789' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '登录' }));
-
-    expect(warning).toHaveBeenCalledWith('密码至少需要 10 位');
-    expect(signInEmail).not.toHaveBeenCalled();
+    expect(await screen.findByText(/社交账号授权正在配置中/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '暂不登录' })).toBeInTheDocument();
   });
 
-  it('登录时规范化邮箱，成功后关闭抽屉', async () => {
-    const onClose = vi.fn();
-    vi.spyOn(Toast, 'success').mockImplementation(() => '');
-    signInEmail.mockResolvedValue({ data: {}, error: null });
-    render(<AuthSideSheet visible onClose={onClose} />);
+  it('使用正式地址发起 GitHub OAuth', async () => {
+    fetchProviders.mockResolvedValue({ github: true, google: true });
+    signInSocial.mockResolvedValue({ data: { redirect: true }, error: null });
+    render(<AuthSideSheet visible onClose={vi.fn()} />);
 
-    fireEvent.change(screen.getByPlaceholderText('name@example.com'), {
-      target: { value: '  User@Example.COM  ' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('至少 10 位'), {
-      target: { value: '1234567890' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '登录' }));
+    fireEvent.click(await screen.findByRole('button', { name: '使用 GitHub 登录' }));
 
     await waitFor(() => {
-      expect(signInEmail).toHaveBeenCalledWith({
-        email: 'user@example.com',
-        password: '1234567890',
-        rememberMe: true,
+      expect(signInSocial).toHaveBeenCalledWith({
+        provider: 'github',
+        callbackURL: window.location.origin,
+        newUserCallbackURL: window.location.origin,
+        errorCallbackURL: `${window.location.origin}/?auth=oauth-error`,
       });
-      expect(onClose).toHaveBeenCalledOnce();
     });
   });
 
-  it('登录失败使用统一提示且保持抽屉打开', async () => {
-    const onClose = vi.fn();
+  it('授权入口失败时提示错误且允许重试', async () => {
     const error = vi.spyOn(Toast, 'error').mockImplementation(() => '');
-    signInEmail.mockResolvedValue({ data: null, error: { message: 'server detail' } });
-    render(<AuthSideSheet visible onClose={onClose} />);
+    fetchProviders.mockResolvedValue({ github: true, google: false });
+    signInSocial.mockResolvedValue({ data: null, error: { message: 'provider unavailable' } });
+    render(<AuthSideSheet visible onClose={vi.fn()} />);
 
-    fireEvent.change(screen.getByPlaceholderText('name@example.com'), {
-      target: { value: 'user@example.com' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('至少 10 位'), {
-      target: { value: '1234567890' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '登录' }));
+    const button = await screen.findByRole('button', { name: '使用 GitHub 登录' });
+    fireEvent.click(button);
 
     await waitFor(() => {
-      expect(error).toHaveBeenCalledWith('邮箱或密码不正确，或邮箱尚未完成验证');
-      expect(onClose).not.toHaveBeenCalled();
+      expect(error).toHaveBeenCalledWith('暂时无法开始授权登录，请稍后重试');
+      expect(button).toBeEnabled();
     });
   });
 });
