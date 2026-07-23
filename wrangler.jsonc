@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "future-money",
+  "compatibility_date": "2026-07-23",
+  "pages_build_output_dir": "./dist",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "future-money",
+      "database_id": "3e537bf8-1ca7-4e03-aff7-ad34430b4fa9",
+      "migrations_dir": "server/db/migrations"
+    }
+  ]
+}

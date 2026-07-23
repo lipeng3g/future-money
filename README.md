@@ -6,7 +6,7 @@
 
 ## 这是什么
 
-一个**纯前端、离线可用**的个人资金规划工具：
+一个**本地优先、离线可用**的个人资金规划工具：
 
 - 管理多个账户（现金、理财等），各自有初始余额与起始日；
 - 录入一次性 / 周期性（日·周·月·季·半年·年）的收支；
@@ -18,7 +18,13 @@
 
 ## 技术栈
 
-React + TypeScript + Vite · Semi Design · VChart · Zustand · dayjs · Vitest
+React + TypeScript + Vite · Semi Design · VChart · Zustand · Hono · Cloudflare Pages/D1 · Vitest
+
+## 在线体验
+
+<https://future-money.pages.dev>
+
+当前部署使用 Cloudflare Pages，GitHub `main` 推送后自动构建；Pages Functions 将复用已创建的 APAC D1。资金数据仍只保存在当前浏览器，用户登录和云同步将在后续阶段接入。
 
 ## 开发
 
@@ -29,6 +35,17 @@ npm run test       # 运行单元测试（Vitest）
 npm run build      # 类型检查 + 构建静态产物到 dist/
 npm run preview    # 预览构建产物
 ```
+
+Cloudflare 工程骨架使用现有 Pages 项目提供 SPA，并由 Pages Functions 提供 `/api/*`。首次启动前初始化本地 D1：
+
+```bash
+npm run db:migrate:local
+npm run build
+npm run dev:pages
+curl http://localhost:8788/api/v1/health
+```
+
+远程 D1 已绑定在 `wrangler.jsonc`。数据库 schema 更新后，先在本地验证，再执行 `npm run db:migrate:remote`；当前无需配置生产密钥。
 
 ## 使用指南
 
@@ -46,4 +63,4 @@ npm run preview    # 预览构建产物
 
 ## 当前状态
 
-✅ M0~M6 全部实现：脚手架、数据层、账户与分类、图表与表格、变动录入、周期组批量管理、备份与打磨。里程碑详情见 [`docs/06-实施计划与里程碑.md`](./docs/06-实施计划与里程碑.md)。
+✅ M0~M6 全部实现，并完成 Cloudflare 工程骨架阶段：脚手架、数据层、账户与分类、图表与表格、周期组管理、备份、Pages Functions 和 D1。里程碑详情见 [`docs/06-实施计划与里程碑.md`](./docs/06-实施计划与里程碑.md) 与 [`docs/11-Cloudflare工程骨架实施.md`](./docs/11-Cloudflare工程骨架实施.md)。

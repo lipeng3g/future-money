@@ -6,5 +6,10 @@ dist
 pnpm-lock.yaml
 yarn.lock
 *.tsbuildinfo
+.wrangler/
+.dev.vars
+.env
+.env.*
+!.env.example
 temp/
 .workbuddy/

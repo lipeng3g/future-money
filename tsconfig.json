@@ -21,5 +21,13 @@
     },
     "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["src", "vite.config.ts", "vitest.setup.ts"]
+  "include": [
+    "src",
+    "functions",
+    "server",
+    "worker-configuration.d.ts",
+    "vite.config.ts",
+    "drizzle.config.ts",
+    "vitest.setup.ts"
+  ]
 }
