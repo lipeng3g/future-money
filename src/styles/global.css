@@ -347,6 +347,151 @@ body {
   white-space: nowrap;
 }
 
+.auth-sheet__intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--semi-color-fill-0);
+}
+
+.auth-sheet__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: var(--semi-color-primary-light-default);
+  color: var(--semi-color-primary);
+}
+
+.auth-sheet__intro p,
+.auth-sheet__result p {
+  margin: 4px 0 0;
+  color: var(--semi-color-text-2);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.auth-sheet__switches {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.auth-sheet__result {
+  padding: 36px 20px;
+  text-align: center;
+}
+
+.auth-sheet__result > .semi-icon {
+  color: var(--semi-color-primary);
+  font-size: 32px;
+}
+
+.auth-sheet__result h3 {
+  margin: 14px 0 0;
+}
+
+.auth-turnstile {
+  display: flex;
+  min-height: 65px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.auth-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 20% 10%, var(--semi-color-primary-light-default), transparent 32%),
+    var(--semi-color-bg-0);
+}
+
+.auth-page__card {
+  position: relative;
+  display: flex;
+  width: min(100%, 460px);
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: 20px;
+  background: var(--semi-color-bg-1);
+  box-shadow: var(--fm-card-shadow);
+  text-align: center;
+}
+
+.auth-page__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 18px;
+  border-radius: 16px;
+  background: var(--semi-color-primary-light-default);
+  color: var(--semi-color-primary);
+  font-size: 26px;
+}
+
+.auth-page__icon.is-error {
+  background: var(--semi-color-danger-light-default);
+  color: var(--semi-color-danger);
+}
+
+.auth-page__card > .brand__logo {
+  position: absolute;
+  margin-top: -26px;
+  margin-left: 72px;
+  width: 26px;
+  height: 26px;
+  border: 3px solid var(--semi-color-bg-1);
+  border-radius: 9px;
+  font-size: 8px;
+}
+
+.auth-page__card h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.auth-page__card > p {
+  margin: 12px 0 24px;
+  color: var(--semi-color-text-2);
+  line-height: 1.7;
+}
+
+.auth-page__card--form {
+  align-items: stretch;
+  text-align: left;
+}
+
+.auth-page__card--form .auth-page__icon {
+  align-self: center;
+}
+
+.auth-page__card--form > .brand__logo {
+  align-self: center;
+}
+
+.auth-page__card--form h1,
+.auth-page__card--form > p {
+  text-align: center;
+}
+
+.auth-page__card--form > .semi-button + .semi-button {
+  margin-top: 8px;
+}
+
 .header-icon-action {
   flex: 0 0 auto;
 }
@@ -1709,6 +1854,7 @@ body {
   }
 
   .header-action--categories,
+  .header-action--auth,
   .header-action--settings,
   .header-primary-action {
     width: 32px;
@@ -1716,6 +1862,7 @@ body {
   }
 
   .header-action--categories .semi-button-content-right,
+  .header-action--auth .semi-button-content-right,
   .header-action--settings .semi-button-content-right,
   .header-primary-action .semi-button-content-right {
     display: none;
@@ -1759,6 +1906,15 @@ body {
 
   .brand__name {
     font-size: 14px;
+  }
+
+  .auth-page {
+    padding: 12px;
+  }
+
+  .auth-page__card {
+    padding: 28px 20px;
+    border-radius: 16px;
   }
 
   .header-actions {

@@ -35,4 +35,23 @@ describe('createAuth', () => {
 
     expect(auth.handler).toBeTypeOf('function');
   });
+
+  it('fails closed when email auth is enabled without all provider settings', () => {
+    expect(() => createAuth({
+      ...createBindings('local-test-secret-with-at-least-32-characters'),
+      AUTH_EMAIL_ENABLED: '1',
+    }, { emailSender })).toThrowError(new AuthConfigurationError('AUTH_EMAIL_INCOMPLETE'));
+  });
+
+  it('enables email auth when Turnstile and mail settings are complete', () => {
+    const auth = createAuth({
+      ...createBindings('local-test-secret-with-at-least-32-characters'),
+      AUTH_EMAIL_ENABLED: '1',
+      TURNSTILE_SECRET_KEY: 'turnstile-test-secret',
+      RESEND_API_KEY: 'resend-test-key',
+      AUTH_FROM_EMAIL: 'FutureMoney <no-reply@example.com>',
+    }, { emailSender });
+
+    expect(auth.handler).toBeTypeOf('function');
+  });
 });

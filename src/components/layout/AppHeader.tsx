@@ -12,6 +12,7 @@ import {
   IconRestart,
   IconSetting,
   IconSun,
+  IconUser,
 } from '@douyinfe/semi-icons';
 import type { Account, AppData } from '@/types';
 import type { ImportMode } from '@/store/types';
@@ -21,6 +22,8 @@ import { useStore } from '@/store/useStore';
 import { exportToFile, importFromFile } from '@/utils/backup';
 import { today } from '@/utils/date';
 import ImportConfirmModal from './ImportConfirmModal';
+import AuthSideSheet from '@/components/auth/AuthSideSheet';
+import { authClient } from '@/services/authClient';
 
 interface Props {
   onManageCategories: () => void;
@@ -46,6 +49,8 @@ export default function AppHeader({
   const loadSeed = useStore((s) => s.loadSeed);
   const fileRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<AppData | null>(null);
+  const [authVisible, setAuthVisible] = useState(false);
+  const { data: session, isPending: sessionPending } = authClient.useSession();
 
   const handleExport = () => {
     const data = exportData();
@@ -117,6 +122,30 @@ export default function AppHeader({
       </Dropdown.Item>
     </Dropdown.Menu>
   );
+
+  const userMenu = session ? (
+    <Dropdown.Menu>
+      <Dropdown.Title>{session.user.name || session.user.email}</Dropdown.Title>
+      <Dropdown.Item disabled>{session.user.email}</Dropdown.Item>
+      <Dropdown.Divider />
+      <Dropdown.Item
+        onClick={async () => {
+          try {
+            const result = await authClient.signOut();
+            if (result.error) {
+              Toast.error('退出失败，请稍后重试');
+              return;
+            }
+            Toast.success('已退出登录，本地资金数据保持不变');
+          } catch {
+            Toast.error('网络连接失败，请稍后重试');
+          }
+        }}
+      >
+        退出登录
+      </Dropdown.Item>
+    </Dropdown.Menu>
+  ) : null;
 
   return (
     <header className="app-header">
@@ -216,6 +245,29 @@ export default function AppHeader({
           />
         </Tooltip>
 
+        {session ? (
+          <Dropdown trigger="click" position="bottomRight" render={userMenu}>
+            <Button
+              className="header-action header-action--auth"
+              icon={<IconUser />}
+              aria-label="用户账号"
+            >
+              {session.user.name || session.user.email.split('@')[0]}
+            </Button>
+          </Dropdown>
+        ) : (
+          <Button
+            className="header-action header-action--auth"
+            theme="borderless"
+            type="tertiary"
+            icon={<IconUser />}
+            loading={sessionPending}
+            onClick={() => setAuthVisible(true)}
+          >
+            登录
+          </Button>
+        )}
+
         <Dropdown trigger="click" position="bottomRight" render={dataMenu}>
           <Button
             className="header-action header-action--settings"
@@ -239,6 +291,7 @@ export default function AppHeader({
         onConfirm={handleConfirmImport}
         onClose={() => setPending(null)}
       />
+      <AuthSideSheet visible={authVisible} onClose={() => setAuthVisible(false)} />
     </header>
   );
 }

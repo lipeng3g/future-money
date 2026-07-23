@@ -4,6 +4,13 @@ import { AuthConfigurationError, createAuth, type AuthBindings } from './auth/cr
 const app = new Hono<{ Bindings: AuthBindings }>();
 
 app.on(['GET', 'POST'], '/api/auth/*', async (context) => {
+  if (isDisabledEmailAction(context.req.raw, context.env)) {
+    return context.json(
+      { error: 'auth_email_unavailable', message: 'Email registration is not available yet' },
+      503,
+    );
+  }
+
   try {
     return await createAuth(context.env).handler(context.req.raw);
   } catch (error) {
@@ -18,6 +25,16 @@ app.on(['GET', 'POST'], '/api/auth/*', async (context) => {
     throw error;
   }
 });
+
+function isDisabledEmailAction(request: Request, bindings: AuthBindings): boolean {
+  if (request.method !== 'POST' || bindings.AUTH_EMAIL_ENABLED === '1') return false;
+  const pathname = new URL(request.url).pathname;
+  return [
+    '/api/auth/sign-up/email',
+    '/api/auth/request-password-reset',
+    '/api/auth/send-verification-email',
+  ].includes(pathname);
+}
 
 app.get('/api/v1/health', async (context) => {
   const checkedAt = new Date().toISOString();

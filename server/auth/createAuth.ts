@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { captcha } from 'better-auth/plugins';
 import { drizzle } from 'drizzle-orm/d1';
 import * as authSchema from '../db/auth-schema';
 import {
@@ -10,6 +11,8 @@ import {
 
 export interface AuthBindings extends Env, AuthEmailBindings {
   BETTER_AUTH_SECRET?: string;
+  AUTH_EMAIL_ENABLED?: string;
+  TURNSTILE_SECRET_KEY?: string;
 }
 
 interface CreateAuthDependencies {
@@ -17,10 +20,19 @@ interface CreateAuthDependencies {
 }
 
 export class AuthConfigurationError extends Error {
-  readonly code: 'AUTH_SECRET_MISSING' | 'AUTH_SECRET_TOO_SHORT';
+  readonly code:
+    | 'AUTH_SECRET_MISSING'
+    | 'AUTH_SECRET_TOO_SHORT'
+    | 'AUTH_EMAIL_INCOMPLETE';
 
   constructor(code: AuthConfigurationError['code']) {
-    super(code === 'AUTH_SECRET_MISSING' ? 'Authentication secret is missing' : 'Authentication secret is too short');
+    super(
+      code === 'AUTH_SECRET_MISSING'
+        ? 'Authentication secret is missing'
+        : code === 'AUTH_SECRET_TOO_SHORT'
+          ? 'Authentication secret is too short'
+          : 'Authentication email feature configuration is incomplete',
+    );
     this.name = 'AuthConfigurationError';
     this.code = code;
   }
@@ -31,7 +43,10 @@ export function createAuth(
   dependencies: CreateAuthDependencies = {},
 ) {
   const secret = requireAuthSecret(bindings.BETTER_AUTH_SECRET);
+  const emailFeatureEnabled = bindings.AUTH_EMAIL_ENABLED === '1';
+  if (emailFeatureEnabled) requireEmailFeatureConfiguration(bindings);
   const emailSender = dependencies.emailSender ?? createAuthEmailSender(bindings);
+  const turnstileSecret = bindings.TURNSTILE_SECRET_KEY?.trim();
 
   return betterAuth({
     appName: 'FutureMoney',
@@ -80,10 +95,36 @@ export function createAuth(
     verification: {
       storeIdentifier: 'hashed',
     },
+    plugins: turnstileSecret
+      ? [
+          captcha({
+            provider: 'cloudflare-turnstile',
+            secretKey: turnstileSecret,
+            endpoints: [
+              '/sign-up/email',
+              '/sign-in/email',
+              '/request-password-reset',
+              '/send-verification-email',
+            ],
+            expectedAction: 'futuremoney-auth',
+            allowedHostnames: ['future-money.pages.dev'],
+          }),
+        ]
+      : [],
     advanced: {
       cookiePrefix: 'future-money',
     },
   });
+}
+
+function requireEmailFeatureConfiguration(bindings: AuthBindings): void {
+  if (
+    !bindings.TURNSTILE_SECRET_KEY?.trim()
+    || !bindings.RESEND_API_KEY?.trim()
+    || !bindings.AUTH_FROM_EMAIL?.trim()
+  ) {
+    throw new AuthConfigurationError('AUTH_EMAIL_INCOMPLETE');
+  }
 }
 
 function requireAuthSecret(value: string | undefined): string {
