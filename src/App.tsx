@@ -58,7 +58,19 @@ export default function App() {
     const url = new URL(window.location.href);
     if (url.searchParams.get('auth') !== 'oauth-error') return;
 
-    Toast.error('授权登录未完成，本地资金数据未受影响');
+    const errorCode = url.searchParams.get('error');
+    const message = errorCode === 'invalid_code'
+      ? 'GitHub 授权已失效，请重新登录'
+      : errorCode === 'email_not_found'
+        ? 'GitHub 账号需要设置一个已验证邮箱后才能登录'
+        : errorCode === 'unable_to_get_user_info'
+          ? '暂时无法读取 GitHub 账号资料，请稍后重试'
+          : errorCode === 'state_mismatch'
+            ? '登录状态已过期，请重新发起授权'
+            : errorCode === 'oauth_provider_not_found'
+              ? 'GitHub 登录配置尚未生效，请稍后重试'
+              : '授权登录未完成，本地资金数据未受影响';
+    Toast.error(message);
     url.searchParams.delete('auth');
     url.searchParams.delete('error');
     url.searchParams.delete('error_description');
